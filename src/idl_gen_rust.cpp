@@ -1104,14 +1104,30 @@ class RustGenerator : public BaseGenerator {
       } else {
         // A value not present in the schema (e.g. written by a newer peer) has
         // no variant name; serialize it as its numeric discriminant rather than
-        // panicking, preserving forward compatibility. `self.0 as u32` (rather
-        // than `u32::from`) keeps this compiling for signed and 64-bit enum
-        // underlying types (e.g. `byte`/`long`), which `From` does not cover.
+        // panicking, preserving forward compatibility. Pick the discriminant
+        // expression so the generated serde is clippy-clean:
+        //   * u32 base   -> `self.0`            (no clippy::unnecessary_cast)
+        //   * u8/u16 base-> `u32::from(self.0)` (no clippy::cast_lossless)
+        //   * signed/64-bit base (`byte`/`long`) -> `self.0 as u32`, which
+        //     `From` does not cover and which clippy does not flag.
+        const std::string serde_disc_ty =
+            GetEnumTypeForDecl(enum_def.underlying_type);
+        std::string serde_disc;
+        if (serde_disc_ty == "u32") {
+          serde_disc = "self.0";
+        } else if (serde_disc_ty == "u8" || serde_disc_ty == "u16") {
+          serde_disc = "u32::from(self.0)";
+        } else {
+          serde_disc = "self.0 as u32";
+        }
+        code_.SetValue("SERDE_DISCRIMINANT", serde_disc);
         code_ += "        match self.variant_name() {";
         code_ +=
             "            Some(name) => serializer.serialize_unit_variant("
-            "\"{{ENUM_TY}}\", self.0 as u32, name),";
-        code_ += "            None => serializer.serialize_u32(self.0 as u32),";
+            "\"{{ENUM_TY}}\", {{SERDE_DISCRIMINANT}}, name),";
+        code_ +=
+            "            None => "
+            "serializer.serialize_u32({{SERDE_DISCRIMINANT}}),";
         code_ += "        }";
       }
       code_ += "    }";
@@ -1431,6 +1447,29 @@ class RustGenerator : public BaseGenerator {
   }
 
   enum DefaultContext { kBuilder, kAccessor, kObject };
+  // Group a decimal integer-literal string with underscores every three digits
+  // from the right (e.g. "600000" -> "600_000", "-1000000" -> "-1_000_000") so
+  // generated scalar defaults are free of clippy::unreadable_literal. Values
+  // shorter than five digits, or anything that is not a plain signed decimal,
+  // are returned unchanged.
+  static std::string GroupIntLiteral(const std::string& v) {
+    const size_t start =
+        (!v.empty() && (v[0] == '-' || v[0] == '+')) ? 1 : 0;
+    const std::string digits = v.substr(start);
+    if (digits.size() < 5 ||
+        digits.find_first_not_of("0123456789") != std::string::npos) {
+      return v;
+    }
+    std::string out = v.substr(0, start);  // optional sign
+    const size_t lead = (digits.size() - 1) % 3 + 1;  // 1..3 leading digits
+    out += digits.substr(0, lead);
+    for (size_t i = lead; i < digits.size(); i += 3) {
+      out += "_";
+      out += digits.substr(i, 3);
+    }
+    return out;
+  }
+
   std::string GetDefaultValue(const FieldDef& field,
                               const DefaultContext context) {
     if (context == kBuilder) {
@@ -1449,7 +1488,7 @@ class RustGenerator : public BaseGenerator {
     }
     switch (GetFullType(field.value.type)) {
       case ftInteger: {
-        return field.value.constant;
+        return GroupIntLiteral(field.value.constant);
       }
       case ftFloat: {
         const std::string float_prefix =
@@ -2652,24 +2691,49 @@ class RustGenerator : public BaseGenerator {
             code_.SetValue("UNION_TYPE_METHOD",
                            namer_.LegacyRustUnionTypeMethod(field));
 
-            code_ += "    match self.{{UNION_TYPE_METHOD}}() {";
-            code_ += "        {{ENUM_TY}}::NONE => (),";
-            ForAllUnionObjectVariantsBesidesNone(enum_def, [&] {
-              code_.SetValue("FIELD", namer_.Field(field));
-              code_ += "        {{ENUM_TY}}::{{VARIANT_NAME}} => {";
-              code_ +=
-                  "            let f = "
-                  "self.{{FIELD}}_as_{{U_ELEMENT_NAME}}()";
-              code_ +=
-                  "                .expect(\"Invalid union table, expected "
-                  "`{{ENUM_TY}}::{{VARIANT_NAME}}`.\");";
-              code_ += "            s.serialize_field(\"{{FIELD}}\", &f)?;";
-              code_ += "        }";
-            });
-            // Unknown union variant (e.g. from a newer peer): skip it rather
-            // than panicking, preserving forward compatibility.
-            code_ += "        _ => (),";
-            code_ += "    }";
+            // A single-variant union would make `match { V => .., _ => () }`
+            // trip clippy::single_match, so emit an `if` for that case; a
+            // multi-variant union keeps the `match` (with a `_ => ()` arm that
+            // skips unknown variants from newer peers, preserving forward
+            // compatibility). cargo fmt normalizes the emitted indentation.
+            size_t union_variant_count = 0;
+            for (auto vit = enum_def.Vals().begin();
+                 vit != enum_def.Vals().end(); ++vit) {
+              if ((*vit)->union_type.base_type != BASE_TYPE_NONE)
+                union_variant_count++;
+            }
+            if (union_variant_count == 1) {
+              ForAllUnionObjectVariantsBesidesNone(enum_def, [&] {
+                code_.SetValue("FIELD", namer_.Field(field));
+                code_ +=
+                    "    if self.{{UNION_TYPE_METHOD}}() == "
+                    "{{ENUM_TY}}::{{VARIANT_NAME}} {";
+                code_ +=
+                    "        let f = "
+                    "self.{{FIELD}}_as_{{U_ELEMENT_NAME}}()";
+                code_ +=
+                    "            .expect(\"Invalid union table, expected "
+                    "`{{ENUM_TY}}::{{VARIANT_NAME}}`.\");";
+                code_ += "        s.serialize_field(\"{{FIELD}}\", &f)?;";
+                code_ += "    }";
+              });
+            } else {
+              code_ += "    match self.{{UNION_TYPE_METHOD}}() {";
+              ForAllUnionObjectVariantsBesidesNone(enum_def, [&] {
+                code_.SetValue("FIELD", namer_.Field(field));
+                code_ += "        {{ENUM_TY}}::{{VARIANT_NAME}} => {";
+                code_ +=
+                    "            let f = "
+                    "self.{{FIELD}}_as_{{U_ELEMENT_NAME}}()";
+                code_ +=
+                    "                .expect(\"Invalid union table, expected "
+                    "`{{ENUM_TY}}::{{VARIANT_NAME}}`.\");";
+                code_ += "            s.serialize_field(\"{{FIELD}}\", &f)?;";
+                code_ += "        }";
+              });
+              code_ += "        _ => (),";
+              code_ += "    }";
+            }
           } else {
             code_ +=
                 "    s.serialize_field(\"{{FIELD}}\", "
