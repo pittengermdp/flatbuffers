@@ -882,7 +882,7 @@ struct IDLOptions {
         require_explicit_ids(false),
         rust_serialize(false),
         rust_module_root_file(false),
-        rust_object_api_hashable_floats(false),
+        rust_object_api_hashable_floats(true),
         lang_to_generate(0),
         set_empty_strings_to_null(true),
         set_empty_vectors_to_null(true),

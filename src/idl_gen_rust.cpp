@@ -3896,6 +3896,17 @@ class RustGenerator : public BaseGenerator {
   // emitted, which are not Eq/Hash. HashMap and HashSet (map_entry/set_entry
   // vector fields) never implement Eq/Hash. A type is hashable only if every
   // field it transitively contains is hashable.
+  //
+  // `visited` tracks the structs currently on the DFS stack (i.e. the path
+  // from the root type down to the type being examined right now), not every
+  // struct ever seen. A struct is inserted when we enter it and erased when
+  // we leave, via PathGuard below. This still breaks true cycles (a struct
+  // that recursively contains itself is assumed hashable at the recursive
+  // edge, same as before), but it stops a completed sibling branch from
+  // "poisoning" a later, unrelated branch that happens to reference the same
+  // struct: once a branch returns, its entries are gone, so the next branch
+  // that reaches that struct re-derives its hashability from scratch instead
+  // of reusing a stale membership check left over from a different call path.
   bool TypeIsHashable(const StructDef& struct_def) const {
     std::set<const StructDef*> visited;
     return StructIsHashable(struct_def, &visited);
@@ -3906,11 +3917,37 @@ class RustGenerator : public BaseGenerator {
     return UnionIsHashable(enum_def, &visited);
   }
 
+  // RAII helper: inserts `key` into `*set` on construction and erases it on
+  // destruction, so every return path out of a function correctly pops the
+  // DFS-path entry without needing to duplicate the erase at each return.
+  class PathGuard {
+   public:
+    PathGuard(std::set<const StructDef*>* set, const StructDef* key)
+        : set_(set), key_(key), inserted_(set->insert(key).second) {}
+    ~PathGuard() {
+      if (inserted_) set_->erase(key_);
+    }
+    // Whether `key` was newly inserted (false means it was already on the
+    // current DFS path, i.e. we've found a real cycle back to an ancestor).
+    bool IsNewOnPath() const { return inserted_; }
+    PathGuard(const PathGuard&) = delete;
+    PathGuard& operator=(const PathGuard&) = delete;
+
+   private:
+    std::set<const StructDef*>* set_;
+    const StructDef* key_;
+    bool inserted_;
+  };
+
   bool StructIsHashable(const StructDef& struct_def,
                         std::set<const StructDef*>* visited) const {
-    // Recursive types are assumed hashable to break the cycle; any disqualifying
-    // field is still detected at the type's own frame.
-    if (!visited->insert(&struct_def).second) return true;
+    PathGuard guard(visited, &struct_def);
+    // Recursive types (a genuine ancestor on the current DFS path) are
+    // assumed hashable to break the cycle; any disqualifying field reachable
+    // without recursing back here is still detected below, and the struct's
+    // own fields get a fresh, independent check the next time some other,
+    // unrelated branch reaches it (guard erases this entry on return).
+    if (!guard.IsNewOnPath()) return true;
     for (auto* field : struct_def.fields.vec) {
       if (field->deprecated) continue;
       if (IsMapField(*field) || IsSetField(*field)) return false;
