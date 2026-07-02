@@ -3956,9 +3956,8 @@ class CppGenerator : public BaseGenerator {
                     "(_fbb, &_e, _rehasher)); } ";
             code += "return _fbb.CreateVector(_v); }()";
           } else {
-            const auto* kf = GetEntryKeyField(entry);
             const auto* vf = GetEntryValueField(entry);
-            FLATBUFFERS_ASSERT(kf && vf);
+            FLATBUFFERS_ASSERT(vf);
             bool has_ptr_value = vf->value.type.base_type == BASE_TYPE_STRUCT &&
                                  !IsStruct(vf->value.type);
             // Build sorted vector of map entry tables from unordered_map.
