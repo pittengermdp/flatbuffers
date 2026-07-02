@@ -46,7 +46,7 @@ class TableInC : Table() {
   }
 
   companion object {
-    fun validateVersion() = Constants.FLATBUFFERS_25_12_19()
+    fun validateVersion() = Constants.FLATBUFFERS_0_5_0()
 
     fun getRootAsTableInC(_bb: ByteBuffer): TableInC = getRootAsTableInC(_bb, TableInC())
 

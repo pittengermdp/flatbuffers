@@ -34,7 +34,7 @@ class SecondTableInA : Table() {
   }
 
   companion object {
-    fun validateVersion() = Constants.FLATBUFFERS_25_12_19()
+    fun validateVersion() = Constants.FLATBUFFERS_0_5_0()
 
     fun getRootAsSecondTableInA(_bb: ByteBuffer): SecondTableInA =
       getRootAsSecondTableInA(_bb, SecondTableInA())

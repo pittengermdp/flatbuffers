@@ -10,7 +10,7 @@ internal import FlatBuffers
 
 internal struct Message: FlatBufferVerifiableTable, FlatbuffersVectorInitializable, ObjectAPIPacker {
 
-  static func validateVersion() { FlatBuffersVersion_25_12_19() }
+  static func validateVersion() { FlatBuffersVersion_0_5_0() }
   internal var __buffer: ByteBuffer! { return _accessor.bb }
   private var _accessor: Table
 

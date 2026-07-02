@@ -9,7 +9,7 @@ import java.util.*;
 @SuppressWarnings("unused")
 public final class TableInFirstNS extends Table {
   public static void ValidateVersion() {
-    Constants.FLATBUFFERS_25_12_19();
+    Constants.FLATBUFFERS_0_5_0();
   }
 
   public static TableInFirstNS getRootAsTableInFirstNS(ByteBuffer _bb) {

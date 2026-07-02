@@ -83,11 +83,13 @@ RUST_OPTS = BASE_OPTS + [
     "--gen-all",
     "--gen-name-strings",
     "--rust-module-root-file",
+    "--rust-object-api-raw-floats",
 ]
 RUST_STANDALONE_OPTS = BASE_OPTS + [
     "--rust",
     "--gen-all",
     "--gen-name-strings",
+    "--rust-object-api-raw-floats",
 ]
 RUST_SERIALIZE_OPTS = BASE_OPTS + [
     "--rust",
@@ -95,6 +97,7 @@ RUST_SERIALIZE_OPTS = BASE_OPTS + [
     "--gen-name-strings",
     "--rust-serialize",
     "--rust-module-root-file",
+    "--rust-object-api-raw-floats",
 ]
 TS_OPTS = ["--ts", "--gen-name-strings"]
 LOBSTER_OPTS = ["--lobster"]

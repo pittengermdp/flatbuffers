@@ -1,7 +1,7 @@
 # FlatBuffers Next Features — LN2 Implementation Plan
 
 Council-debated priority ranking for 7 ecosystem improvements.
-flatc v25.12.21 on branch `rust-object-api-improvements`.
+flatc v0.5.0 on branch `master`.
 
 ## Decision: BFBS in Production Binaries (Always Embedded)
 
@@ -21,7 +21,7 @@ The council initially considered restricting .bfbs to dev/tooling builds. This w
 - **Go LiftCloud:** `//go:embed bfbs/*.bfbs` in a schemas package — available at runtime
 - **TS frontend:** Bundled as static assets via `--bfbs-gen-embed`, loaded at startup
 
-The `--bfbs-gen-embed` flag (already implemented in flatc v25.12.20) generates embedded schema constants for all three languages. Use it for every schema compilation.
+The `--bfbs-gen-embed` flag (already implemented in flatc v0.5.0) generates embedded schema constants for all three languages. Use it for every schema compilation.
 
 ## Phase 1 — Codegen Wins + Envelope (Ship First)
 

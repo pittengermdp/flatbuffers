@@ -1,7 +1,7 @@
 {
     "_comment": "This file is used by PlatformIO to get the information it needs to use FlatBuffers as a dependency for a project.",
     "name": "flatbuffers",
-    "version": "25.12.19",
+    "version": "0.5.0",
     "description": "FlatBuffers is a cross platform serialization library architected for maximum memory efficiency",
     "keywords": "FlatBuffers, serialization",
     "repository": {

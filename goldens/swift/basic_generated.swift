@@ -10,7 +10,7 @@ import FlatBuffers
 
 public struct flatbuffers_goldens_Galaxy: FlatBufferTable, FlatbuffersVectorInitializable, Verifiable {
 
-  static func validateVersion() { FlatBuffersVersion_25_12_19() }
+  static func validateVersion() { FlatBuffersVersion_0_5_0() }
   public var __buffer: ByteBuffer! { return _accessor.bb }
   private var _accessor: Table
 
@@ -45,7 +45,7 @@ public struct flatbuffers_goldens_Galaxy: FlatBufferTable, FlatbuffersVectorInit
 
 public struct flatbuffers_goldens_Universe: FlatBufferTable, FlatbuffersVectorInitializable, Verifiable {
 
-  static func validateVersion() { FlatBuffersVersion_25_12_19() }
+  static func validateVersion() { FlatBuffersVersion_0_5_0() }
   public var __buffer: ByteBuffer! { return _accessor.bb }
   private var _accessor: Table
 

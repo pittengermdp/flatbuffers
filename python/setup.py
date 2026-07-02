@@ -34,7 +34,7 @@ _remove_staged_license = _stage_license_file()
 try:
     setup(
         name='flatbuffers',
-        version='25.12.19',
+        version='0.5.0',
         license='Apache 2.0',
         author='Derek Bailey',
         author_email='derekbailey@google.com',

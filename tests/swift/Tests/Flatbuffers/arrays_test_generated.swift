@@ -35,7 +35,7 @@ extension MyGame_Example_TestEnum: Encodable {
 @available(macOS 26.0, iOS 26.0, watchOS 26.0, tvOS 26.0, *)
 public struct MyGame_Example_NestedStruct: NativeStruct, FlatbuffersVectorInitializable, Verifiable, FlatbuffersInitializable, NativeObject {
 
-  static func validateVersion() { FlatBuffersVersion_25_12_19() }
+  static func validateVersion() { FlatBuffersVersion_0_5_0() }
 
   private var _a: InlineArray<2, Int32>
   private var _b: Int8
@@ -114,7 +114,7 @@ extension MyGame_Example_NestedStruct: Encodable {
 @available(macOS 26.0, iOS 26.0, watchOS 26.0, tvOS 26.0, *)
 public struct MyGame_Example_NestedStruct_Mutable: FlatBufferStruct, FlatbuffersVectorInitializable {
 
-  static func validateVersion() { FlatBuffersVersion_25_12_19() }
+  static func validateVersion() { FlatBuffersVersion_0_5_0() }
   public var __buffer: ByteBuffer! { return _accessor.bb }
   private var _accessor: Struct
 
@@ -145,7 +145,7 @@ public struct MyGame_Example_NestedStruct_Mutable: FlatBufferStruct, Flatbuffers
 @available(macOS 26.0, iOS 26.0, watchOS 26.0, tvOS 26.0, *)
 public struct MyGame_Example_ArrayStruct: NativeStruct, FlatbuffersVectorInitializable, Verifiable, FlatbuffersInitializable, NativeObject {
 
-  static func validateVersion() { FlatBuffersVersion_25_12_19() }
+  static func validateVersion() { FlatBuffersVersion_0_5_0() }
 
   private var _a: Float32
   private var _b: InlineArray<15, Int32>
@@ -244,7 +244,7 @@ extension MyGame_Example_ArrayStruct: Encodable {
 @available(macOS 26.0, iOS 26.0, watchOS 26.0, tvOS 26.0, *)
 public struct MyGame_Example_ArrayStruct_Mutable: FlatBufferStruct, FlatbuffersVectorInitializable {
 
-  static func validateVersion() { FlatBuffersVersion_25_12_19() }
+  static func validateVersion() { FlatBuffersVersion_0_5_0() }
   public var __buffer: ByteBuffer! { return _accessor.bb }
   private var _accessor: Struct
 
@@ -278,7 +278,7 @@ public struct MyGame_Example_ArrayStruct_Mutable: FlatBufferStruct, FlatbuffersV
 @available(macOS 26.0, iOS 26.0, watchOS 26.0, tvOS 26.0, *)
 public struct MyGame_Example_LargeArrayStruct: NativeStruct, FlatbuffersVectorInitializable, Verifiable, FlatbuffersInitializable, NativeObject {
 
-  static func validateVersion() { FlatBuffersVersion_25_12_19() }
+  static func validateVersion() { FlatBuffersVersion_0_5_0() }
 
   private var _d: InlineArray<64, UInt8>
   private var _e: InlineArray<64, Float32>
@@ -368,7 +368,7 @@ extension MyGame_Example_LargeArrayStruct: Encodable {
 @available(macOS 26.0, iOS 26.0, watchOS 26.0, tvOS 26.0, *)
 public struct MyGame_Example_LargeArrayStruct_Mutable: FlatBufferStruct, FlatbuffersVectorInitializable {
 
-  static func validateVersion() { FlatBuffersVersion_25_12_19() }
+  static func validateVersion() { FlatBuffersVersion_0_5_0() }
   public var __buffer: ByteBuffer! { return _accessor.bb }
   private var _accessor: Struct
 
@@ -400,7 +400,7 @@ public struct MyGame_Example_LargeArrayStruct_Mutable: FlatBufferStruct, Flatbuf
 @available(macOS 26.0, iOS 26.0, watchOS 26.0, tvOS 26.0, *)
 public struct MyGame_Example_ArrayTable: FlatBufferVerifiableTable, FlatbuffersVectorInitializable, ObjectAPIPacker {
 
-  static func validateVersion() { FlatBuffersVersion_25_12_19() }
+  static func validateVersion() { FlatBuffersVersion_0_5_0() }
   public var __buffer: ByteBuffer! { return _accessor.bb }
   private var _accessor: Table
 

@@ -9,7 +9,7 @@ import java.util.*;
 @SuppressWarnings("unused")
 public final class TableInC extends Table {
   public static void ValidateVersion() {
-    Constants.FLATBUFFERS_25_12_19();
+    Constants.FLATBUFFERS_0_5_0();
   }
 
   public static TableInC getRootAsTableInC(ByteBuffer _bb) {

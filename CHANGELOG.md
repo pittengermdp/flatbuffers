@@ -4,6 +4,19 @@ All major or breaking changes will be documented in this file, as well as any
 new features that should be highlighted. Minor fixes or improvements are not
 necessarily listed.
 
+## [0.5.0] (July 2 2026)
+
+First release under the fork's own unified version line. The project previously
+carried a split identity (git tags `v0.4.x`, C++ `base.h` `25.12.19`, Rust crates
+`25.12.27` / `0.1.0`); every artifact now reports **0.5.0**.
+
+* Unify all version identities — `base.h`, `CMake/Version.cmake`, and every language
+  package manifest (npm, Cargo, Bazel, CocoaPods, Maven, NuGet, PyPI, Dart) — onto `0.5.0`
+* [C++] Fix `flattests` clean build: wire `map_set_test.fbs` into `compile_schema_for_test`
+  (the map/set test header was previously neither committed nor generated)
+* [Rust] Pass `--rust-object-api-raw-floats` for the standard generated corpus in
+  `generate_code.py`, restoring the regen-diff gate after the hashable-floats default flip
+
 ## [25.12.19] (December 19 2025)(https://github.com/google/flatbuffers/releases/tag/v25.12.19)
 
 * [C++] Default emptry vector support (#8870)
