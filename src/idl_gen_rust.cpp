@@ -613,13 +613,59 @@ class RustGenerator : public BaseGenerator {
   }
 
   std::string NamespacedNativeName(const EnumDef& def) {
+    if (def.declaration_file && !IsFromCurrentFile(def)) {
+      return CrossFileNamespacePath(def) + namer_.ObjectType(def);
+    }
     return WrapInNameSpace(def.defined_namespace, namer_.ObjectType(def));
   }
   std::string NamespacedNativeName(const StructDef& def) {
+    if (def.declaration_file && !IsFromCurrentFile(def)) {
+      return CrossFileNamespacePath(def) + namer_.ObjectType(def);
+    }
     return WrapInNameSpace(def.defined_namespace, namer_.ObjectType(def));
   }
 
+  // True if `def` was declared in the same .fbs file currently being
+  // generated (GenerateOneFile emits one output file per top-level schema
+  // argument, even though several schema files may share one `namespace`
+  // declaration). Compared by basename, not full path: declaration_file is
+  // project-root-relative while file_name_ is a bare basename, so basenames
+  // are the only format guaranteed to line up — and they are unique across
+  // this generator's inputs.
+  bool IsFromCurrentFile(const Definition& def) const {
+    if (!def.declaration_file) return true;
+    auto their_base =
+        flatbuffers::StripPath(flatbuffers::StripExtension(*def.declaration_file));
+    auto our_base = flatbuffers::StripPath(flatbuffers::StripExtension(file_name_));
+    return their_base == our_base;
+  }
+
+  // Absolute crate path (e.g. "crate::organization_generated::archive::")
+  // to a definition declared in a *different* generated file than the one
+  // currently being emitted. GetRelativeNamespaceTraversal's `super::`
+  // traversal assumes both namespaces live in one file's own nested
+  // `pub mod` tree (see GenerateOneFile's "broken legacy... multiple fbs
+  // files with shared namespaces" comment above) — across a file boundary
+  // there is no such parent/child module relationship, so `super::` either
+  // fails to resolve or resolves to the wrong module. This mirrors the path
+  // GenNamespaceImports glob-imports at the top of the namespace module, so
+  // the referenced type is guaranteed to already be in scope there.
+  std::string CrossFileNamespacePath(const Definition& def) const {
+    auto basename =
+        flatbuffers::StripPath(flatbuffers::StripExtension(*def.declaration_file));
+    std::string path = "crate::" + basename + parser_.opts.filename_suffix + "::";
+    if (def.defined_namespace) {
+      for (const auto& component : def.defined_namespace->components) {
+        path += namer_.Namespace(component) + "::";
+      }
+    }
+    return path;
+  }
+
   std::string WrapInNameSpace(const Definition& def) const {
+    if (def.declaration_file && !IsFromCurrentFile(def)) {
+      return CrossFileNamespacePath(def) + namer_.EscapeKeyword(def.name);
+    }
     return WrapInNameSpace(def.defined_namespace,
                            namer_.EscapeKeyword(def.name));
   }
@@ -638,6 +684,31 @@ class RustGenerator : public BaseGenerator {
     }
     std::string prefix = GetRelativeNamespaceTraversal(CurrentNameSpace(), ns);
     return prefix + name;
+  }
+
+  // Names every generated table type's own static builder-offset function
+  // (see the hardcoded "pub fn create<'bldr: ..." emitted below). Unlike
+  // Rust language keywords (RustKeywords(), handled by namer_.EscapeKeyword),
+  // this collides with an identifier the generator itself always produces
+  // per table, so a schema field literally named one of these needs the same
+  // treatment even though it isn't a language keyword.
+  static const std::set<std::string>& ReservedTableMethodNames() {
+    static const std::set<std::string> names = { "create" };
+    return names;
+  }
+
+  // Field-name resolution used everywhere a field's Rust identifier is
+  // needed (accessors, builder Args structs, key-field lookups, ...). Wraps
+  // namer_.Field so every call site escapes the same way: a field literally
+  // named e.g. "create" would otherwise generate an accessor method that
+  // collides with the table's own always-present static `create()` builder
+  // function (E0592 duplicate definition / E0599 associated-function-not-a-
+  // method), since that name is a fixed part of every table's generated API
+  // surface, not a per-schema choice.
+  std::string FieldName(const FieldDef& field) const {
+    auto name = namer_.Field(field);
+    if (ReservedTableMethodNames().count(name)) return name + "_";
+    return name;
   }
 
   // Determine the relative namespace traversal needed to reference one
@@ -920,13 +991,10 @@ class RustGenerator : public BaseGenerator {
                NumToString(type.fixed_length) + "]";
       }
       case ftTable: {
-        return WrapInNameSpace(type.struct_def->defined_namespace,
-                               type.struct_def->name) +
-               "<'a>";
+        return WrapInNameSpace(*type.struct_def) + "<'a>";
       }
       default: {
-        return WrapInNameSpace(type.struct_def->defined_namespace,
-                               type.struct_def->name);
+        return WrapInNameSpace(*type.struct_def);
       }
     }
   }
@@ -1515,9 +1583,13 @@ class RustGenerator : public BaseGenerator {
       case ftEnumKey: {
         auto ev = field.value.type.enum_def->FindByValue(field.value.constant);
         if (!ev) return "Default::default()";  // Bitflags enum.
-        return WrapInNameSpace(
-            field.value.type.enum_def->defined_namespace,
-            namer_.EnumVariant(*field.value.type.enum_def, *ev));
+        const auto& enum_def = *field.value.type.enum_def;
+        if (enum_def.declaration_file && !IsFromCurrentFile(enum_def)) {
+          return CrossFileNamespacePath(enum_def) +
+                 namer_.EnumVariant(enum_def, *ev);
+        }
+        return WrapInNameSpace(enum_def.defined_namespace,
+                               namer_.EnumVariant(enum_def, *ev));
       }
       case ftUnionValue: {
         return ObjectFieldType(field, true) + "::NONE";
@@ -2114,11 +2186,12 @@ class RustGenerator : public BaseGenerator {
       }
       code_.SetValue(
           "U_ELEMENT_ENUM_TYPE",
-          WrapInNameSpace(def.defined_namespace, namer_.EnumVariant(def, ev)));
-      code_.SetValue(
-          "U_ELEMENT_TABLE_TYPE",
-          WrapInNameSpace(ev.union_type.struct_def->defined_namespace,
-                          ev.union_type.struct_def->name));
+          def.declaration_file && !IsFromCurrentFile(def)
+              ? CrossFileNamespacePath(def) + namer_.EnumVariant(def, ev)
+              : WrapInNameSpace(def.defined_namespace,
+                                namer_.EnumVariant(def, ev)));
+      code_.SetValue("U_ELEMENT_TABLE_TYPE",
+                     WrapInNameSpace(*ev.union_type.struct_def));
       code_.SetValue("U_ELEMENT_NAME", namer_.Function(ev.name));
       cb(ev);
     }
@@ -2133,7 +2206,7 @@ class RustGenerator : public BaseGenerator {
       if (field.deprecated) return;
       code_.SetValue("OFFSET_NAME", namer_.LegacyRustFieldOffsetName(field));
       code_.SetValue("OFFSET_VALUE", NumToString(field.value.offset));
-      code_.SetValue("FIELD", namer_.Field(field));
+      code_.SetValue("FIELD", FieldName(field));
       code_.SetValue("BLDR_DEF_VAL", GetDefaultValue(field, kBuilder));
       code_.SetValue("DISCRIMINANT", namer_.LegacyRustUnionTypeMethod(field));
       code_.IncrementIdentLevel();
@@ -2687,7 +2760,7 @@ class RustGenerator : public BaseGenerator {
           if (type.base_type == BASE_TYPE_UNION) {
             const auto& enum_def = *type.enum_def;
             code_.SetValue("ENUM_TY", WrapInNameSpace(enum_def));
-            code_.SetValue("FIELD", namer_.Field(field));
+            code_.SetValue("FIELD", FieldName(field));
             code_.SetValue("UNION_TYPE_METHOD",
                            namer_.LegacyRustUnionTypeMethod(field));
 
@@ -2704,7 +2777,7 @@ class RustGenerator : public BaseGenerator {
             }
             if (union_variant_count == 1) {
               ForAllUnionObjectVariantsBesidesNone(enum_def, [&] {
-                code_.SetValue("FIELD", namer_.Field(field));
+                code_.SetValue("FIELD", FieldName(field));
                 code_ +=
                     "    if self.{{UNION_TYPE_METHOD}}() == "
                     "{{ENUM_TY}}::{{VARIANT_NAME}} {";
@@ -2720,7 +2793,7 @@ class RustGenerator : public BaseGenerator {
             } else {
               code_ += "    match self.{{UNION_TYPE_METHOD}}() {";
               ForAllUnionObjectVariantsBesidesNone(enum_def, [&] {
-                code_.SetValue("FIELD", namer_.Field(field));
+                code_.SetValue("FIELD", FieldName(field));
                 code_ += "        {{ENUM_TY}}::{{VARIANT_NAME}} => {";
                 code_ +=
                     "            let f = "
@@ -3055,7 +3128,7 @@ class RustGenerator : public BaseGenerator {
             FLATBUFFERS_ASSERT(kf && "set entry struct missing key field");
             const std::string entry_oty =
                 NamespacedNativeName(*type.VectorType().struct_def);
-            const std::string key_field = namer_.Field(*kf);
+            const std::string key_field = FieldName(*kf);
             MapNativeTableField(
                 field,
                 "{ let mut e: Vec<_> = x.iter().map(|k| " + entry_oty +
@@ -3091,8 +3164,8 @@ class RustGenerator : public BaseGenerator {
             FLATBUFFERS_ASSERT(kf && vf && "map entry struct missing key or value field");
             const std::string entry_oty =
                 NamespacedNativeName(*type.VectorType().struct_def);
-            const std::string key_field = namer_.Field(*kf);
-            const std::string val_field = namer_.Field(*vf);
+            const std::string key_field = FieldName(*kf);
+            const std::string val_field = FieldName(*vf);
             MapNativeTableField(
                 field,
                 "{ let mut e: Vec<_> = x.iter().map(|(k, v)| " + entry_oty +
@@ -3109,7 +3182,7 @@ class RustGenerator : public BaseGenerator {
             FLATBUFFERS_ASSERT(kf && "set entry struct missing key field");
             const std::string entry_oty =
                 NamespacedNativeName(*type.VectorType().struct_def);
-            const std::string key_field = namer_.Field(*kf);
+            const std::string key_field = FieldName(*kf);
             MapNativeTableField(
                 field,
                 "{ let mut e: Vec<_> = x.iter().map(|k| " + entry_oty +
@@ -3153,7 +3226,7 @@ class RustGenerator : public BaseGenerator {
     for (auto it = v.begin(); it != v.end(); it++) {
       const FieldDef& field = **it;
       if (field.deprecated) continue;
-      code_.SetValue("FIELD", namer_.Field(field));
+      code_.SetValue("FIELD", FieldName(field));
       code_.SetValue("FIELD_OTY", ObjectFieldType(field, true, &table));
       code_.IncrementIdentLevel();
       cb(field);
@@ -3431,7 +3504,7 @@ class RustGenerator : public BaseGenerator {
       const auto& field = **it;
       code_.SetValue("FIELD_TYPE", GetTypeGet(field.value.type));
       code_.SetValue("FIELD_OTY", ObjectFieldType(field, false, &struct_def));
-      code_.SetValue("FIELD", namer_.Field(field));
+      code_.SetValue("FIELD", FieldName(field));
       code_.SetValue("FIELD_OFFSET", NumToString(offset_to_field));
       code_.SetValue(
           "REF",
@@ -3860,6 +3933,48 @@ class RustGenerator : public BaseGenerator {
     }
   }
 
+  // Returns the Rust module-path suffix (e.g. "::archive" or "::front_end")
+  // for whichever namespace the included file's top-level definitions live
+  // in, or "" if that file declares no namespace. SetNameSpace nests all of
+  // a namespaced file's generated code inside `pub mod <ns> { ... }`
+  // (possibly several levels deep for a dotted namespace); a `use` statement
+  // that imports the file by its bare module name alone resolves against
+  // that file's *empty* top-level scope instead, silently importing nothing
+  // and leaving every reference to the included file's types unresolved.
+  // Matched by basename (not full path) because included_files_ and
+  // declaration_file are not guaranteed to share the same path format
+  // (absolute vs. project-root-relative), while basenames are unique across
+  // this schema set.
+  std::string IncludedFileNamespaceSuffix(const std::string& included_filename) {
+    auto want = flatbuffers::StripPath(flatbuffers::StripExtension(included_filename));
+
+    auto suffix_for = [&](const Namespace* ns) -> std::string {
+      std::string suffix;
+      if (ns) {
+        for (const auto& component : ns->components) {
+          suffix += "::" + namer_.Namespace(component);
+        }
+      }
+      return suffix;
+    };
+
+    for (auto it = parser_.enums_.vec.begin(); it != parser_.enums_.vec.end(); ++it) {
+      const auto& def = **it;
+      if (def.declaration_file &&
+          flatbuffers::StripPath(flatbuffers::StripExtension(*def.declaration_file)) == want) {
+        return suffix_for(def.defined_namespace);
+      }
+    }
+    for (auto it = parser_.structs_.vec.begin(); it != parser_.structs_.vec.end(); ++it) {
+      const auto& def = **it;
+      if (def.declaration_file &&
+          flatbuffers::StripPath(flatbuffers::StripExtension(*def.declaration_file)) == want) {
+        return suffix_for(def.defined_namespace);
+      }
+    }
+    return "";
+  }
+
   void GenNamespaceImports() {
     // DO not use global attributes (i.e. #![...]) since it interferes
     // with users who include! generated files.
@@ -3871,18 +3986,19 @@ class RustGenerator : public BaseGenerator {
         if (it->second.empty()) continue;
         auto noext = flatbuffers::StripExtension(it->second);
         auto basename = flatbuffers::StripPath(noext);
+        auto ns_suffix = IncludedFileNamespaceSuffix(it->second);
 
         if (parser_.opts.include_prefix.empty()) {
           code_ += indent + "#[allow(unused_imports, clippy::wildcard_imports)]";
           code_ += indent + "use crate::" + basename +
-                   parser_.opts.filename_suffix + "::*;";
+                   parser_.opts.filename_suffix + ns_suffix + "::*;";
         } else {
           auto prefix = parser_.opts.include_prefix;
           prefix.pop_back();
 
           code_ += indent + "#[allow(unused_imports, clippy::wildcard_imports)]";
           code_ += indent + "use crate::" + prefix + "::" + basename +
-                   parser_.opts.filename_suffix + "::*;";
+                   parser_.opts.filename_suffix + ns_suffix + "::*;";
         }
       }
     }
