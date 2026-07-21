@@ -3981,24 +3981,43 @@ class RustGenerator : public BaseGenerator {
     // See: https://github.com/google/flatbuffers/issues/6261
     const std::string indent;
     if (!parser_.opts.generate_all) {
+      // Every cross-file reference this generator emits (WrapInNameSpace /
+      // CrossFileNamespacePath, see above) is already an absolute
+      // "crate::<file>_generated::<ns>::Type" path, so nothing in this file's
+      // own generated code needs these names in scope unqualified. A blanket
+      // `use ...::*;` glob is therefore not just unnecessary but actively
+      // dangerous: once the namespace suffix resolves correctly (fixed
+      // above), two included files that each declare a same-named type (e.g.
+      // two schemas that both define a table called `String`) glob-import
+      // that name into the same scope and collide — including colliding with
+      // an unrelated plain `std::string::String` field elsewhere in the file
+      // (E0659 "ambiguous name"). Import the namespace module itself under a
+      // basename-derived alias instead of its contents: this still lets any
+      // remaining unqualified `include!`d consumer reach it as
+      // `<basename>_ns::Type`, but a single aliased name can only collide if
+      // another import chose the exact same alias, which the unique file
+      // basename here rules out.
       for (auto it = parser_.included_files_.begin();
            it != parser_.included_files_.end(); ++it) {
         if (it->second.empty()) continue;
         auto noext = flatbuffers::StripExtension(it->second);
         auto basename = flatbuffers::StripPath(noext);
         auto ns_suffix = IncludedFileNamespaceSuffix(it->second);
+        auto alias = basename + "_ns";
 
         if (parser_.opts.include_prefix.empty()) {
-          code_ += indent + "#[allow(unused_imports, clippy::wildcard_imports)]";
+          code_ += indent + "#[allow(unused_imports)]";
           code_ += indent + "use crate::" + basename +
-                   parser_.opts.filename_suffix + ns_suffix + "::*;";
+                   parser_.opts.filename_suffix + ns_suffix + " as " + alias +
+                   ";";
         } else {
           auto prefix = parser_.opts.include_prefix;
           prefix.pop_back();
 
-          code_ += indent + "#[allow(unused_imports, clippy::wildcard_imports)]";
+          code_ += indent + "#[allow(unused_imports)]";
           code_ += indent + "use crate::" + prefix + "::" + basename +
-                   parser_.opts.filename_suffix + ns_suffix + "::*;";
+                   parser_.opts.filename_suffix + ns_suffix + " as " + alias +
+                   ";";
         }
       }
     }
