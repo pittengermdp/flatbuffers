@@ -684,10 +684,48 @@ def format_generated_code():
   def have(tool):
     return shutil.which(tool) is not None
 
-  def run_chunked(cmd, files, chunk=400):
-    # Process in chunks to stay under argv length limits on large corpora.
-    for i in range(0, len(files), chunk):
-      subprocess.run(cmd + files[i : i + chunk], check=False)
+  def run_chunked(cmd, files, max_chars=8000):
+    # Hand subprocess the tool's resolved path rather than its bare name.
+    # shutil.which and CreateProcess do not agree on Windows: which() will
+    # happily return a match that CreateProcess cannot launch, and when
+    # CreateProcess fails to resolve the program it falls back to treating the
+    # entire command line as a filename. With a long file list that surfaces as
+    # WinError 206 ("The filename or extension is too long") rather than a
+    # plain not-found -- and since it is an exception, not a non-zero exit, it
+    # aborted this whole function at the first formatter. gofmt and prettier
+    # then never ran, so the Go corpus stayed unformatted and the regen gate
+    # reported a diff whose stated cause (a stale generator) was not the real
+    # one.
+    exe = shutil.which(cmd[0]) or cmd[0]
+    cmd = [exe] + cmd[1:]
+
+    # Chunk by command-line *length*, not by file count. The limit that
+    # actually binds is the 32767-character cap on a Windows command line, and
+    # path lengths vary too much for a fixed count to bound it either safely or
+    # efficiently.
+    def run_batch(batch):
+      try:
+        subprocess.run(cmd + batch, check=False)
+      except OSError as err:
+        # Say which formatter could not be launched. Without this the only
+        # symptom is a later regen diff blaming the generator.
+        print(
+            f"[format] ERROR: could not run {cmd[0]!r} "
+            f"on {len(batch)} file(s): {err}"
+        )
+        raise
+
+    base = sum(len(part) + 3 for part in cmd)
+    batch, size = [], base
+    for f in files:
+      need = len(str(f)) + 3
+      if batch and size + need > max_chars:
+        run_batch(batch)
+        batch, size = [], base
+      batch.append(f)
+      size += need
+    if batch:
+      run_batch(batch)
 
   tests = Path(tests_path)
 
