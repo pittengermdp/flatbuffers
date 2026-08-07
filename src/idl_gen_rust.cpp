@@ -18,6 +18,7 @@
 
 #include "idl_gen_rust.h"
 
+#include <algorithm>
 #include <cmath>
 #include <set>
 
@@ -1124,16 +1125,84 @@ class RustGenerator : public BaseGenerator {
       code_ += "    ];";
       code_ += "";
 
-      code_ += "    /// Returns the variant's name or \"\" if unknown.";
-      code_ += "    #[must_use]";
-      code_ += "    pub const fn variant_name(self) -> Option<&'static str> {";
-      code_ += "        match self {";
-      ForAllEnumValues(enum_def, [&]() {
-        code_ += "        Self::{{VARIANT}} => Some(\"{{VARIANT}}\"),";
-      });
-      code_ += "            _ => None,";
-      code_ += "        }";
-      code_ += "    }";
+      // `variant_name` is one match arm per variant. For most enums that is the
+      // clearest thing to read, but it scales linearly: Fault has 1411 variants
+      // and its match alone was 1462 lines, past clippy::too_many_lines. The
+      // only ways out were an #[allow] on generated code or a raised threshold.
+      //
+      // A name table indexed by `value - ENUM_MIN` was the obvious alternative
+      // and is the wrong one here: at 16 bytes per entry it trips
+      // clippy::large_stack_arrays / large_const_arrays, whose remedy is a
+      // `static` — and a `static` cannot be read from a `const fn`, which
+      // `variant_name` is and must stay.
+      //
+      // So take the remedy the lint actually names: extract functions. Above
+      // kChunkTrigger variants the match is split into chunks of kChunkSize,
+      // each far below the threshold, and `variant_name` tries them in order.
+      // Behaviour is identical -- every arm still exists, in the same order,
+      // and an unmatched value still falls through to None.
+      const size_t kChunkTrigger = 600;
+      const size_t kChunkSize = 400;
+      const size_t variant_total = enum_def.Vals().size();
+
+      if (variant_total > kChunkTrigger) {
+        const size_t chunk_count =
+            (variant_total + kChunkSize - 1) / kChunkSize;
+
+        // Emit one helper per chunk, each a plain match over its slice.
+        size_t index = 0;
+        for (size_t chunk = 0; chunk < chunk_count; ++chunk) {
+          code_.SetValue("CHUNK", NumToString(chunk));
+          code_ +=
+              "    /// Chunk {{CHUNK}} of the variant-name lookup. Split so no "
+              "single";
+          code_ += "    /// function grows past the line threshold.";
+          code_ +=
+              "    const fn variant_name_chunk_{{CHUNK}}(self) -> "
+              "Option<&'static str> {";
+          code_ += "        match self {";
+          const size_t chunk_end =
+              (std::min)(index + kChunkSize, variant_total);
+          size_t seen = 0;
+          for (auto it = enum_def.Vals().begin(); it != enum_def.Vals().end();
+               ++it, ++seen) {
+            if (seen < index || seen >= chunk_end) continue;
+            code_.SetValue("VARIANT", namer_.Variant(**it));
+            code_ += "            Self::{{VARIANT}} => Some(\"{{VARIANT}}\"),";
+          }
+          code_ += "            _ => None,";
+          code_ += "        }";
+          code_ += "    }";
+          code_ += "";
+          index = chunk_end;
+        }
+
+        code_ += "    /// Returns the variant's name, or `None` if unknown.";
+        code_ += "    #[must_use]";
+        code_ +=
+            "    pub const fn variant_name(self) -> Option<&'static str> {";
+        code_ += "        let mut name = self.variant_name_chunk_0();";
+        for (size_t chunk = 1; chunk < chunk_count; ++chunk) {
+          code_.SetValue("CHUNK", NumToString(chunk));
+          code_ += "        if name.is_none() {";
+          code_ += "            name = self.variant_name_chunk_{{CHUNK}}();";
+          code_ += "        }";
+        }
+        code_ += "        name";
+        code_ += "    }";
+      } else {
+        code_ += "    /// Returns the variant's name or \"\" if unknown.";
+        code_ += "    #[must_use]";
+        code_ +=
+            "    pub const fn variant_name(self) -> Option<&'static str> {";
+        code_ += "        match self {";
+        ForAllEnumValues(enum_def, [&]() {
+          code_ += "        Self::{{VARIANT}} => Some(\"{{VARIANT}}\"),";
+        });
+        code_ += "            _ => None,";
+        code_ += "        }";
+        code_ += "    }";
+      }
       code_ += "}";
       code_ += "";
 
