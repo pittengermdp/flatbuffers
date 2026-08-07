@@ -84,12 +84,12 @@ impl<'a> TableInFirstNS<'a> {
         let foo_table = self.foo_table().map(|x| Box::new(x.unpack()));
         let foo_enum = self.foo_enum();
         let foo_union = match self.foo_union_type() {
-            crate::namespace_test1_generated::namespace_a::namespace_b::UnionInNestedNS::TableInNestedNS => crate::namespace_test1_generated::namespace_a::namespace_b::UnionInNestedNST::TableInNestedNS(Box::new(
+            namespace_b::UnionInNestedNS::TableInNestedNS => namespace_b::UnionInNestedNST::TableInNestedNS(Box::new(
                 self.foo_union_as_table_in_nested_ns()
-                    .expect("Invalid union table, expected `crate::namespace_test1_generated::namespace_a::namespace_b::UnionInNestedNS::TableInNestedNS`.")
+                    .expect("Invalid union table, expected `namespace_b::UnionInNestedNS::TableInNestedNS`.")
                     .unpack()
             )),
-            _ => crate::namespace_test1_generated::namespace_a::namespace_b::UnionInNestedNST::NONE,
+            _ => namespace_b::UnionInNestedNST::NONE,
         };
         let foo_struct = self.foo_struct().map(|x| x.unpack());
         TableInFirstNST {
@@ -102,17 +102,16 @@ impl<'a> TableInFirstNS<'a> {
 
     #[inline]
     #[must_use]
-    pub fn foo_table(
-        &self,
-    ) -> Option<crate::namespace_test1_generated::namespace_a::namespace_b::TableInNestedNS<'a>>
-    {
+    pub fn foo_table(&self) -> Option<namespace_b::TableInNestedNS<'a>> {
         // Safety:
         // Created from valid Table for this object
         // which contains a valid value in this slot
         unsafe {
-            self.tab.get::<::flatbuffers::ForwardsUOffset<
-                crate::namespace_test1_generated::namespace_a::namespace_b::TableInNestedNS,
-            >>(TableInFirstNS::VT_FOO_TABLE, None)
+            self.tab
+                .get::<::flatbuffers::ForwardsUOffset<namespace_b::TableInNestedNS>>(
+                    TableInFirstNS::VT_FOO_TABLE,
+                    None,
+                )
         }
     }
 
@@ -121,14 +120,17 @@ impl<'a> TableInFirstNS<'a> {
     /// Panics if the field is not present. This should not happen for validated flatbuffers.
     #[inline]
     #[must_use]
-    pub fn foo_enum(
-        &self,
-    ) -> crate::namespace_test1_generated::namespace_a::namespace_b::EnumInNestedNS {
+    pub fn foo_enum(&self) -> namespace_b::EnumInNestedNS {
         // Safety:
         // Created from valid Table for this object
         // which contains a valid value in this slot
         unsafe {
-            self.tab.get::<crate::namespace_test1_generated::namespace_a::namespace_b::EnumInNestedNS>(TableInFirstNS::VT_FOO_ENUM, Some(crate::namespace_test1_generated::namespace_a::namespace_b::EnumInNestedNS::A)).unwrap()
+            self.tab
+                .get::<namespace_b::EnumInNestedNS>(
+                    TableInFirstNS::VT_FOO_ENUM,
+                    Some(namespace_b::EnumInNestedNS::A),
+                )
+                .unwrap()
         }
     }
 
@@ -137,14 +139,17 @@ impl<'a> TableInFirstNS<'a> {
     /// Panics if the field is not present. This should not happen for validated flatbuffers.
     #[inline]
     #[must_use]
-    pub fn foo_union_type(
-        &self,
-    ) -> crate::namespace_test1_generated::namespace_a::namespace_b::UnionInNestedNS {
+    pub fn foo_union_type(&self) -> namespace_b::UnionInNestedNS {
         // Safety:
         // Created from valid Table for this object
         // which contains a valid value in this slot
         unsafe {
-            self.tab.get::<crate::namespace_test1_generated::namespace_a::namespace_b::UnionInNestedNS>(TableInFirstNS::VT_FOO_UNION_TYPE, Some(crate::namespace_test1_generated::namespace_a::namespace_b::UnionInNestedNS::NONE)).unwrap()
+            self.tab
+                .get::<namespace_b::UnionInNestedNS>(
+                    TableInFirstNS::VT_FOO_UNION_TYPE,
+                    Some(namespace_b::UnionInNestedNS::NONE),
+                )
+                .unwrap()
         }
     }
 
@@ -165,31 +170,26 @@ impl<'a> TableInFirstNS<'a> {
 
     #[inline]
     #[must_use]
-    pub fn foo_struct(
-        &self,
-    ) -> Option<&'a crate::namespace_test1_generated::namespace_a::namespace_b::StructInNestedNS>
-    {
+    pub fn foo_struct(&self) -> Option<&'a namespace_b::StructInNestedNS> {
         // Safety:
         // Created from valid Table for this object
         // which contains a valid value in this slot
         unsafe {
-            self.tab.get::<crate::namespace_test1_generated::namespace_a::namespace_b::StructInNestedNS>(TableInFirstNS::VT_FOO_STRUCT, None)
+            self.tab
+                .get::<namespace_b::StructInNestedNS>(TableInFirstNS::VT_FOO_STRUCT, None)
         }
     }
 
     #[inline]
     #[must_use]
     #[allow(non_snake_case)]
-    pub fn foo_union_as_table_in_nested_ns(
-        &self,
-    ) -> Option<crate::namespace_test1_generated::namespace_a::namespace_b::TableInNestedNS<'a>>
-    {
-        if self.foo_union_type() == crate::namespace_test1_generated::namespace_a::namespace_b::UnionInNestedNS::TableInNestedNS {
+    pub fn foo_union_as_table_in_nested_ns(&self) -> Option<namespace_b::TableInNestedNS<'a>> {
+        if self.foo_union_type() == namespace_b::UnionInNestedNS::TableInNestedNS {
             self.foo_union().map(|t| {
                 // Safety:
                 // Created from a valid Table for this object
                 // Which contains a valid union in this slot
-                unsafe { crate::namespace_test1_generated::namespace_a::namespace_b::TableInNestedNS::init_from_table(t) }
+                unsafe { namespace_b::TableInNestedNS::init_from_table(t) }
             })
         } else {
             None
@@ -204,31 +204,41 @@ impl ::flatbuffers::Verifiable for TableInFirstNS<'_> {
         pos: usize,
     ) -> Result<(), ::flatbuffers::InvalidFlatbuffer> {
         v.visit_table(pos)?
-            .visit_field::<::flatbuffers::ForwardsUOffset<crate::namespace_test1_generated::namespace_a::namespace_b::TableInNestedNS>>("foo_table", Self::VT_FOO_TABLE, false)?
-            .visit_field::<crate::namespace_test1_generated::namespace_a::namespace_b::EnumInNestedNS>("foo_enum", Self::VT_FOO_ENUM, false)?
-            .visit_union::<crate::namespace_test1_generated::namespace_a::namespace_b::UnionInNestedNS, _>("foo_union_type", Self::VT_FOO_UNION_TYPE, "foo_union", Self::VT_FOO_UNION, false, |key, v, pos| {
-                match key {
-                    crate::namespace_test1_generated::namespace_a::namespace_b::UnionInNestedNS::TableInNestedNS => v.verify_union_variant::<::flatbuffers::ForwardsUOffset<crate::namespace_test1_generated::namespace_a::namespace_b::TableInNestedNS>>("crate::namespace_test1_generated::namespace_a::namespace_b::UnionInNestedNS::TableInNestedNS", pos),
+            .visit_field::<::flatbuffers::ForwardsUOffset<namespace_b::TableInNestedNS>>(
+                "foo_table",
+                Self::VT_FOO_TABLE,
+                false,
+            )?
+            .visit_field::<namespace_b::EnumInNestedNS>("foo_enum", Self::VT_FOO_ENUM, false)?
+            .visit_union::<namespace_b::UnionInNestedNS, _>(
+                "foo_union_type",
+                Self::VT_FOO_UNION_TYPE,
+                "foo_union",
+                Self::VT_FOO_UNION,
+                false,
+                |key, v, pos| match key {
+                    namespace_b::UnionInNestedNS::TableInNestedNS => v
+                        .verify_union_variant::<::flatbuffers::ForwardsUOffset<
+                        namespace_b::TableInNestedNS,
+                    >>(
+                        "namespace_b::UnionInNestedNS::TableInNestedNS",
+                        pos,
+                    ),
                     _ => Ok(()),
-                }
-            })?
-            .visit_field::<crate::namespace_test1_generated::namespace_a::namespace_b::StructInNestedNS>("foo_struct", Self::VT_FOO_STRUCT, false)?
+                },
+            )?
+            .visit_field::<namespace_b::StructInNestedNS>("foo_struct", Self::VT_FOO_STRUCT, false)?
             .finish();
         Ok(())
     }
 }
 
 pub struct TableInFirstNSArgs<'a> {
-    pub foo_table: Option<
-        ::flatbuffers::WIPOffset<
-            crate::namespace_test1_generated::namespace_a::namespace_b::TableInNestedNS<'a>,
-        >,
-    >,
-    pub foo_enum: crate::namespace_test1_generated::namespace_a::namespace_b::EnumInNestedNS,
-    pub foo_union_type: crate::namespace_test1_generated::namespace_a::namespace_b::UnionInNestedNS,
+    pub foo_table: Option<::flatbuffers::WIPOffset<namespace_b::TableInNestedNS<'a>>>,
+    pub foo_enum: namespace_b::EnumInNestedNS,
+    pub foo_union_type: namespace_b::UnionInNestedNS,
     pub foo_union: Option<::flatbuffers::WIPOffset<::flatbuffers::UnionWIPOffset>>,
-    pub foo_struct:
-        Option<&'a crate::namespace_test1_generated::namespace_a::namespace_b::StructInNestedNS>,
+    pub foo_struct: Option<&'a namespace_b::StructInNestedNS>,
 }
 
 impl Default for TableInFirstNSArgs<'_> {
@@ -236,9 +246,8 @@ impl Default for TableInFirstNSArgs<'_> {
     fn default() -> Self {
         Self {
             foo_table: None,
-            foo_enum: crate::namespace_test1_generated::namespace_a::namespace_b::EnumInNestedNS::A,
-            foo_union_type:
-                crate::namespace_test1_generated::namespace_a::namespace_b::UnionInNestedNS::NONE,
+            foo_enum: namespace_b::EnumInNestedNS::A,
+            foo_union_type: namespace_b::UnionInNestedNS::NONE,
             foo_union: None,
             foo_struct: None,
         }
@@ -254,29 +263,31 @@ impl<'a: 'b, 'b, A: ::flatbuffers::Allocator + 'a> TableInFirstNSBuilder<'a, 'b,
     #[inline]
     pub fn add_foo_table(
         &mut self,
-        foo_table: ::flatbuffers::WIPOffset<
-            crate::namespace_test1_generated::namespace_a::namespace_b::TableInNestedNS<'b>,
-        >,
+        foo_table: ::flatbuffers::WIPOffset<namespace_b::TableInNestedNS<'b>>,
     ) {
-        self.fbb_.push_slot_always::<::flatbuffers::WIPOffset<
-            crate::namespace_test1_generated::namespace_a::namespace_b::TableInNestedNS,
-        >>(TableInFirstNS::VT_FOO_TABLE, foo_table);
+        self.fbb_
+            .push_slot_always::<::flatbuffers::WIPOffset<namespace_b::TableInNestedNS>>(
+                TableInFirstNS::VT_FOO_TABLE,
+                foo_table,
+            );
     }
 
     #[inline]
-    pub fn add_foo_enum(
-        &mut self,
-        foo_enum: crate::namespace_test1_generated::namespace_a::namespace_b::EnumInNestedNS,
-    ) {
-        self.fbb_.push_slot::<crate::namespace_test1_generated::namespace_a::namespace_b::EnumInNestedNS>(TableInFirstNS::VT_FOO_ENUM, foo_enum, crate::namespace_test1_generated::namespace_a::namespace_b::EnumInNestedNS::A);
+    pub fn add_foo_enum(&mut self, foo_enum: namespace_b::EnumInNestedNS) {
+        self.fbb_.push_slot::<namespace_b::EnumInNestedNS>(
+            TableInFirstNS::VT_FOO_ENUM,
+            foo_enum,
+            namespace_b::EnumInNestedNS::A,
+        );
     }
 
     #[inline]
-    pub fn add_foo_union_type(
-        &mut self,
-        foo_union_type: crate::namespace_test1_generated::namespace_a::namespace_b::UnionInNestedNS,
-    ) {
-        self.fbb_.push_slot::<crate::namespace_test1_generated::namespace_a::namespace_b::UnionInNestedNS>(TableInFirstNS::VT_FOO_UNION_TYPE, foo_union_type, crate::namespace_test1_generated::namespace_a::namespace_b::UnionInNestedNS::NONE);
+    pub fn add_foo_union_type(&mut self, foo_union_type: namespace_b::UnionInNestedNS) {
+        self.fbb_.push_slot::<namespace_b::UnionInNestedNS>(
+            TableInFirstNS::VT_FOO_UNION_TYPE,
+            foo_union_type,
+            namespace_b::UnionInNestedNS::NONE,
+        );
     }
 
     #[inline]
@@ -291,11 +302,12 @@ impl<'a: 'b, 'b, A: ::flatbuffers::Allocator + 'a> TableInFirstNSBuilder<'a, 'b,
     }
 
     #[inline]
-    pub fn add_foo_struct(
-        &mut self,
-        foo_struct: &crate::namespace_test1_generated::namespace_a::namespace_b::StructInNestedNS,
-    ) {
-        self.fbb_.push_slot_always::<&crate::namespace_test1_generated::namespace_a::namespace_b::StructInNestedNS>(TableInFirstNS::VT_FOO_STRUCT, foo_struct);
+    pub fn add_foo_struct(&mut self, foo_struct: &namespace_b::StructInNestedNS) {
+        self.fbb_
+            .push_slot_always::<&namespace_b::StructInNestedNS>(
+                TableInFirstNS::VT_FOO_STRUCT,
+                foo_struct,
+            );
     }
 
     #[inline]
@@ -322,15 +334,18 @@ impl ::core::fmt::Debug for TableInFirstNS<'_> {
         ds.field("foo_table", &self.foo_table());
         ds.field("foo_enum", &self.foo_enum());
         ds.field("foo_union_type", &self.foo_union_type());
-        if self.foo_union_type() == crate::namespace_test1_generated::namespace_a::namespace_b::UnionInNestedNS::TableInNestedNS {
-          if let Some(x) = self.foo_union_as_table_in_nested_ns() {
-            ds.field("foo_union", &x);
-          } else {
-            ds.field("foo_union", &"InvalidFlatbuffer: Union discriminant does not match value.");
-          }
+        if self.foo_union_type() == namespace_b::UnionInNestedNS::TableInNestedNS {
+            if let Some(x) = self.foo_union_as_table_in_nested_ns() {
+                ds.field("foo_union", &x);
+            } else {
+                ds.field(
+                    "foo_union",
+                    &"InvalidFlatbuffer: Union discriminant does not match value.",
+                );
+            }
         } else {
-          let x: Option<()> = None;
-          ds.field("foo_union", &x);
+            let x: Option<()> = None;
+            ds.field("foo_union", &x);
         }
         ds.field("foo_struct", &self.foo_struct());
         ds.finish()
@@ -339,12 +354,10 @@ impl ::core::fmt::Debug for TableInFirstNS<'_> {
 
 #[derive(Debug, Clone, PartialEq, Default, Eq, Hash)]
 pub struct TableInFirstNST {
-    pub foo_table:
-        Option<Box<crate::namespace_test1_generated::namespace_a::namespace_b::TableInNestedNST>>,
-    pub foo_enum: crate::namespace_test1_generated::namespace_a::namespace_b::EnumInNestedNS,
-    pub foo_union: crate::namespace_test1_generated::namespace_a::namespace_b::UnionInNestedNST,
-    pub foo_struct:
-        Option<crate::namespace_test1_generated::namespace_a::namespace_b::StructInNestedNST>,
+    pub foo_table: Option<Box<namespace_b::TableInNestedNST>>,
+    pub foo_enum: namespace_b::EnumInNestedNS,
+    pub foo_union: namespace_b::UnionInNestedNST,
+    pub foo_struct: Option<namespace_b::StructInNestedNST>,
 }
 
 impl TableInFirstNST {
@@ -357,7 +370,10 @@ impl TableInFirstNST {
         let foo_enum = self.foo_enum;
         let foo_union_type = self.foo_union.union_in_nested_ns_type();
         let foo_union = self.foo_union.pack(fbb);
-        debug_assert!(foo_union.is_some() || foo_union_type == crate::namespace_test1_generated::namespace_a::namespace_b::UnionInNestedNS::NONE, "Union discriminant does not match packed value");
+        debug_assert!(
+            foo_union.is_some() || foo_union_type == namespace_b::UnionInNestedNS::NONE,
+            "Union discriminant does not match packed value"
+        );
         let foo_struct_tmp = self.foo_struct.as_ref().map(|x| x.pack());
         let foo_struct = foo_struct_tmp.as_ref();
         TableInFirstNS::create(
