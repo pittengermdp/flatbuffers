@@ -1176,8 +1176,13 @@ class RustGenerator : public BaseGenerator {
         // expression so the generated serde is clippy-clean:
         //   * u32 base   -> `self.0`            (no clippy::unnecessary_cast)
         //   * u8/u16 base-> `u32::from(self.0)` (no clippy::cast_lossless)
-        //   * signed/64-bit base (`byte`/`long`) -> `self.0 as u32`, which
-        //     `From` does not cover and which clippy does not flag.
+        //   * signed base (`byte`/`short`/`int`) -> widen losslessly, then
+        //     reinterpret the bit pattern through `to_ne_bytes`. This is
+        //     byte-for-byte what `self.0 as u32` produced, but `as` on a
+        //     signed source is clippy::cast_sign_loss; the round-trip is not.
+        //   * 64-bit base (`long`/`ulong`) -> `self.0 as u32`. serde's
+        //     `variant_index` is u32 by API, so some narrowing is unavoidable
+        //     here; no schema in this tree uses a 64-bit enum.
         const std::string serde_disc_ty =
             GetEnumTypeForDecl(enum_def.underlying_type);
         std::string serde_disc;
@@ -1185,6 +1190,10 @@ class RustGenerator : public BaseGenerator {
           serde_disc = "self.0";
         } else if (serde_disc_ty == "u8" || serde_disc_ty == "u16") {
           serde_disc = "u32::from(self.0)";
+        } else if (serde_disc_ty == "i8" || serde_disc_ty == "i16") {
+          serde_disc = "u32::from_ne_bytes(i32::from(self.0).to_ne_bytes())";
+        } else if (serde_disc_ty == "i32") {
+          serde_disc = "u32::from_ne_bytes(self.0.to_ne_bytes())";
         } else {
           serde_disc = "self.0 as u32";
         }
@@ -1820,6 +1829,13 @@ class RustGenerator : public BaseGenerator {
           FLATBUFFERS_ASSERT(kf && "set entry struct missing key field");
           ty = "std::collections::HashSet<" + RustKeyType(kf->value.type) +
                ", ::std::hash::BuildHasherDefault<ahash::AHasher>>";
+        } else if (parent_struct &&
+                   type.VectorType().struct_def == parent_struct) {
+          // Self-referential table (e.g. Organization.children:
+          // [Organization]). Naming the object type again inside its own
+          // definition trips clippy::use_self; `Self` is legal in a struct
+          // field type and means exactly the same thing.
+          ty = "Vec<Self>";
         } else {
           ty = NamespacedNativeName(*type.VectorType().struct_def);
           ty = "Vec<" + ty + ">";
@@ -1992,8 +2008,15 @@ class RustGenerator : public BaseGenerator {
     return "INVALID_CODE_GENERATION";  // for return analysis
   }
 
-  std::string GenTableAccessorFuncReturnType(const FieldDef& field,
-                                             const std::string& lifetime) {
+  // `parent_struct`, when given, is the table whose `impl` this return type is
+  // being emitted into. A field referring back to that same table is spelled
+  // `Self`: repeating the name trips clippy::use_self, and inside
+  // `impl<'a> Foo<'a>` the two are identical. Callers emitting into a
+  // *different* impl (a builder, a key accessor) pass nullptr and keep the
+  // fully-qualified name, which is what those contexts require.
+  std::string GenTableAccessorFuncReturnType(
+      const FieldDef& field, const std::string& lifetime,
+      const StructDef* parent_struct = nullptr) {
     const Type& type = field.value.type;
     const auto WrapOption = [&](std::string s) {
       return field.IsOptional() ? "Option<" + s + ">" : s;
@@ -2042,6 +2065,10 @@ class RustGenerator : public BaseGenerator {
                           ">");
       }
       case ftVectorOfTable: {
+        if (parent_struct && type.struct_def == parent_struct) {
+          return WrapOption("::flatbuffers::Vector<" + lifetime +
+                            ", ::flatbuffers::ForwardsUOffset<Self>>");
+        }
         const auto typname = WrapInNameSpace(*type.struct_def);
         return WrapOption("::flatbuffers::Vector<" + lifetime +
                           ", ::flatbuffers::ForwardsUOffset<" + typname + "<" +
@@ -2532,7 +2559,7 @@ class RustGenerator : public BaseGenerator {
     ForAllTableFields(struct_def, [&](const FieldDef& field) {
       code_ += "";
       code_.SetValue("RETURN_TYPE",
-                     GenTableAccessorFuncReturnType(field, "'a"));
+                     GenTableAccessorFuncReturnType(field, "'a", &struct_def));
 
       this->GenComment(field.doc_comment);
       if (!field.IsOptional()) {
