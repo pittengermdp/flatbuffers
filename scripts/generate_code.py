@@ -705,7 +705,24 @@ def format_generated_code():
     # efficiently.
     def run_batch(batch):
       try:
-        subprocess.run(cmd + batch, check=False)
+        # stdin is closed, never inherited. On Windows several of these tools
+        # resolve to a .cmd shim, which CreateProcess runs through cmd.exe; a
+        # shim that decides to prompt then blocks forever on a runner where
+        # nobody can answer. The timeout is the backstop for anything else
+        # that wedges -- a formatter that hangs should fail this step in
+        # minutes with a name attached, not sit on the job's whole budget.
+        subprocess.run(
+            cmd + batch,
+            check=False,
+            stdin=subprocess.DEVNULL,
+            timeout=600,
+        )
+      except subprocess.TimeoutExpired:
+        print(
+            f"[format] ERROR: {cmd[0]!r} timed out after 600s "
+            f"on {len(batch)} file(s)"
+        )
+        raise
       except OSError as err:
         # Say which formatter could not be launched. Without this the only
         # symptom is a later regen diff blaming the generator.
