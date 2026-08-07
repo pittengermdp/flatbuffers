@@ -576,10 +576,7 @@ export declare class MonsterT implements flatbuffers.IGeneratedObject {
   vectorOfNonOwningReferences: bigint[];
   anyUniqueType: AnyUniqueAliases;
   anyUnique:
-    | MonsterT
-    | MyGame_Example2_MonsterT
-    | TestSimpleTableWithEnumT
-    | null;
+    MonsterT | MyGame_Example2_MonsterT | TestSimpleTableWithEnumT | null;
   anyAmbiguousType: AnyAmbiguousAliases;
   anyAmbiguous: MonsterT | null;
   vectorOfEnums: Color[];
@@ -606,10 +603,7 @@ export declare class MonsterT implements flatbuffers.IGeneratedObject {
     color?: Color,
     testType?: Any,
     test?:
-      | MonsterT
-      | MyGame_Example2_MonsterT
-      | TestSimpleTableWithEnumT
-      | null,
+      MonsterT | MyGame_Example2_MonsterT | TestSimpleTableWithEnumT | null,
     test4?: TestT[],
     testarrayofstring?: string[],
     testarrayoftables?: MonsterT[],
@@ -646,10 +640,7 @@ export declare class MonsterT implements flatbuffers.IGeneratedObject {
     vectorOfNonOwningReferences?: bigint[],
     anyUniqueType?: AnyUniqueAliases,
     anyUnique?:
-      | MonsterT
-      | MyGame_Example2_MonsterT
-      | TestSimpleTableWithEnumT
-      | null,
+      MonsterT | MyGame_Example2_MonsterT | TestSimpleTableWithEnumT | null,
     anyAmbiguousType?: AnyAmbiguousAliases,
     anyAmbiguous?: MonsterT | null,
     vectorOfEnums?: Color[],

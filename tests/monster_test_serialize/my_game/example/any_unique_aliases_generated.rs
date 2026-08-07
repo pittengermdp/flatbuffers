@@ -83,9 +83,9 @@ impl Serialize for AnyUniqueAliases {
     {
         match self.variant_name() {
             Some(name) => {
-                serializer.serialize_unit_variant("AnyUniqueAliases", self.0 as u32, name)
+                serializer.serialize_unit_variant("AnyUniqueAliases", u32::from(self.0), name)
             }
-            None => serializer.serialize_u32(self.0 as u32),
+            None => serializer.serialize_u32(u32::from(self.0)),
         }
     }
 }

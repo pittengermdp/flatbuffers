@@ -364,11 +364,7 @@ export class MovieT implements flatbuffers.IGeneratedObject {
   constructor(
     public mainCharacterType: Character = Character.NONE,
     public mainCharacter:
-      | AttackerT
-      | BookReaderT
-      | RapunzelT
-      | string
-      | null = null,
+      AttackerT | BookReaderT | RapunzelT | string | null = null,
     public charactersType: Character[] = [],
     public characters: (AttackerT | BookReaderT | RapunzelT | string)[] = [],
   ) {}

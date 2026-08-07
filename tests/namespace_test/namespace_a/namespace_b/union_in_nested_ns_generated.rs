@@ -119,7 +119,9 @@ pub struct UnionInNestedNSUnionTableOffset {}
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum UnionInNestedNST {
     NONE,
-    TableInNestedNS(Box<TableInNestedNST>),
+    TableInNestedNS(
+        Box<crate::namespace_test1_generated::namespace_a::namespace_b::TableInNestedNST>,
+    ),
 }
 
 impl Default for UnionInNestedNST {
@@ -148,9 +150,12 @@ impl UnionInNestedNST {
         }
     }
 
-    /// If the union variant matches, return the owned `TableInNestedNST`, setting the union to NONE.
+    /// If the union variant matches, return the owned `crate::namespace_test1_generated::namespace_a::namespace_b::TableInNestedNST`, setting the union to NONE.
     #[must_use]
-    pub fn take_table_in_nested_ns(&mut self) -> Option<Box<TableInNestedNST>> {
+    pub fn take_table_in_nested_ns(
+        &mut self,
+    ) -> Option<Box<crate::namespace_test1_generated::namespace_a::namespace_b::TableInNestedNST>>
+    {
         if let Self::TableInNestedNS(_) = self {
             let v = ::core::mem::replace(self, Self::NONE);
             if let Self::TableInNestedNS(w) = v {
@@ -163,9 +168,11 @@ impl UnionInNestedNST {
         }
     }
 
-    /// If the union variant matches, return a reference to the `TableInNestedNST`.
+    /// If the union variant matches, return a reference to the `crate::namespace_test1_generated::namespace_a::namespace_b::TableInNestedNST`.
     #[must_use]
-    pub fn as_table_in_nested_ns(&self) -> Option<&TableInNestedNST> {
+    pub fn as_table_in_nested_ns(
+        &self,
+    ) -> Option<&crate::namespace_test1_generated::namespace_a::namespace_b::TableInNestedNST> {
         if let Self::TableInNestedNS(v) = self {
             Some(v.as_ref())
         } else {
@@ -173,9 +180,12 @@ impl UnionInNestedNST {
         }
     }
 
-    /// If the union variant matches, return a mutable reference to the `TableInNestedNST`.
+    /// If the union variant matches, return a mutable reference to the `crate::namespace_test1_generated::namespace_a::namespace_b::TableInNestedNST`.
     #[must_use]
-    pub fn as_table_in_nested_ns_mut(&mut self) -> Option<&mut TableInNestedNST> {
+    pub fn as_table_in_nested_ns_mut(
+        &mut self,
+    ) -> Option<&mut crate::namespace_test1_generated::namespace_a::namespace_b::TableInNestedNST>
+    {
         if let Self::TableInNestedNS(v) = self {
             Some(v.as_mut())
         } else {

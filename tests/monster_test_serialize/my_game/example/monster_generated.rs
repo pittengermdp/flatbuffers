@@ -601,7 +601,7 @@ impl<'a> Monster<'a> {
     #[must_use]
     pub fn testarrayoftables(
         &self,
-    ) -> Option<::flatbuffers::Vector<'a, ::flatbuffers::ForwardsUOffset<Monster<'a>>>> {
+    ) -> Option<::flatbuffers::Vector<'a, ::flatbuffers::ForwardsUOffset<Self>>> {
         // Safety:
         // Created from valid Table for this object
         // which contains a valid value in this slot
@@ -1821,7 +1821,6 @@ impl Serialize for Monster<'_> {
         s.serialize_field("color", &self.color())?;
         s.serialize_field("test_type", &self.test_type())?;
         match self.test_type() {
-            Any::NONE => (),
             Any::Monster => {
                 let f = self
                     .test_as_monster()
@@ -1954,7 +1953,6 @@ impl Serialize for Monster<'_> {
         }
         s.serialize_field("any_unique_type", &self.any_unique_type())?;
         match self.any_unique_type() {
-            AnyUniqueAliases::NONE => (),
             AnyUniqueAliases::M => {
                 let f = self
                     .any_unique_as_m()
@@ -1977,7 +1975,6 @@ impl Serialize for Monster<'_> {
         }
         s.serialize_field("any_ambiguous_type", &self.any_ambiguous_type())?;
         match self.any_ambiguous_type() {
-            AnyAmbiguousAliases::NONE => (),
             AnyAmbiguousAliases::M1 => {
                 let f = self
                     .any_ambiguous_as_m1()
@@ -2775,7 +2772,7 @@ pub struct MonsterT {
     pub test: AnyT,
     pub test4: Option<Vec<TestT>>,
     pub testarrayofstring: Option<Vec<String>>,
-    pub testarrayoftables: Option<Vec<MonsterT>>,
+    pub testarrayoftables: Option<Vec<Self>>,
     pub enemy: Option<Box<MonsterT>>,
     pub testnestedflatbuffer: Option<Vec<u8>>,
     pub testempty: Option<Box<StatT>>,

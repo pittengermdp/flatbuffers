@@ -72,13 +72,16 @@ impl<'a> TableB<'a> {
 
     #[inline]
     #[must_use]
-    pub fn a(&self) -> Option<super::super::TableA<'a>> {
+    pub fn a(&self) -> Option<crate::include_test1_generated::TableA<'a>> {
         // Safety:
         // Created from valid Table for this object
         // which contains a valid value in this slot
         unsafe {
             self.tab
-                .get::<::flatbuffers::ForwardsUOffset<super::super::TableA>>(TableB::VT_A, None)
+                .get::<::flatbuffers::ForwardsUOffset<crate::include_test1_generated::TableA>>(
+                    TableB::VT_A,
+                    None,
+                )
         }
     }
 }
@@ -90,7 +93,7 @@ impl ::flatbuffers::Verifiable for TableB<'_> {
         pos: usize,
     ) -> Result<(), ::flatbuffers::InvalidFlatbuffer> {
         v.visit_table(pos)?
-            .visit_field::<::flatbuffers::ForwardsUOffset<super::super::TableA>>(
+            .visit_field::<::flatbuffers::ForwardsUOffset<crate::include_test1_generated::TableA>>(
                 "a",
                 Self::VT_A,
                 false,
@@ -101,7 +104,7 @@ impl ::flatbuffers::Verifiable for TableB<'_> {
 }
 
 pub struct TableBArgs<'a> {
-    pub a: Option<::flatbuffers::WIPOffset<super::super::TableA<'a>>>,
+    pub a: Option<::flatbuffers::WIPOffset<crate::include_test1_generated::TableA<'a>>>,
 }
 
 impl Default for TableBArgs<'_> {
@@ -118,9 +121,15 @@ pub struct TableBBuilder<'a: 'b, 'b, A: ::flatbuffers::Allocator + 'a> {
 
 impl<'a: 'b, 'b, A: ::flatbuffers::Allocator + 'a> TableBBuilder<'a, 'b, A> {
     #[inline]
-    pub fn add_a(&mut self, a: ::flatbuffers::WIPOffset<super::super::TableA<'b>>) {
+    pub fn add_a(
+        &mut self,
+        a: ::flatbuffers::WIPOffset<crate::include_test1_generated::TableA<'b>>,
+    ) {
         self.fbb_
-            .push_slot_always::<::flatbuffers::WIPOffset<super::super::TableA>>(TableB::VT_A, a);
+            .push_slot_always::<::flatbuffers::WIPOffset<crate::include_test1_generated::TableA>>(
+                TableB::VT_A,
+                a,
+            );
     }
 
     #[inline]
@@ -151,7 +160,7 @@ impl ::core::fmt::Debug for TableB<'_> {
 
 #[derive(Debug, Clone, PartialEq, Default, Eq, Hash)]
 pub struct TableBT {
-    pub a: Option<Box<super::super::TableAT>>,
+    pub a: Option<Box<crate::include_test1_generated::TableAT>>,
 }
 
 impl TableBT {
