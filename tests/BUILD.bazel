@@ -95,6 +95,7 @@ cc_test(
         ":include_test/include_test1.fbs",
         ":include_test/sub/include_test2.fbs",
         ":key_field/key_field_sample.fbs",
+        ":map_set_test.fbs",
         ":monster_extra.fbs",
         ":monster_test.bfbs",
         ":monster_test.fbs",
@@ -139,6 +140,7 @@ cc_test(
         ":arrays_test_cc_fbs",
         ":cross_namespace_pack_test_cc_fbs",
         ":default_vectors_strings_test_cc_fbs",
+        ":map_set_test_cc_fbs",
         ":monster_extra_cc_fbs",
         ":monster_test_cc_fbs",
         ":native_type_test_cc_fbs",
@@ -287,6 +289,15 @@ flatbuffer_cc_library(
 flatbuffer_cc_library(
     name = "alignment_test_cc_fbs",
     srcs = ["alignment_test.fbs"],
+)
+
+# test.cpp includes map_set_test_generated.h, which CMake produces via
+# compile_schema_for_test but Bazel had no rule for -- so the Bazel build was
+# the only one that saw a missing header. DEFAULT_FLATC_ARGS already matches
+# the FLATC_OPT_COMP set CMake compiles this schema with.
+flatbuffer_cc_library(
+    name = "map_set_test_cc_fbs",
+    srcs = ["map_set_test.fbs"],
 )
 
 flatbuffer_cc_library(

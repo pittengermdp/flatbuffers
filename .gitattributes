@@ -1,2 +1,13 @@
 # Set the default behavior, in case people don't have core.autocrlf set.
 * text=auto
+
+# Check Go out with LF everywhere, including Windows.
+#
+# `text=auto` above stores LF but hands the working tree the platform's native
+# ending, and gofmt's doc-comment normalization is sensitive to which it gets:
+# given `/// x` it rewrites to `// / x` on LF input and leaves the line alone
+# on CRLF. Same binary, same version -- only the line endings differ. That made
+# the regen check pass on Linux and fail on Windows, where gofmt silently
+# declined to reformat and the job reported a diff against a corpus every other
+# platform produces.
+*.go text eol=lf

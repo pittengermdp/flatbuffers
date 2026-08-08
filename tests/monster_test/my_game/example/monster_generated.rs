@@ -599,7 +599,7 @@ impl<'a> Monster<'a> {
     #[must_use]
     pub fn testarrayoftables(
         &self,
-    ) -> Option<::flatbuffers::Vector<'a, ::flatbuffers::ForwardsUOffset<Monster<'a>>>> {
+    ) -> Option<::flatbuffers::Vector<'a, ::flatbuffers::ForwardsUOffset<Self>>> {
         // Safety:
         // Created from valid Table for this object
         // which contains a valid value in this slot
@@ -2530,7 +2530,7 @@ pub struct MonsterT {
     pub test: AnyT,
     pub test4: Option<Vec<TestT>>,
     pub testarrayofstring: Option<Vec<String>>,
-    pub testarrayoftables: Option<Vec<MonsterT>>,
+    pub testarrayoftables: Option<Vec<Self>>,
     pub enemy: Option<Box<MonsterT>>,
     pub testnestedflatbuffer: Option<Vec<u8>>,
     pub testempty: Option<Box<StatT>>,

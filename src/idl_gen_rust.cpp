@@ -18,6 +18,7 @@
 
 #include "idl_gen_rust.h"
 
+#include <algorithm>
 #include <cmath>
 #include <set>
 
@@ -613,13 +614,13 @@ class RustGenerator : public BaseGenerator {
   }
 
   std::string NamespacedNativeName(const EnumDef& def) {
-    if (def.declaration_file && !IsFromCurrentFile(def)) {
+    if (NeedsCrossFilePath(def)) {
       return CrossFileNamespacePath(def) + namer_.ObjectType(def);
     }
     return WrapInNameSpace(def.defined_namespace, namer_.ObjectType(def));
   }
   std::string NamespacedNativeName(const StructDef& def) {
-    if (def.declaration_file && !IsFromCurrentFile(def)) {
+    if (NeedsCrossFilePath(def)) {
       return CrossFileNamespacePath(def) + namer_.ObjectType(def);
     }
     return WrapInNameSpace(def.defined_namespace, namer_.ObjectType(def));
@@ -662,8 +663,24 @@ class RustGenerator : public BaseGenerator {
     return path;
   }
 
+  // True when a reference to `def` has to be spelled as the absolute
+  // CrossFileNamespacePath above rather than a relative one.
+  //
+  // That absolute path is only correct for the flat layout this generator
+  // emits by default, where each schema becomes a `<file>_generated` module at
+  // the crate root. `--rust-module-root-file` produces the other layout: a
+  // single `mod.rs` mounts every namespace as a nested `pub mod`, so there is
+  // no `crate::<file>_generated` to name, and the `use super::*;` chain that
+  // mod.rs sets up is what makes the relative path resolve. Emitting the
+  // absolute form under a module root yields E0433 (cannot find
+  // `<file>_generated` in `crate`), which is what the Rust test crate hit.
+  bool NeedsCrossFilePath(const Definition& def) const {
+    return def.declaration_file && !IsFromCurrentFile(def) &&
+           !parser_.opts.rust_module_root_file;
+  }
+
   std::string WrapInNameSpace(const Definition& def) const {
-    if (def.declaration_file && !IsFromCurrentFile(def)) {
+    if (NeedsCrossFilePath(def)) {
       return CrossFileNamespacePath(def) + namer_.EscapeKeyword(def.name);
     }
     return WrapInNameSpace(def.defined_namespace,
@@ -1124,16 +1141,84 @@ class RustGenerator : public BaseGenerator {
       code_ += "    ];";
       code_ += "";
 
-      code_ += "    /// Returns the variant's name or \"\" if unknown.";
-      code_ += "    #[must_use]";
-      code_ += "    pub const fn variant_name(self) -> Option<&'static str> {";
-      code_ += "        match self {";
-      ForAllEnumValues(enum_def, [&]() {
-        code_ += "        Self::{{VARIANT}} => Some(\"{{VARIANT}}\"),";
-      });
-      code_ += "            _ => None,";
-      code_ += "        }";
-      code_ += "    }";
+      // `variant_name` is one match arm per variant. For most enums that is the
+      // clearest thing to read, but it scales linearly: Fault has 1411 variants
+      // and its match alone was 1462 lines, past clippy::too_many_lines. The
+      // only ways out were an #[allow] on generated code or a raised threshold.
+      //
+      // A name table indexed by `value - ENUM_MIN` was the obvious alternative
+      // and is the wrong one here: at 16 bytes per entry it trips
+      // clippy::large_stack_arrays / large_const_arrays, whose remedy is a
+      // `static` — and a `static` cannot be read from a `const fn`, which
+      // `variant_name` is and must stay.
+      //
+      // So take the remedy the lint actually names: extract functions. Above
+      // kChunkTrigger variants the match is split into chunks of kChunkSize,
+      // each far below the threshold, and `variant_name` tries them in order.
+      // Behaviour is identical -- every arm still exists, in the same order,
+      // and an unmatched value still falls through to None.
+      const size_t kChunkTrigger = 600;
+      const size_t kChunkSize = 400;
+      const size_t variant_total = enum_def.Vals().size();
+
+      if (variant_total > kChunkTrigger) {
+        const size_t chunk_count =
+            (variant_total + kChunkSize - 1) / kChunkSize;
+
+        // Emit one helper per chunk, each a plain match over its slice.
+        size_t index = 0;
+        for (size_t chunk = 0; chunk < chunk_count; ++chunk) {
+          code_.SetValue("CHUNK", NumToString(chunk));
+          code_ +=
+              "    /// Chunk {{CHUNK}} of the variant-name lookup. Split so no "
+              "single";
+          code_ += "    /// function grows past the line threshold.";
+          code_ +=
+              "    const fn variant_name_chunk_{{CHUNK}}(self) -> "
+              "Option<&'static str> {";
+          code_ += "        match self {";
+          const size_t chunk_end =
+              (std::min)(index + kChunkSize, variant_total);
+          size_t seen = 0;
+          for (auto it = enum_def.Vals().begin(); it != enum_def.Vals().end();
+               ++it, ++seen) {
+            if (seen < index || seen >= chunk_end) continue;
+            code_.SetValue("VARIANT", namer_.Variant(**it));
+            code_ += "            Self::{{VARIANT}} => Some(\"{{VARIANT}}\"),";
+          }
+          code_ += "            _ => None,";
+          code_ += "        }";
+          code_ += "    }";
+          code_ += "";
+          index = chunk_end;
+        }
+
+        code_ += "    /// Returns the variant's name, or `None` if unknown.";
+        code_ += "    #[must_use]";
+        code_ +=
+            "    pub const fn variant_name(self) -> Option<&'static str> {";
+        code_ += "        let mut name = self.variant_name_chunk_0();";
+        for (size_t chunk = 1; chunk < chunk_count; ++chunk) {
+          code_.SetValue("CHUNK", NumToString(chunk));
+          code_ += "        if name.is_none() {";
+          code_ += "            name = self.variant_name_chunk_{{CHUNK}}();";
+          code_ += "        }";
+        }
+        code_ += "        name";
+        code_ += "    }";
+      } else {
+        code_ += "    /// Returns the variant's name or \"\" if unknown.";
+        code_ += "    #[must_use]";
+        code_ +=
+            "    pub const fn variant_name(self) -> Option<&'static str> {";
+        code_ += "        match self {";
+        ForAllEnumValues(enum_def, [&]() {
+          code_ += "        Self::{{VARIANT}} => Some(\"{{VARIANT}}\"),";
+        });
+        code_ += "            _ => None,";
+        code_ += "        }";
+        code_ += "    }";
+      }
       code_ += "}";
       code_ += "";
 
@@ -1176,8 +1261,13 @@ class RustGenerator : public BaseGenerator {
         // expression so the generated serde is clippy-clean:
         //   * u32 base   -> `self.0`            (no clippy::unnecessary_cast)
         //   * u8/u16 base-> `u32::from(self.0)` (no clippy::cast_lossless)
-        //   * signed/64-bit base (`byte`/`long`) -> `self.0 as u32`, which
-        //     `From` does not cover and which clippy does not flag.
+        //   * signed base (`byte`/`short`/`int`) -> widen losslessly, then
+        //     reinterpret the bit pattern through `to_ne_bytes`. This is
+        //     byte-for-byte what `self.0 as u32` produced, but `as` on a
+        //     signed source is clippy::cast_sign_loss; the round-trip is not.
+        //   * 64-bit base (`long`/`ulong`) -> `self.0 as u32`. serde's
+        //     `variant_index` is u32 by API, so some narrowing is unavoidable
+        //     here; no schema in this tree uses a 64-bit enum.
         const std::string serde_disc_ty =
             GetEnumTypeForDecl(enum_def.underlying_type);
         std::string serde_disc;
@@ -1185,6 +1275,10 @@ class RustGenerator : public BaseGenerator {
           serde_disc = "self.0";
         } else if (serde_disc_ty == "u8" || serde_disc_ty == "u16") {
           serde_disc = "u32::from(self.0)";
+        } else if (serde_disc_ty == "i8" || serde_disc_ty == "i16") {
+          serde_disc = "u32::from_ne_bytes(i32::from(self.0).to_ne_bytes())";
+        } else if (serde_disc_ty == "i32") {
+          serde_disc = "u32::from_ne_bytes(self.0.to_ne_bytes())";
         } else {
           serde_disc = "self.0 as u32";
         }
@@ -1584,7 +1678,7 @@ class RustGenerator : public BaseGenerator {
         auto ev = field.value.type.enum_def->FindByValue(field.value.constant);
         if (!ev) return "Default::default()";  // Bitflags enum.
         const auto& enum_def = *field.value.type.enum_def;
-        if (enum_def.declaration_file && !IsFromCurrentFile(enum_def)) {
+        if (NeedsCrossFilePath(enum_def)) {
           return CrossFileNamespacePath(enum_def) +
                  namer_.EnumVariant(enum_def, *ev);
         }
@@ -1820,6 +1914,13 @@ class RustGenerator : public BaseGenerator {
           FLATBUFFERS_ASSERT(kf && "set entry struct missing key field");
           ty = "std::collections::HashSet<" + RustKeyType(kf->value.type) +
                ", ::std::hash::BuildHasherDefault<ahash::AHasher>>";
+        } else if (parent_struct &&
+                   type.VectorType().struct_def == parent_struct) {
+          // Self-referential table (e.g. Organization.children:
+          // [Organization]). Naming the object type again inside its own
+          // definition trips clippy::use_self; `Self` is legal in a struct
+          // field type and means exactly the same thing.
+          ty = "Vec<Self>";
         } else {
           ty = NamespacedNativeName(*type.VectorType().struct_def);
           ty = "Vec<" + ty + ">";
@@ -1992,8 +2093,15 @@ class RustGenerator : public BaseGenerator {
     return "INVALID_CODE_GENERATION";  // for return analysis
   }
 
-  std::string GenTableAccessorFuncReturnType(const FieldDef& field,
-                                             const std::string& lifetime) {
+  // `parent_struct`, when given, is the table whose `impl` this return type is
+  // being emitted into. A field referring back to that same table is spelled
+  // `Self`: repeating the name trips clippy::use_self, and inside
+  // `impl<'a> Foo<'a>` the two are identical. Callers emitting into a
+  // *different* impl (a builder, a key accessor) pass nullptr and keep the
+  // fully-qualified name, which is what those contexts require.
+  std::string GenTableAccessorFuncReturnType(
+      const FieldDef& field, const std::string& lifetime,
+      const StructDef* parent_struct = nullptr) {
     const Type& type = field.value.type;
     const auto WrapOption = [&](std::string s) {
       return field.IsOptional() ? "Option<" + s + ">" : s;
@@ -2042,6 +2150,10 @@ class RustGenerator : public BaseGenerator {
                           ">");
       }
       case ftVectorOfTable: {
+        if (parent_struct && type.struct_def == parent_struct) {
+          return WrapOption("::flatbuffers::Vector<" + lifetime +
+                            ", ::flatbuffers::ForwardsUOffset<Self>>");
+        }
         const auto typname = WrapInNameSpace(*type.struct_def);
         return WrapOption("::flatbuffers::Vector<" + lifetime +
                           ", ::flatbuffers::ForwardsUOffset<" + typname + "<" +
@@ -2186,7 +2298,7 @@ class RustGenerator : public BaseGenerator {
       }
       code_.SetValue(
           "U_ELEMENT_ENUM_TYPE",
-          def.declaration_file && !IsFromCurrentFile(def)
+          NeedsCrossFilePath(def)
               ? CrossFileNamespacePath(def) + namer_.EnumVariant(def, ev)
               : WrapInNameSpace(def.defined_namespace,
                                 namer_.EnumVariant(def, ev)));
@@ -2532,7 +2644,7 @@ class RustGenerator : public BaseGenerator {
     ForAllTableFields(struct_def, [&](const FieldDef& field) {
       code_ += "";
       code_.SetValue("RETURN_TYPE",
-                     GenTableAccessorFuncReturnType(field, "'a"));
+                     GenTableAccessorFuncReturnType(field, "'a", &struct_def));
 
       this->GenComment(field.doc_comment);
       if (!field.IsOptional()) {

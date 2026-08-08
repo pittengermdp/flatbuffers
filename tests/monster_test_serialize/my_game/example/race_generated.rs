@@ -77,8 +77,12 @@ impl Serialize for Race {
         S: Serializer,
     {
         match self.variant_name() {
-            Some(name) => serializer.serialize_unit_variant("Race", self.0 as u32, name),
-            None => serializer.serialize_u32(self.0 as u32),
+            Some(name) => serializer.serialize_unit_variant(
+                "Race",
+                u32::from_ne_bytes(i32::from(self.0).to_ne_bytes()),
+                name,
+            ),
+            None => serializer.serialize_u32(u32::from_ne_bytes(i32::from(self.0).to_ne_bytes())),
         }
     }
 }
