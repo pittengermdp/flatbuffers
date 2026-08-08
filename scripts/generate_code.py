@@ -704,6 +704,16 @@ def format_generated_code():
     # path lengths vary too much for a fixed count to bound it either safely or
     # efficiently.
     def run_batch(batch):
+      # flush=True on every print in this function, deliberately. Python block
+      # buffers stdout when it is a pipe, which CI always is, so a batch that
+      # dies or hangs takes its own progress output down with it -- that is why
+      # the first Windows failure here surfaced as a traceback with no [format]
+      # lines before it, and why the hang that followed was invisible. An
+      # unflushed diagnostic is no diagnostic.
+      print(
+          f"[format] {cmd[0]} <- {len(batch)} file(s)",
+          flush=True,
+      )
       try:
         # stdin is closed, never inherited. On Windows several of these tools
         # resolve to a .cmd shim, which CreateProcess runs through cmd.exe; a
@@ -715,12 +725,13 @@ def format_generated_code():
             cmd + batch,
             check=False,
             stdin=subprocess.DEVNULL,
-            timeout=600,
+            timeout=300,
         )
       except subprocess.TimeoutExpired:
         print(
-            f"[format] ERROR: {cmd[0]!r} timed out after 600s "
-            f"on {len(batch)} file(s)"
+            f"[format] ERROR: {cmd[0]!r} timed out after 300s "
+            f"on {len(batch)} file(s)",
+            flush=True,
         )
         raise
       except OSError as err:
@@ -728,7 +739,8 @@ def format_generated_code():
         # symptom is a later regen diff blaming the generator.
         print(
             f"[format] ERROR: could not run {cmd[0]!r} "
-            f"on {len(batch)} file(s): {err}"
+            f"on {len(batch)} file(s): {err}",
+            flush=True,
         )
         raise
 
@@ -758,18 +770,18 @@ def format_generated_code():
     rs = glob(tests, "**/*_generated.rs")
     if rs:
       run_chunked(["rustfmt", "--edition", "2018"], rs)
-    print(f"[format] rustfmt: {len(rs)} Rust files")
+    print(f"[format] rustfmt: {len(rs)} Rust files", flush=True)
   else:
-    print("[format] rustfmt not found; skipping Rust")
+    print("[format] rustfmt not found; skipping Rust", flush=True)
 
   # Go generated code (no _generated suffix; gofmt is idempotent and safe).
   if have("gofmt"):
     go = glob(tests, "**/*.go")
     if go:
       run_chunked(["gofmt", "-w"], go)
-    print(f"[format] gofmt: {len(go)} Go files")
+    print(f"[format] gofmt: {len(go)} Go files", flush=True)
   else:
-    print("[format] gofmt not found; skipping Go")
+    print("[format] gofmt not found; skipping Go", flush=True)
 
   # TypeScript generated code (prettier via npx).
   if have("npx"):
@@ -779,18 +791,18 @@ def format_generated_code():
           ["npx", "--no-install", "prettier", "--write", "--log-level", "warn"],
           ts,
       )
-    print(f"[format] prettier: {len(ts)} TS files")
+    print(f"[format] prettier: {len(ts)} TS files", flush=True)
   else:
-    print("[format] npx not found; skipping TypeScript")
+    print("[format] npx not found; skipping TypeScript", flush=True)
 
   # Python generated code (optional).
   if have("black"):
     py = glob(tests, "**/*.py")
     if py:
       run_chunked(["black", "-q"], py)
-    print(f"[format] black: {len(py)} Python files")
+    print(f"[format] black: {len(py)} Python files", flush=True)
   else:
-    print("[format] black not found; skipping Python")
+    print("[format] black not found; skipping Python", flush=True)
 
 
 format_generated_code()
