@@ -786,10 +786,27 @@ def format_generated_code():
   skip_dirs = {"node_modules", "target", "dist", ".git"}
 
   def sources(path, pattern):
-    return [
+    files = [
         f for f in glob(path, pattern)
         if not skip_dirs.intersection(Path(f).parts)
     ]
+    # Hand the formatters LF no matter how the tree was checked out.
+    #
+    # gofmt's doc-comment normalization does not fire on CRLF input: given
+    # `/// x` it produces `// / x` from LF and leaves the line untouched from
+    # CRLF. Windows checkouts are CRLF by default, so the same gofmt binary
+    # silently produced a different corpus there and the regen gate failed on
+    # a real content difference it could not attribute to anything.
+    #
+    # Doing it here rather than relying on .gitattributes keeps the guarantee
+    # inside the script, where it can be verified, instead of depending on a
+    # checkout setting. Git stores these blobs with LF either way, so this only
+    # ever reverses a checkout-time conversion.
+    for f in files:
+      raw = Path(f).read_bytes()
+      if b"\r\n" in raw:
+        Path(f).write_bytes(raw.replace(b"\r\n", b"\n"))
+    return files
 
   # NOTE: C++ is intentionally NOT run through clang-format here. clang-format
   # output varies significantly across major versions, which would make the
