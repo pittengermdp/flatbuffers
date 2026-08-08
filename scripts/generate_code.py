@@ -758,6 +758,26 @@ def format_generated_code():
 
   tests = Path(tests_path)
 
+  # Dependency trees and build output are never generated code, and must be
+  # excluded explicitly rather than left to the glob.
+  #
+  # `**` skips symlinked directories, so on Linux and macOS -- where pnpm
+  # builds node_modules out of symlinks -- tests/ts/node_modules is invisible
+  # and the TS glob returns the 167 real files. Windows pnpm materializes the
+  # same tree as junctions, which Python treats as ordinary directories, so
+  # there the glob descended into it and returned tens of thousands. That is
+  # what wedged the Windows regen job: ~3800 formatter invocations, each a
+  # fresh process, with the batches visibly shrinking as the node_modules
+  # paths grew longer. It never hung -- it was doing pointless work for half
+  # an hour, and would have reformatted vendored sources as a side effect.
+  skip_dirs = {"node_modules", "target", "dist", ".git"}
+
+  def sources(path, pattern):
+    return [
+        f for f in glob(path, pattern)
+        if not skip_dirs.intersection(Path(f).parts)
+    ]
+
   # NOTE: C++ is intentionally NOT run through clang-format here. clang-format
   # output varies significantly across major versions, which would make the
   # regen-diff CI gate (check_generate_code.py) non-deterministic unless every
@@ -767,7 +787,7 @@ def format_generated_code():
 
   # Rust generated modules.
   if have("rustfmt"):
-    rs = glob(tests, "**/*_generated.rs")
+    rs = sources(tests, "**/*_generated.rs")
     if rs:
       run_chunked(["rustfmt", "--edition", "2018"], rs)
     print(f"[format] rustfmt: {len(rs)} Rust files", flush=True)
@@ -776,7 +796,7 @@ def format_generated_code():
 
   # Go generated code (no _generated suffix; gofmt is idempotent and safe).
   if have("gofmt"):
-    go = glob(tests, "**/*.go")
+    go = sources(tests, "**/*.go")
     if go:
       run_chunked(["gofmt", "-w"], go)
     print(f"[format] gofmt: {len(go)} Go files", flush=True)
@@ -785,7 +805,7 @@ def format_generated_code():
 
   # TypeScript generated code (prettier via npx).
   if have("npx"):
-    ts = glob(Path(tests, "ts"), "**/*.ts")
+    ts = sources(Path(tests, "ts"), "**/*.ts")
     if ts:
       run_chunked(
           ["npx", "--no-install", "prettier", "--write", "--log-level", "warn"],
