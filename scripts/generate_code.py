@@ -721,12 +721,25 @@ def format_generated_code():
         # nobody can answer. The timeout is the backstop for anything else
         # that wedges -- a formatter that hangs should fail this step in
         # minutes with a name attached, not sit on the job's whole budget.
-        subprocess.run(
+        proc = subprocess.run(
             cmd + batch,
             check=False,
             stdin=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            text=True,
             timeout=300,
         )
+        # A formatter that exits non-zero has silently not formatted, and the
+        # only downstream symptom is a regen diff that blames the generator.
+        # Not fatal -- let the diff gate be the judge -- but never silent.
+        if proc.returncode != 0:
+          print(
+              f"[format] WARNING: {cmd[0]} exited {proc.returncode} "
+              f"on {len(batch)} file(s)",
+              flush=True,
+          )
+        if proc.stderr and proc.stderr.strip():
+          print(proc.stderr.strip()[:4000], flush=True)
       except subprocess.TimeoutExpired:
         print(
             f"[format] ERROR: {cmd[0]!r} timed out after 300s "
