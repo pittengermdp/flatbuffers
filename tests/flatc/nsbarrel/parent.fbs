@@ -1,0 +1,6 @@
+// A top-level namespace. Its barrel must re-export only ITS own children.
+namespace Parent;
+
+table ParentThing {
+  value: int32;
+}

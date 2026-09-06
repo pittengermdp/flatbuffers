@@ -16,7 +16,7 @@
 
 import sys
 
-from flatc_collision_tests import OutputCollisionTests
+from flatc_collision_tests import NamespaceBarrelTests, OutputCollisionTests
 from flatc_cpp_tests import CppTests
 from flatc_kotlin_tests import KotlinTests
 from flatc_schema_tests import SchemaTests
@@ -24,7 +24,12 @@ from flatc_test import run_all
 from flatc_ts_tests import TsTests
 
 passing, failing = run_all(
-    CppTests, KotlinTests, TsTests, SchemaTests, OutputCollisionTests
+    CppTests,
+    KotlinTests,
+    TsTests,
+    SchemaTests,
+    OutputCollisionTests,
+    NamespaceBarrelTests,
 )
 
 print("")

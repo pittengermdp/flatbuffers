@@ -359,6 +359,17 @@ class TsGenerator : public BaseGenerator {
       const auto child_ns_level = it.second.ns->components.size() + 1;
       for (const auto& it2 : ns_defs_) {
         if (it2.second.ns->components.size() != child_ns_level) continue;
+        // Being one level deeper does not make a namespace a CHILD of this one.
+        // Without comparing the leading components, every unrelated namespace at
+        // that depth was re-exported: the barrel for `Usage` picked up
+        // `Reporting.UsageReport`, so usage.ts, service.ts and traffic.ts each
+        // carried an `export * as UsageReport from './reporting/usage-report'`
+        // that belonged to none of them.
+        if (!std::equal(it.second.ns->components.begin(),
+                        it.second.ns->components.end(),
+                        it2.second.ns->components.begin())) {
+          continue;
+        }
         auto ts_file_path = it2.second.path + ".ts";
         code += "export * as " + it2.second.symbolic_name + " from './";
         int count = it2.second.ns->components.size() > 1 ? 2 : 1;

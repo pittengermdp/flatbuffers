@@ -37,6 +37,8 @@ from flatc_test import (
 
 ALPHA = "collision/alpha/thing.fbs"
 BETA = "collision/beta/thing.fbs"
+UNRELATED_NESTED = "nsbarrel/unrelated.fbs"
+REAL_CHILD = "nsbarrel/real_child.fbs"
 
 
 def _fresh(name):
@@ -127,3 +129,43 @@ class OutputCollisionTests:
 
     assert make_absolute(manifest) in stderr or manifest in stderr, stderr
     assert "delete" in stderr.lower(), stderr
+
+
+class NamespaceBarrelTests:
+  """A namespace barrel must re-export its own children and nothing else."""
+
+  def UnrelatedNamespaceIsNotReExportedAsAChild(self):
+    # The child test used to compare only DEPTH, so any namespace one level
+    # deeper was treated as a child of every shallower one. Generating a schema
+    # whose closure holds both `Parent` and the unrelated `Other.Child` put
+    # `export * as Child` into parent.ts. In this repo that is how
+    # `Reporting.UsageReport` ended up re-exported from usage.ts, service.ts and
+    # traffic.ts, none of which own it.
+    out, _ = _fresh("out_nsbarrel")
+
+    flatc(["--ts", "-o", out, UNRELATED_NESTED])
+
+    parent_barrel = Path(out, "parent.ts")
+    assert parent_barrel.exists(), "expected a barrel for the Parent namespace"
+    contents = parent_barrel.read_text()
+
+    assert "Child" not in contents, (
+        "Parent's barrel must not re-export the unrelated Other.Child: "
+        + contents
+    )
+    assert "ParentThing" in contents, (
+        "Parent's barrel should still export its own types: " + contents
+    )
+
+  def RealChildNamespaceIsStillReExported(self):
+    # The fix must not throw the feature out with the bug: Parent.Real IS a
+    # child of Parent and still belongs in Parent's barrel. Without this, a
+    # prefix check that simply never matched would pass the test above.
+    out, _ = _fresh("out_nsbarrel_child")
+
+    flatc(["--ts", "-o", out, REAL_CHILD])
+
+    contents = Path(out, "parent.ts").read_text()
+    assert "export * as Real" in contents, (
+        "Parent's barrel must still re-export its genuine child: " + contents
+    )
