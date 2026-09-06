@@ -18,6 +18,7 @@
 #define FLATBUFFERS_FILE_MANAGER_H_
 
 #include <cstddef>
+#include <map>
 #include <set>
 #include <string>
 
@@ -39,6 +40,10 @@ class FileSaver {
 
   virtual void Finish() {}
 
+  // Tells the saver which schema is currently being compiled. flatc calls this
+  // once per input file. Savers that do not care about provenance ignore it.
+  virtual void SetCurrentSource(const std::string& /*source*/) {}
+
  private:
   // Copying is not supported.
   FileSaver(const FileSaver&) = delete;
@@ -52,6 +57,48 @@ class RealFileSaver final : public FileSaver {
  public:
   bool SaveFile(const char* name, const char* buf, size_t len,
                 bool binary) final;
+};
+
+// Fails the build when two different schemas would write the same output file.
+//
+// flatc derives most output names from the schema's BASENAME and, for some
+// languages, its namespace -- never from the schema's directory. Two schemas in
+// different directories that share a basename therefore resolve to one output
+// path, and because flatc is normally invoked once per schema, the second
+// invocation simply overwrites what the first produced. Both runs exit 0. The
+// losing schema's types are then absent from the generated code with nothing
+// anywhere to say so, and the gap typically surfaces much later as a missing
+// type in a consumer that has no way to trace it back here.
+//
+// Provenance is what makes this detectable across separate invocations, so it
+// is kept in a manifest of "output path -> schema that produced it". A write
+// that would change a path's producer is refused. Rewriting a path from the
+// SAME schema is ordinary regeneration and always allowed.
+//
+// The manifest describes one generated tree. Delete it when starting a full
+// regeneration from a clean slate, otherwise entries for schemas that have since
+// been renamed or removed linger and can accuse an innocent newcomer that
+// legitimately took over the name.
+class OutputManifestFileSaver final : public FileSaver {
+ public:
+  OutputManifestFileSaver(FileSaver* inner, std::string manifest_path);
+
+  bool SaveFile(const char* name, const char* buf, size_t len,
+                bool binary) final;
+
+  void SetCurrentSource(const std::string& source) final;
+
+  void Finish() final;
+
+ private:
+  bool Load();
+  bool Store() const;
+
+  FileSaver* inner_;
+  std::string manifest_path_;
+  std::string current_source_{};
+  // output path -> the schema that produced it
+  std::map<std::string, std::string> produced_by_{};
 };
 
 class FileNameSaver final : public FileSaver {

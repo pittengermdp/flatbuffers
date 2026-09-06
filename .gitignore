@@ -48,8 +48,17 @@ linklint_results
 Makefile
 flatbenchmark
 flatbenchmark.exe
-flatc
-flatc.exe
+/flatc
+/flatc.exe
+
+# tests/flatc/main.py writes its generated output beside its sources. Ignore the
+# output but keep every SOURCE visible: the unanchored `flatc` pattern above used
+# to match the tests/flatc directory itself, so a newly added test was invisible
+# to git and would be left out of a commit without a word.
+/tests/flatc/**
+!/tests/flatc/**/
+!/tests/flatc/**/*.fbs
+!/tests/flatc/**/*.py
 flathash
 flathash.exe
 flattests

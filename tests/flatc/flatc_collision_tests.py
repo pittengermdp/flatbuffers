@@ -1,0 +1,129 @@
+# Copyright 2026 Google Inc. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Tests for --output-manifest, which refuses a write that would overwrite
+another schema's generated output.
+
+Most languages name their output from the schema's BASENAME -- and, for
+TypeScript, additionally from its namespace -- but never from the schema's
+directory. Two schemas in different directories that share a basename therefore
+resolve to the same output path, and since flatc is normally invoked once per
+schema, the second invocation silently overwrites the first. Both exit 0.
+
+collision/alpha/thing.fbs and collision/beta/thing.fbs are that pair.
+"""
+
+from pathlib import Path
+import shutil
+
+from flatc_test import (
+    assert_file_exists,
+    flatc,
+    flatc_fails,
+    make_absolute,
+    script_path,
+)
+
+ALPHA = "collision/alpha/thing.fbs"
+BETA = "collision/beta/thing.fbs"
+
+
+def _fresh(name):
+  """An empty output directory, plus the manifest path inside it."""
+  out = Path(script_path, "collision", name)
+  shutil.rmtree(out, ignore_errors=True)
+  out.mkdir(parents=True, exist_ok=True)
+  return str(out), str(Path(out, "manifest.txt"))
+
+
+class OutputCollisionTests:
+
+  def RustCollisionFailsAndNamesBothSchemas(self):
+    out, manifest = _fresh("out_rust")
+
+    flatc(["--rust", "--output-manifest", manifest, "-o", out, ALPHA])
+    assert_file_exists("thing_generated.rs", out)
+
+    stderr = flatc_fails(
+        ["--rust", "--output-manifest", manifest, "-o", out, BETA]
+    )
+
+    # Naming only one side would leave whoever hits this hunting for the other.
+    assert "two schemas generate the same output file" in stderr, stderr
+    assert ALPHA in stderr, stderr
+    assert BETA in stderr, stderr
+
+  def TypeScriptCollisionFails(self):
+    # TypeScript is the case worth pinning: its writers used to discard save
+    # failures, so the collision was reported on stderr while flatc still
+    # exited 0. flatc_fails asserts the status, not just the text.
+    out, manifest = _fresh("out_ts")
+
+    flatc(["--ts", "--output-manifest", manifest, "-o", out, ALPHA])
+    stderr = flatc_fails(["--ts", "--output-manifest", manifest, "-o", out, BETA])
+
+    assert "two schemas generate the same output file" in stderr, stderr
+
+  def RegeneratingTheSameSchemaIsAllowed(self):
+    # The manifest records provenance, not content: a schema rewriting its own
+    # output is ordinary regeneration and must stay silent, or every second run
+    # of a build would fail.
+    out, manifest = _fresh("out_repeat")
+
+    flatc(["--rust", "--output-manifest", manifest, "-o", out, ALPHA])
+    flatc(["--rust", "--output-manifest", manifest, "-o", out, ALPHA])
+    flatc(["--rust", "--output-manifest", manifest, "-o", out, ALPHA])
+
+    assert_file_exists("thing_generated.rs", out)
+
+  def WithoutTheFlagTheCollisionStillHappensSilently(self):
+    # The check is opt-in. This pins the unguarded behaviour so the test suite
+    # says out loud what the flag is protecting against: without it, the second
+    # schema wins and nothing reports it.
+    out, _ = _fresh("out_unguarded")
+
+    flatc(["--rust", "-o", out, ALPHA])
+    flatc(["--rust", "-o", out, BETA])
+
+    generated = Path(out, "thing_generated.rs").read_text()
+    assert "BetaThing" in generated, "the later schema should have won"
+    assert "AlphaThing" not in generated, (
+        "the earlier schema's types should be gone -- that is the bug"
+    )
+
+  def NamespaceDirectoryLanguagesAreNotFalselyAccused(self):
+    # Go names its output from the namespace, so the same basename pair does NOT
+    # collide there. Reporting one would be a false positive that blocks a
+    # legitimate build.
+    out, manifest = _fresh("out_go")
+
+    flatc(["--go", "--output-manifest", manifest, "-o", out, ALPHA])
+    flatc(["--go", "--output-manifest", manifest, "-o", out, BETA])
+
+    assert Path(out, "Alpha").is_dir(), "expected a namespace directory for Alpha"
+    assert Path(out, "Beta").is_dir(), "expected a namespace directory for Beta"
+
+  def StaleManifestAdviceIsInTheMessage(self):
+    # A renamed or deleted schema leaves an entry behind that can accuse a
+    # newcomer which legitimately took over the name. The way out has to be in
+    # the message, because the manifest is not a file anyone thinks to look for.
+    out, manifest = _fresh("out_stale")
+
+    flatc(["--rust", "--output-manifest", manifest, "-o", out, ALPHA])
+    stderr = flatc_fails(
+        ["--rust", "--output-manifest", manifest, "-o", out, BETA]
+    )
+
+    assert make_absolute(manifest) in stderr or manifest in stderr, stderr
+    assert "delete" in stderr.lower(), stderr

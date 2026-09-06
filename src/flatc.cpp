@@ -278,6 +278,10 @@ const static FlatCOption flatc_options[] = {
      "optional keys"},
     {"", "file-names-only", "",
      "Print out generated file names without writing to the files"},
+    {"", "output-manifest", "PATH",
+     "Record which schema produced each generated file in PATH, and fail if a "
+     "schema would overwrite a file another schema produced. Delete PATH "
+     "before a full regeneration."},
     {"", "grpc-filename-suffix", "SUFFIX",
      "The suffix for the generated file names (Default is '.fb')."},
     {"", "grpc-additional-header", "",
@@ -734,6 +738,12 @@ FlatCOptions FlatCompiler::ParseFromCommandLineArguments(int argc,
         options.annotate_schema = flatbuffers::PosixPath(argv[argi]);
       } else if (arg == "--file-names-only") {
         options.file_names_only = true;
+      } else if (arg == "--output-manifest") {
+        if (++argi >= argc) Error("missing path following: " + arg, true);
+        options.output_manifest = argv[argi];
+      } else if (arg.rfind("--output-manifest=", 0) == 0) {
+        options.output_manifest =
+            arg.substr(std::string("--output-manifest=").size());
       } else if (arg == "--grpc-filename-suffix") {
         if (++argi >= argc) Error("missing gRPC filename suffix: " + arg, true);
         opts.grpc_filename_suffix = argv[argi];
@@ -859,6 +869,9 @@ std::unique_ptr<Parser> FlatCompiler::GenerateCode(const FlatCOptions& options,
     IDLOptions opts = options.opts;
 
     auto& filename = *file_it;
+    // Attribute every file written while compiling this input back to it, so a
+    // saver that tracks provenance can tell one schema's output from another's.
+    if (opts.file_saver) opts.file_saver->SetCurrentSource(filename);
     std::string contents;
     if (!flatbuffers::LoadFile(filename.c_str(), true, &contents))
       Error("unable to load file: " + filename);
@@ -988,8 +1001,9 @@ std::unique_ptr<Parser> FlatCompiler::GenerateCode(const FlatCOptions& options,
               bfbs_buffer, bfbs_length, code_gen_options);
           if (status != CodeGenerator::Status::OK) {
             Error("Unable to generate " + code_generator->LanguageName() +
-                  " for " + filebase + code_generator->status_detail +
-                  " using bfbs generator.");
+                      " for " + filebase + code_generator->status_detail +
+                      " using bfbs generator.",
+                  false);
           }
         } else {
           if ((!code_generator->IsSchemaOnly() ||
@@ -998,7 +1012,8 @@ std::unique_ptr<Parser> FlatCompiler::GenerateCode(const FlatCOptions& options,
                                            filebase) !=
                   CodeGenerator::Status::OK) {
             Error("Unable to generate " + code_generator->LanguageName() +
-                  " for " + filebase + code_generator->status_detail);
+                      " for " + filebase + code_generator->status_detail,
+                  false);
           }
         }
       }
@@ -1012,7 +1027,8 @@ std::unique_ptr<Parser> FlatCompiler::GenerateCode(const FlatCOptions& options,
                code_generator->LanguageName());
         } else if (status == CodeGenerator::Status::ERROR) {
           Error("Unable to generate GRPC interface for " +
-                code_generator->LanguageName());
+                    code_generator->LanguageName(),
+                false);
         }
       }
     }

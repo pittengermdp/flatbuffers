@@ -267,6 +267,27 @@ list of `FILES...`.
 
 Additional gRPC options:
 
+-   `--output-manifest PATH` : Records which schema produced each generated file
+    in `PATH`, and fails the run if a schema would overwrite a file that a
+    different schema produced.
+
+    Output names are derived from the schema's basename -- and, for TypeScript,
+    additionally from its namespace -- but never from the schema's directory. Two
+    schemas in different directories that share a basename therefore resolve to
+    the same output path. Because `flatc` is usually invoked once per schema, the
+    second invocation simply overwrites what the first produced, and both runs
+    exit `0`; the losing schema's types are then missing from the generated code
+    with nothing to say why. Languages that write into namespace directories
+    (Go, Java, Python) are unaffected and are never reported.
+
+    The manifest carries the provenance that makes this detectable across
+    separate invocations. Rewriting a path from the *same* schema is ordinary
+    regeneration and is always allowed. The manifest describes one generated
+    tree, so delete it when starting a full regeneration from a clean slate --
+    otherwise an entry for a schema that has since been renamed or removed can
+    accuse a newcomer that legitimately took over the name. The error message
+    says as much, and names the manifest.
+
 -   `--grpc-filename-suffix`: `[C++]` An optional suffix for the generated
     files' names. For example, compiling gRPC for C++ with
     `--grpc-filename-suffix=.fbs` will generate `{name}.fbs.h` and
