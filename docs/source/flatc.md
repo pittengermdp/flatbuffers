@@ -280,8 +280,18 @@ Additional gRPC options:
     with nothing to say why. Languages that write into namespace directories
     (Go, Java, Python) are unaffected and are never reported.
 
+    **Which languages this suits.** The check fits generators that emit only
+    what a schema declares -- Rust refers to everything else through
+    crate-absolute paths, so an output file has exactly one producer. Go and
+    TypeScript instead re-emit the types and barrels a schema *includes*, so the
+    same path is written repeatedly with content that varies by generating
+    schema and the last write wins by design; there the check reports normal
+    output. Use it where one file has one author.
+
     The manifest carries the provenance that makes this detectable across
-    separate invocations. Rewriting a path from the *same* schema is ordinary
+    separate invocations. A write is refused only when it changes both the
+    producing schema *and* the content -- an identical re-emission is harmless
+    whoever wrote it. Rewriting a path from the *same* schema is ordinary
     regeneration and is always allowed. The manifest describes one generated
     tree, so delete it when starting a full regeneration from a clean slate --
     otherwise an entry for a schema that has since been renamed or removed can
