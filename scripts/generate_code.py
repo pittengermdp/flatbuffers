@@ -684,12 +684,129 @@ def format_generated_code():
   def have(tool):
     return shutil.which(tool) is not None
 
-  def run_chunked(cmd, files, chunk=400):
-    # Process in chunks to stay under argv length limits on large corpora.
-    for i in range(0, len(files), chunk):
-      subprocess.run(cmd + files[i : i + chunk], check=False)
+  def run_chunked(cmd, files, max_chars=8000):
+    # Hand subprocess the tool's resolved path rather than its bare name.
+    # shutil.which and CreateProcess do not agree on Windows: which() will
+    # happily return a match that CreateProcess cannot launch, and when
+    # CreateProcess fails to resolve the program it falls back to treating the
+    # entire command line as a filename. With a long file list that surfaces as
+    # WinError 206 ("The filename or extension is too long") rather than a
+    # plain not-found -- and since it is an exception, not a non-zero exit, it
+    # aborted this whole function at the first formatter. gofmt and prettier
+    # then never ran, so the Go corpus stayed unformatted and the regen gate
+    # reported a diff whose stated cause (a stale generator) was not the real
+    # one.
+    exe = shutil.which(cmd[0]) or cmd[0]
+    cmd = [exe] + cmd[1:]
+
+    # Chunk by command-line *length*, not by file count. The limit that
+    # actually binds is the 32767-character cap on a Windows command line, and
+    # path lengths vary too much for a fixed count to bound it either safely or
+    # efficiently.
+    def run_batch(batch):
+      # flush=True on every print in this function, deliberately. Python block
+      # buffers stdout when it is a pipe, which CI always is, so a batch that
+      # dies or hangs takes its own progress output down with it -- that is why
+      # the first Windows failure here surfaced as a traceback with no [format]
+      # lines before it, and why the hang that followed was invisible. An
+      # unflushed diagnostic is no diagnostic.
+      print(
+          f"[format] {cmd[0]} <- {len(batch)} file(s)",
+          flush=True,
+      )
+      try:
+        # stdin is closed, never inherited. On Windows several of these tools
+        # resolve to a .cmd shim, which CreateProcess runs through cmd.exe; a
+        # shim that decides to prompt then blocks forever on a runner where
+        # nobody can answer. The timeout is the backstop for anything else
+        # that wedges -- a formatter that hangs should fail this step in
+        # minutes with a name attached, not sit on the job's whole budget.
+        proc = subprocess.run(
+            cmd + batch,
+            check=False,
+            stdin=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=300,
+        )
+        # A formatter that exits non-zero has silently not formatted, and the
+        # only downstream symptom is a regen diff that blames the generator.
+        # Not fatal -- let the diff gate be the judge -- but never silent.
+        if proc.returncode != 0:
+          print(
+              f"[format] WARNING: {cmd[0]} exited {proc.returncode} "
+              f"on {len(batch)} file(s)",
+              flush=True,
+          )
+        if proc.stderr and proc.stderr.strip():
+          print(proc.stderr.strip()[:4000], flush=True)
+      except subprocess.TimeoutExpired:
+        print(
+            f"[format] ERROR: {cmd[0]!r} timed out after 300s "
+            f"on {len(batch)} file(s)",
+            flush=True,
+        )
+        raise
+      except OSError as err:
+        # Say which formatter could not be launched. Without this the only
+        # symptom is a later regen diff blaming the generator.
+        print(
+            f"[format] ERROR: could not run {cmd[0]!r} "
+            f"on {len(batch)} file(s): {err}",
+            flush=True,
+        )
+        raise
+
+    base = sum(len(part) + 3 for part in cmd)
+    batch, size = [], base
+    for f in files:
+      need = len(str(f)) + 3
+      if batch and size + need > max_chars:
+        run_batch(batch)
+        batch, size = [], base
+      batch.append(f)
+      size += need
+    if batch:
+      run_batch(batch)
 
   tests = Path(tests_path)
+
+  # Dependency trees and build output are never generated code, and must be
+  # excluded explicitly rather than left to the glob.
+  #
+  # `**` skips symlinked directories, so on Linux and macOS -- where pnpm
+  # builds node_modules out of symlinks -- tests/ts/node_modules is invisible
+  # and the TS glob returns the 167 real files. Windows pnpm materializes the
+  # same tree as junctions, which Python treats as ordinary directories, so
+  # there the glob descended into it and returned tens of thousands. That is
+  # what wedged the Windows regen job: ~3800 formatter invocations, each a
+  # fresh process, with the batches visibly shrinking as the node_modules
+  # paths grew longer. It never hung -- it was doing pointless work for half
+  # an hour, and would have reformatted vendored sources as a side effect.
+  skip_dirs = {"node_modules", "target", "dist", ".git"}
+
+  def sources(path, pattern):
+    files = [
+        f for f in glob(path, pattern)
+        if not skip_dirs.intersection(Path(f).parts)
+    ]
+    # Hand the formatters LF no matter how the tree was checked out.
+    #
+    # gofmt's doc-comment normalization does not fire on CRLF input: given
+    # `/// x` it produces `// / x` from LF and leaves the line untouched from
+    # CRLF. Windows checkouts are CRLF by default, so the same gofmt binary
+    # silently produced a different corpus there and the regen gate failed on
+    # a real content difference it could not attribute to anything.
+    #
+    # Doing it here rather than relying on .gitattributes keeps the guarantee
+    # inside the script, where it can be verified, instead of depending on a
+    # checkout setting. Git stores these blobs with LF either way, so this only
+    # ever reverses a checkout-time conversion.
+    for f in files:
+      raw = Path(f).read_bytes()
+      if b"\r\n" in raw:
+        Path(f).write_bytes(raw.replace(b"\r\n", b"\n"))
+    return files
 
   # NOTE: C++ is intentionally NOT run through clang-format here. clang-format
   # output varies significantly across major versions, which would make the
@@ -700,42 +817,42 @@ def format_generated_code():
 
   # Rust generated modules.
   if have("rustfmt"):
-    rs = glob(tests, "**/*_generated.rs")
+    rs = sources(tests, "**/*_generated.rs")
     if rs:
       run_chunked(["rustfmt", "--edition", "2018"], rs)
-    print(f"[format] rustfmt: {len(rs)} Rust files")
+    print(f"[format] rustfmt: {len(rs)} Rust files", flush=True)
   else:
-    print("[format] rustfmt not found; skipping Rust")
+    print("[format] rustfmt not found; skipping Rust", flush=True)
 
   # Go generated code (no _generated suffix; gofmt is idempotent and safe).
   if have("gofmt"):
-    go = glob(tests, "**/*.go")
+    go = sources(tests, "**/*.go")
     if go:
       run_chunked(["gofmt", "-w"], go)
-    print(f"[format] gofmt: {len(go)} Go files")
+    print(f"[format] gofmt: {len(go)} Go files", flush=True)
   else:
-    print("[format] gofmt not found; skipping Go")
+    print("[format] gofmt not found; skipping Go", flush=True)
 
   # TypeScript generated code (prettier via npx).
   if have("npx"):
-    ts = glob(Path(tests, "ts"), "**/*.ts")
+    ts = sources(Path(tests, "ts"), "**/*.ts")
     if ts:
       run_chunked(
           ["npx", "--no-install", "prettier", "--write", "--log-level", "warn"],
           ts,
       )
-    print(f"[format] prettier: {len(ts)} TS files")
+    print(f"[format] prettier: {len(ts)} TS files", flush=True)
   else:
-    print("[format] npx not found; skipping TypeScript")
+    print("[format] npx not found; skipping TypeScript", flush=True)
 
   # Python generated code (optional).
   if have("black"):
     py = glob(tests, "**/*.py")
     if py:
       run_chunked(["black", "-q"], py)
-    print(f"[format] black: {len(py)} Python files")
+    print(f"[format] black: {len(py)} Python files", flush=True)
   else:
-    print("[format] black not found; skipping Python")
+    print("[format] black not found; skipping Python", flush=True)
 
 
 format_generated_code()

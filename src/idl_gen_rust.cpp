@@ -614,13 +614,13 @@ class RustGenerator : public BaseGenerator {
   }
 
   std::string NamespacedNativeName(const EnumDef& def) {
-    if (def.declaration_file && !IsFromCurrentFile(def)) {
+    if (NeedsCrossFilePath(def)) {
       return CrossFileNamespacePath(def) + namer_.ObjectType(def);
     }
     return WrapInNameSpace(def.defined_namespace, namer_.ObjectType(def));
   }
   std::string NamespacedNativeName(const StructDef& def) {
-    if (def.declaration_file && !IsFromCurrentFile(def)) {
+    if (NeedsCrossFilePath(def)) {
       return CrossFileNamespacePath(def) + namer_.ObjectType(def);
     }
     return WrapInNameSpace(def.defined_namespace, namer_.ObjectType(def));
@@ -663,8 +663,24 @@ class RustGenerator : public BaseGenerator {
     return path;
   }
 
+  // True when a reference to `def` has to be spelled as the absolute
+  // CrossFileNamespacePath above rather than a relative one.
+  //
+  // That absolute path is only correct for the flat layout this generator
+  // emits by default, where each schema becomes a `<file>_generated` module at
+  // the crate root. `--rust-module-root-file` produces the other layout: a
+  // single `mod.rs` mounts every namespace as a nested `pub mod`, so there is
+  // no `crate::<file>_generated` to name, and the `use super::*;` chain that
+  // mod.rs sets up is what makes the relative path resolve. Emitting the
+  // absolute form under a module root yields E0433 (cannot find
+  // `<file>_generated` in `crate`), which is what the Rust test crate hit.
+  bool NeedsCrossFilePath(const Definition& def) const {
+    return def.declaration_file && !IsFromCurrentFile(def) &&
+           !parser_.opts.rust_module_root_file;
+  }
+
   std::string WrapInNameSpace(const Definition& def) const {
-    if (def.declaration_file && !IsFromCurrentFile(def)) {
+    if (NeedsCrossFilePath(def)) {
       return CrossFileNamespacePath(def) + namer_.EscapeKeyword(def.name);
     }
     return WrapInNameSpace(def.defined_namespace,
@@ -1662,7 +1678,7 @@ class RustGenerator : public BaseGenerator {
         auto ev = field.value.type.enum_def->FindByValue(field.value.constant);
         if (!ev) return "Default::default()";  // Bitflags enum.
         const auto& enum_def = *field.value.type.enum_def;
-        if (enum_def.declaration_file && !IsFromCurrentFile(enum_def)) {
+        if (NeedsCrossFilePath(enum_def)) {
           return CrossFileNamespacePath(enum_def) +
                  namer_.EnumVariant(enum_def, *ev);
         }
@@ -2282,7 +2298,7 @@ class RustGenerator : public BaseGenerator {
       }
       code_.SetValue(
           "U_ELEMENT_ENUM_TYPE",
-          def.declaration_file && !IsFromCurrentFile(def)
+          NeedsCrossFilePath(def)
               ? CrossFileNamespacePath(def) + namer_.EnumVariant(def, ev)
               : WrapInNameSpace(def.defined_namespace,
                                 namer_.EnumVariant(def, ev)));

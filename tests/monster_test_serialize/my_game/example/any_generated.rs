@@ -87,8 +87,8 @@ impl Serialize for Any {
         S: Serializer,
     {
         match self.variant_name() {
-            Some(name) => serializer.serialize_unit_variant("Any", self.0 as u32, name),
-            None => serializer.serialize_u32(self.0 as u32),
+            Some(name) => serializer.serialize_unit_variant("Any", u32::from(self.0), name),
+            None => serializer.serialize_u32(u32::from(self.0)),
         }
     }
 }
