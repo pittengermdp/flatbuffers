@@ -58,6 +58,11 @@ struct FlatCOptions {
   bool requires_bfbs = false;
   bool file_names_only = false;
 
+  // Path of the "generated file -> schema that produced it" manifest used to
+  // refuse a write that would overwrite another schema's output. Empty disables
+  // the check. See OutputManifestFileSaver.
+  std::string output_manifest;
+
   std::vector<std::shared_ptr<CodeGenerator>> generators;
 };
 

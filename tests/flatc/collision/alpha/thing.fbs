@@ -1,0 +1,8 @@
+// Shares a basename with collision/beta/thing.fbs on purpose: flatc derives
+// most output names from the basename and never from the directory, so the two
+// resolve to one output file. See OutputCollisionTests.
+namespace Alpha;
+
+table AlphaThing {
+  alpha_only: int32;
+}

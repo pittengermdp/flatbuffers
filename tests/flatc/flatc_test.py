@@ -52,6 +52,22 @@ def flatc(options, cwd=script_path):
   subprocess.check_call(cmd, cwd=str(cwd))
 
 
+# Execute flatc expecting it to FAIL, and return what it wrote to stderr.
+#
+# A test that only checks the diagnostic text would pass against a compiler that
+# prints the diagnostic and then exits 0 -- which is exactly the bug that let a
+# failed TypeScript write go unnoticed -- so the exit status is asserted first.
+def flatc_fails(options, cwd=script_path):
+  cmd = [str(flatc_path)] + options
+  result = subprocess.run(
+      cmd, cwd=str(cwd), capture_output=True, text=True, check=False
+  )
+  assert result.returncode != 0, (
+      "flatc was expected to fail but exited 0: " + " ".join(cmd)
+  )
+  return result.stderr
+
+
 def reflection_fbs_path():
   return Path(root_path).joinpath("reflection", "reflection.fbs")
 

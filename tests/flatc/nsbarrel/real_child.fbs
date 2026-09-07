@@ -1,0 +1,10 @@
+// A GENUINE child of Parent. Its barrel entry is the behaviour the prefix check
+// must keep: fixing the "same depth means child" bug must not stop a real child
+// from being re-exported by its parent.
+include "parent.fbs";
+
+namespace Parent.Real;
+
+table RealChildThing {
+  parent_ref: Parent.ParentThing;
+}

@@ -1,0 +1,7 @@
+// The other half of the deliberate basename collision. See
+// collision/alpha/thing.fbs.
+namespace Beta;
+
+table BetaThing {
+  beta_only: string;
+}

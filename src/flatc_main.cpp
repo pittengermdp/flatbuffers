@@ -197,7 +197,17 @@ int main(int argc, const char* argv[]) {
     file_saver.reset(new flatbuffers::RealFileSaver{});
   }
 
-  options.opts.file_saver = file_saver.get();
+  // Wraps whichever saver was chosen, so --output-manifest guards a dry run the
+  // same way it guards a real one. Declared after file_saver so it is destroyed
+  // first and never outlives the saver it points at.
+  std::unique_ptr<flatbuffers::OutputManifestFileSaver> manifest_saver;
+  if (!options.output_manifest.empty()) {
+    manifest_saver.reset(new flatbuffers::OutputManifestFileSaver{
+        file_saver.get(), options.output_manifest});
+    options.opts.file_saver = manifest_saver.get();
+  } else {
+    options.opts.file_saver = file_saver.get();
+  }
   FLATBUFFERS_ASSERT(options.opts.file_saver);
 
   // Compile with the extracted FlatC options.

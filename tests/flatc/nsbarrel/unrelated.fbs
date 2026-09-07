@@ -1,0 +1,10 @@
+// Two components deep, and NOT under Parent. Pulling parent.fbs into this
+// schema's closure puts both namespaces in one generation run, which is what
+// used to make Parent's barrel adopt Other.Child as if it were a child.
+include "parent.fbs";
+
+namespace Other.Child;
+
+table ChildThing {
+  parent_ref: Parent.ParentThing;
+}

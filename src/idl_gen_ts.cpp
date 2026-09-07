@@ -117,10 +117,15 @@ class TsGenerator : public BaseGenerator {
                                                               : "null") {}
 
   bool generate() {
-    generateEnums();
-    generateStructs();
+    // Every writer below reports a failed save. They used to discard it, so a
+    // refused or failed write -- a full disk, a read-only tree, or two schemas
+    // colliding on one output path under --output-manifest -- produced a
+    // diagnostic on stderr and an exit status of 0, which reads to any caller
+    // as a successful generation.
+    if (!generateEnums()) return false;
+    if (!generateStructs()) return false;
     if (!parser_.opts.ts_omit_entrypoint) {
-      generateEntry();
+      if (!generateEntry()) return false;
     }
     if (parser_.opts.binary_schema_gen_embed) {
       if (!generate_bfbs_embed()) return false;
@@ -262,7 +267,7 @@ class TsGenerator : public BaseGenerator {
   std::string null_keyword_;
 
   // Generate code for all enums.
-  void generateEnums() {
+  bool generateEnums() {
     for (auto it = parser_.enums_.vec.begin(); it != parser_.enums_.vec.end();
          ++it) {
       import_set bare_imports;
@@ -273,12 +278,13 @@ class TsGenerator : public BaseGenerator {
       GenEnum(enum_def, &enumcode, imports, true);
       std::string type_name = GetTypeName(enum_def);
       TrackNsDef(enum_def, type_name);
-      SaveType(enum_def, enumcode, imports, bare_imports);
+      if (!SaveType(enum_def, enumcode, imports, bare_imports)) return false;
     }
+    return true;
   }
 
   // Generate code for all structs.
-  void generateStructs() {
+  bool generateStructs() {
     for (auto it = parser_.structs_.vec.begin();
          it != parser_.structs_.vec.end(); ++it) {
       import_set bare_imports;
@@ -289,12 +295,13 @@ class TsGenerator : public BaseGenerator {
       GenStruct(parser_, struct_def, &declcode, imports);
       std::string type_name = GetTypeName(struct_def);
       TrackNsDef(struct_def, type_name);
-      SaveType(struct_def, declcode, imports, bare_imports);
+      if (!SaveType(struct_def, declcode, imports, bare_imports)) return false;
     }
+    return true;
   }
 
   // Generate code for a single entry point module.
-  void generateEntry() {
+  bool generateEntry() {
     std::string code;
 
     // add root namespace def if not already existing from defs tracking
@@ -352,6 +359,17 @@ class TsGenerator : public BaseGenerator {
       const auto child_ns_level = it.second.ns->components.size() + 1;
       for (const auto& it2 : ns_defs_) {
         if (it2.second.ns->components.size() != child_ns_level) continue;
+        // Being one level deeper does not make a namespace a CHILD of this one.
+        // Without comparing the leading components, every unrelated namespace at
+        // that depth was re-exported: the barrel for `Usage` picked up
+        // `Reporting.UsageReport`, so usage.ts, service.ts and traffic.ts each
+        // carried an `export * as UsageReport from './reporting/usage-report'`
+        // that belonged to none of them.
+        if (!std::equal(it.second.ns->components.begin(),
+                        it.second.ns->components.end(),
+                        it2.second.ns->components.begin())) {
+          continue;
+        }
         auto ts_file_path = it2.second.path + ".ts";
         code += "export * as " + it2.second.symbolic_name + " from './";
         int count = it2.second.ns->components.size() > 1 ? 2 : 1;
@@ -366,10 +384,13 @@ class TsGenerator : public BaseGenerator {
       }
 
       if (export_counter > 0) {
-        parser_.opts.file_saver->SaveFile(it.second.filepath.c_str(), code,
-                                          false);
+        if (!parser_.opts.file_saver->SaveFile(it.second.filepath.c_str(), code,
+                                               false)) {
+          return false;
+        }
       }
     }
+    return true;
   }
 
   // Generate a documentation comment, if available.
