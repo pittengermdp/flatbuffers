@@ -71,9 +71,17 @@ class RealFileSaver final : public FileSaver {
 // type in a consumer that has no way to trace it back here.
 //
 // Provenance is what makes this detectable across separate invocations, so it
-// is kept in a manifest of "output path -> schema that produced it". A write
-// that would change a path's producer is refused. Rewriting a path from the
-// SAME schema is ordinary regeneration and always allowed.
+// is kept in a manifest of "output path -> producing schema + content digest".
+//
+// What is refused is a write that would change a path's CONTENT while also
+// changing its producer. Producer alone is not enough to judge by: a schema
+// legitimately rewrites a barrel or namespace file belonging to a schema it
+// includes -- ln2/cdo.fbs includes ln2/value.fbs and so re-emits an identical
+// generated_ts/value.ts -- and failing that would make the check unusable on any
+// real schema tree. Identical bytes are harmless no matter who wrote them; it is
+// the silent REPLACEMENT of one schema's types by another's that this exists to
+// stop. Rewriting a path from the same schema is ordinary regeneration and is
+// always allowed.
 //
 // The manifest describes one generated tree. Delete it when starting a full
 // regeneration from a clean slate, otherwise entries for schemas that have since
@@ -94,11 +102,17 @@ class OutputManifestFileSaver final : public FileSaver {
   bool Load();
   bool Store() const;
 
+  struct Output {
+    std::string source;  // schema that produced it
+    std::string digest;  // "<length>-<fnv1a>" of the bytes written
+  };
+
+  static std::string Digest(const char* buf, size_t len);
+
   FileSaver* inner_;
   std::string manifest_path_;
   std::string current_source_{};
-  // output path -> the schema that produced it
-  std::map<std::string, std::string> produced_by_{};
+  std::map<std::string, Output> produced_by_{};
 };
 
 class FileNameSaver final : public FileSaver {

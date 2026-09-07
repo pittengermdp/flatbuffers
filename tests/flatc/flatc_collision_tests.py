@@ -104,6 +104,44 @@ class OutputCollisionTests:
         "the earlier schema's types should be gone -- that is the bug"
     )
 
+  def IdenticalContentFromTwoSchemasIsAllowed(self):
+    # The check is about a schema's types being silently REPLACED, not about two
+    # schemas touching one path. A schema that includes another re-emits the
+    # included namespace's barrel byte-for-byte, and TypeScript does this
+    # constantly -- ln2/cdo.fbs includes ln2/value.fbs and rewrites an identical
+    # value.ts. Rejecting that made the flag unusable on a real schema tree.
+    #
+    # nsbarrel/unrelated.fbs includes nsbarrel/parent.fbs but declares a
+    # namespace of its own, so it re-emits parent.ts unchanged. (A schema that
+    # EXTENDS the namespace, like real_child.fbs, genuinely changes the barrel by
+    # adding its own child export -- that is a real difference, not a duplicate.)
+    out, manifest = _fresh("out_identical")
+
+    flatc(["--ts", "--output-manifest", manifest, "-o", out, "nsbarrel/parent.fbs"])
+    # Would raise CalledProcessError if the duplicate write were refused.
+    flatc(["--ts", "--output-manifest", manifest, "-o", out, UNRELATED_NESTED])
+
+    assert Path(out, "parent.ts").exists()
+
+  def OneSchemaWritingAPathTwiceDoesNotPoisonTheRecord(self):
+    # A single schema can write one path more than once in a run: value.fbs-style
+    # schemas emit <name>.ts as both the schema barrel and the namespace barrel.
+    # The manifest has to remember the LAST of those, because that is the file
+    # left on disk -- comparing a later schema against the first one rejected an
+    # identical file.
+    out, manifest = _fresh("out_rewrite")
+
+    flatc(["--ts", "--output-manifest", manifest, "-o", out, "nsbarrel/parent.fbs"])
+    recorded = Path(manifest).read_text()
+    on_disk_len = len(Path(out, "parent.ts").read_bytes())
+
+    # The manifest digest is "<length>-<hash>"; the length must be the file's.
+    line = [l for l in recorded.splitlines() if l.endswith("parent.fbs")][0]
+    digest = line.split("\t")[1]
+    assert digest.startswith(str(on_disk_len) + "-"), (
+        f"manifest recorded {digest} but parent.ts is {on_disk_len} bytes"
+    )
+
   def NamespaceDirectoryLanguagesAreNotFalselyAccused(self):
     # Go names its output from the namespace, so the same basename pair does NOT
     # collide there. Reporting one would be a false positive that blocks a
