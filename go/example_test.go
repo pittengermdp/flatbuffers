@@ -171,14 +171,16 @@ func ExampleLoadReflectionSchema() {
 //  2. Resolve the table and field descriptors once and cache them.
 //  3. For each incoming data buffer call [GetFieldString] with the cached field.
 //
-// This example reads the "name" field from monsterdata_go_wire.mon, a binary
-// FlatBuffer encoding a Monster table with name="MyMonster".
+// This example reads the "name" field from monsterdata_test.mon, the committed
+// binary FlatBuffer encoding a Monster table with name="MyMonster". (Not
+// monsterdata_go_wire.mon: tests/GoTest.sh writes that one, so it is absent
+// from a fresh checkout, and an Example cannot skip the way the tests do.)
 func ExampleGetFieldString() {
 	bfbs, err := os.ReadFile(filepath.Join("..", "tests", "monster_test.bfbs"))
 	if err != nil {
 		return
 	}
-	data, err := os.ReadFile(filepath.Join("..", "tests", "monsterdata_go_wire.mon"))
+	data, err := os.ReadFile(filepath.Join("..", "tests", "monsterdata_test.mon"))
 	if err != nil {
 		return
 	}
