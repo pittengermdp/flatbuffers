@@ -24,6 +24,7 @@ go_src=${go_path}/src
 ../flatc -g --gen-object-api -I include_test/sub -o "${go_src}" include_test/order.fbs
 ../flatc -g --gen-object-api -o "${go_src}/Pizza" include_test/sub/no_namespace.fbs
 ../flatc -g --gen-object-api -o "${go_src}" required_strings.fbs
+../flatc -g --gen-object-api -o "${go_src}" shared_union_type.fbs
 # go_map_set_test imports this package as github.com/google/flatbuffers/MapSetTest,
 # so emit it under that import path.
 ../flatc -g --gen-object-api -o "${go_src}/github.com/google/flatbuffers" map_set_test.fbs
