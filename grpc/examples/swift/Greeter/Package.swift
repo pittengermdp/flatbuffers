@@ -32,6 +32,14 @@ let package = Package(
     .package(
       url: "https://github.com/apple/swift-argument-parser.git",
       from: "1.5.0"),
+    // Transitive via grpc-swift-nio-transport -> swift-certificates, which
+    // admits swift-crypto up to 6.0.0. swift-crypto 5.0.0 marks its enums
+    // `@nonexhaustive` (SE-0487), which Swift 6.2.1 rejects. The root
+    // package's cap does not reach here: SwiftPM drops a dependency package's
+    // requirements that none of its used products need.
+    .package(
+      url: "https://github.com/apple/swift-crypto.git",
+      "3.12.3"..<"5.0.0"),
   ],
   targets: [
     // Targets are the basic building blocks of a package. A target can define a module or a test suite.
