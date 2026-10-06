@@ -75,6 +75,13 @@ extension Array where Element == Package.Dependency {
       .package(
         url: "https://github.com/grpc/grpc-swift-nio-transport.git",
         from: "2.0.0"),
+      // Transitive via grpc-swift-nio-transport -> swift-certificates, which
+      // admits swift-crypto up to 6.0.0. swift-crypto 5.0.0 marks its enums
+      // `@nonexhaustive` (SE-0487), which the Swift 6.2.1 toolchain in the CI
+      // matrix rejects. Lift this cap once every CI toolchain accepts it.
+      .package(
+        url: "https://github.com/apple/swift-crypto.git",
+        "3.12.3"..<"5.0.0"),
     ]
     #endif
   }
