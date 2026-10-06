@@ -23,9 +23,11 @@ import (
 	"encoding/json"
 	optional_scalars "optional_scalars" // refers to generated code
 	order "order"
-	required_strings "required_strings" // refers to generated code
+	required_strings "required_strings"   // refers to generated code
+	shared_union_type "shared_union_type" // refers to generated code
 
 	"bytes"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -208,6 +210,10 @@ func TestAll(t *testing.T) {
 	// Check that default required string fields are placed in the buffer
 	// using Object API
 	CheckRequiredStrings(t.Fatalf)
+
+	// Check that the verifier pairs each union field with its own
+	// discriminant when a table has two fields of one union type
+	CheckSharedUnionTypeVerify(t.Fatalf)
 
 	// Check that getting vector element by key works
 	CheckByKey(t.Fatalf)
@@ -2401,6 +2407,55 @@ func CheckRequiredStrings(fail func(string, ...interface{})) {
 	expectSucceeds(&required_strings.FooT{
 		StrA: empty,
 	}, &empty, &empty)
+}
+
+// CheckSharedUnionTypeVerify checks that the generated verifier pairs each
+// union field with its OWN `_type` discriminant. Holder has two fields of one
+// union type; a verifier that resolves the discriminant by union type checks
+// `second` against `first`'s slot and rejects every buffer with only one set.
+func CheckSharedUnionTypeVerify(fail func(string, ...interface{})) {
+	pack := func(obj *shared_union_type.HolderT) []byte {
+		builder := flatbuffers.NewBuilder(0)
+		builder.Finish(obj.Pack(builder))
+		return builder.FinishedBytes()
+	}
+	alpha := &shared_union_type.PayloadT{
+		Type:  shared_union_type.PayloadAlpha,
+		Value: &shared_union_type.AlphaT{A: 7},
+	}
+	beta := &shared_union_type.PayloadT{
+		Type:  shared_union_type.PayloadBeta,
+		Value: &shared_union_type.BetaT{B: "beta"},
+	}
+
+	valid := map[string]*shared_union_type.HolderT{
+		"first only":  {First: alpha},
+		"second only": {Second: beta},
+		"both":        {First: alpha, Second: beta},
+		"neither":     {},
+	}
+	for name, obj := range valid {
+		buf := pack(obj)
+		if err := shared_union_type.VerifyRootAsHolder(buf, nil); err != nil {
+			fail("shared union %s: VerifyRootAsHolder = %v, want nil", name, err)
+		}
+		if got := shared_union_type.GetRootAsHolder(buf, 0).UnPack(); !reflect.DeepEqual(obj, got) {
+			fail(FailString("shared union "+name+" Pack/UnPack", obj, got))
+		}
+	}
+
+	// A discriminant without its value must be rejected, and blamed on the
+	// field it belongs to. Packing through the Object API cannot produce this,
+	// so the generated builder writes the lone `second_type`.
+	builder := flatbuffers.NewBuilder(0)
+	shared_union_type.HolderStart(builder)
+	shared_union_type.HolderAddSecondType(builder, shared_union_type.PayloadBeta)
+	builder.Finish(shared_union_type.HolderEnd(builder))
+	err := shared_union_type.VerifyRootAsHolder(builder.FinishedBytes(), nil)
+	var ve *flatbuffers.VerificationError
+	if !errors.As(err, &ve) || ve.Kind != flatbuffers.ErrInconsistentUnion || ve.Field != "second" {
+		fail("shared union lone second_type: VerifyRootAsHolder = %v, want inconsistent union field \"second\"", err)
+	}
 }
 
 func CheckByKey(fail func(string, ...interface{})) {

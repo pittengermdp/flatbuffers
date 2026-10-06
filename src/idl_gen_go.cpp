@@ -1061,18 +1061,15 @@ class GoGenerator : public BaseGenerator {
             break;
           }
           case BASE_TYPE_UNION: {
-            // Find the companion _type field's voffset.
+            // Find THIS field's companion _type field. It must be looked up by
+            // field name, not by union type: a table may hold several fields
+            // of one union type, each with its own discriminant slot.
             const EnumDef& union_enum = *field.value.type.enum_def;
-            std::string type_voffset;
-            for (auto fit = struct_def.fields.vec.begin();
-                 fit != struct_def.fields.vec.end(); ++fit) {
-              const FieldDef& f = **fit;
-              if (f.value.type.base_type == BASE_TYPE_UTYPE &&
-                  f.value.type.enum_def == &union_enum) {
-                type_voffset = NumToString(f.value.offset);
-                break;
-              }
-            }
+            const FieldDef* type_field =
+                struct_def.fields.Lookup(field.name + UnionTypeFieldSuffix());
+            FLATBUFFERS_ASSERT(type_field);  // Guaranteed by ParseField().
+            const std::string type_voffset =
+                NumToString(type_field->value.offset);
             // Verify type and value are both present or both absent.
             code += "\tif err := v.CheckUnionConsistency(tablePos, " +
                     type_voffset + ", " + voffset + ", \"" + field.name +

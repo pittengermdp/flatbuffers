@@ -1,0 +1,23 @@
+namespace shared_union_type;
+
+table Alpha {
+  a:int;
+}
+
+table Beta {
+  b:string;
+}
+
+union Payload { Alpha, Beta }
+
+/**
+ * Holder has two fields of ONE union type. Each has its own `_type`
+ * discriminant slot, so a verifier must pair `second` with `second_type`,
+ * never with the first `Payload` discriminant it finds in the table.
+ */
+table Holder {
+  first:Payload;
+  second:Payload;
+}
+
+root_type Holder;
