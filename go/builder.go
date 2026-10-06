@@ -279,7 +279,7 @@ func (b *Builder) Prep(size, additionalBytes int) {
 // PrependSOffsetT prepends an SOffsetT, relative to where it will be written.
 func (b *Builder) PrependSOffsetT(off SOffsetT) {
 	b.Prep(SizeSOffsetT, 0) // Ensure alignment is already done.
-	if !(UOffsetT(off) <= b.Offset()) {
+	if UOffsetT(off) > b.Offset() {
 		panic("unreachable: off <= b.Offset()")
 	}
 	off2 := SOffsetT(b.Offset()) - off + SOffsetT(SizeSOffsetT)
@@ -289,7 +289,7 @@ func (b *Builder) PrependSOffsetT(off SOffsetT) {
 // PrependUOffsetT prepends an UOffsetT, relative to where it will be written.
 func (b *Builder) PrependUOffsetT(off UOffsetT) {
 	b.Prep(SizeUOffsetT, 0) // Ensure alignment is already done.
-	if !(off <= b.Offset()) {
+	if off > b.Offset() {
 		panic("unreachable: off <= b.Offset()")
 	}
 	off2 := b.Offset() - off + UOffsetT(SizeUOffsetT)
