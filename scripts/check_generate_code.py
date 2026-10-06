@@ -46,7 +46,18 @@ if result.returncode != 0:
 gen_cmd = ["scripts/generate_code.py"] + sys.argv[1:]
 if platform.system() == "Windows":
   gen_cmd = ["py"] + gen_cmd
-subprocess.run(gen_cmd, cwd=root_path)
+gen_result = subprocess.run(gen_cmd, cwd=root_path)
+
+# A generator that fails part-way leaves every file it never reached as it
+# was, so the diff below can come back clean on a broken generator. Its exit
+# status has to count on its own.
+if gen_result.returncode != 0:
+  print(
+      "\n"
+      "ERROR: scripts/generate_code.py exited with status "
+      f"{gen_result.returncode}; see its output above.\n"
+  )
+  sys.exit(gen_result.returncode)
 
 result = subprocess.run(
     ["git", "diff", "--quiet", "--ignore-cr-at-eol"], cwd=root_path
