@@ -20,6 +20,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iostream>
+#include <set>
 #include <sstream>
 #include <string>
 
@@ -106,6 +108,10 @@ class GoGenerator : public BaseGenerator {
 
     if (!generateEnums(&one_file_code)) return false;
     if (!generateStructs(&one_file_code)) return false;
+    if (!json_error_.empty()) {
+      std::cerr << "error: " << json_error_ << "\n";
+      return false;
+    }
 
     if (parser_.opts.one_file) {
       std::string code = "";
@@ -204,6 +210,7 @@ class GoGenerator : public BaseGenerator {
     GenNativeUnionPack(enum_def, code_ptr);
     GenNativeUnionUnPack(enum_def, code_ptr);
     GenUnionMatch(enum_def, code_ptr);
+    if (parser_.opts.go_gen_json) GenNativeUnionJSON(enum_def, code_ptr);
   }
 
   bool generateStructs(std::string* one_file_code) {
@@ -1376,6 +1383,7 @@ class GoGenerator : public BaseGenerator {
       GenNativeStructPack(struct_def, code_ptr);
       GenNativeStructUnPack(struct_def, code_ptr);
     }
+    if (parser_.opts.go_gen_json) GenNativeJSON(struct_def, code_ptr);
   }
 
   void GenNativeUnion(const EnumDef& enum_def, std::string* code_ptr) {
@@ -2207,6 +2215,455 @@ class GoGenerator : public BaseGenerator {
     } else {
       return GenTypeBasic(type) + "(" + value + ")";
     }
+  }
+
+  // ── Canonical JSON (--go-json) ───────────────────────────────────────
+  //
+  // Every Object API type gets methods reading and writing canonical
+  // FlatBuffers JSON through the flatbuffers runtime (go/json_canonical.go):
+  // the format flatc's own JSON parser and printer use, with defaults, empty
+  // strings and empty collections omitted. Schema reflection
+  // (ReflectToCanonicalJSON) writes through the same runtime, so both give
+  // the same bytes for the same message.
+
+  std::string json_error_;
+
+  void JSONUnsupported(const StructDef& struct_def, const FieldDef& field,
+                       const std::string& what) {
+    if (json_error_.empty()) {
+      json_error_ = struct_def.name + "." + field.name +
+                    ": --go-json does not support " + what;
+    }
+  }
+
+  // The definition name flatc --jsonschema gives a type.
+  static std::string JSONSchemaDefinition(const Definition& def) {
+    std::string name;
+    for (const auto& component : def.defined_namespace->components) {
+      name += component + "_";
+    }
+    return name + def.name;
+  }
+
+  std::string JSONEnumNames(const EnumDef& enum_def) {
+    return WrapInNameSpaceAndTrack(&enum_def, "EnumNames" + enum_def.name);
+  }
+
+  std::string JSONEnumValues(const EnumDef& enum_def) {
+    return WrapInNameSpaceAndTrack(&enum_def,
+                                   "EnumValues" + namer_.Type(enum_def));
+  }
+
+  static bool IsJSONBitFlags(const EnumDef& enum_def) {
+    return enum_def.attributes.Lookup("bit_flags") != nullptr;
+  }
+
+  // A Go statement writing `expr`, a scalar, string, struct or table of
+  // `type` as the Object API holds it, to the JSONWriter w.
+  std::string GenJSONWrite(const Type& type, const std::string& expr) {
+    if (type.enum_def != nullptr && IsScalar(type.base_type)) {
+      return std::string(IsJSONBitFlags(*type.enum_def)
+                             ? "flatbuffers.WriteJSONBitFlags(w, "
+                             : "flatbuffers.WriteJSONEnum(w, ") +
+             expr + ", " + JSONEnumNames(*type.enum_def) + ")";
+    }
+    const bool int64_strings = parser_.opts.json_int64_as_string;
+    switch (type.base_type) {
+      case BASE_TYPE_BOOL:
+        return "w.Bool(" + expr + ")";
+      case BASE_TYPE_CHAR:
+      case BASE_TYPE_SHORT:
+      case BASE_TYPE_INT:
+        return "w.Int(int64(" + expr + "))";
+      case BASE_TYPE_UCHAR:
+      case BASE_TYPE_USHORT:
+      case BASE_TYPE_UINT:
+        return "w.Uint(uint64(" + expr + "))";
+      case BASE_TYPE_LONG:
+        return std::string(int64_strings ? "w.IntString(" : "w.Int(") + expr +
+               ")";
+      case BASE_TYPE_ULONG:
+        return std::string(int64_strings ? "w.UintString(" : "w.Uint(") +
+               expr + ")";
+      case BASE_TYPE_FLOAT:
+        return "w.Float32(" + expr + ")";
+      case BASE_TYPE_DOUBLE:
+        return "w.Float64(" + expr + ")";
+      case BASE_TYPE_STRING:
+        return "w.String(" + expr + ")";
+      case BASE_TYPE_STRUCT:
+        return expr + ".WriteFlatJSON(w)";
+      default:
+        FLATBUFFERS_ASSERT(0);
+        return "";
+    }
+  }
+
+  // Go statements reading the JSON value `src`, located by the JSON Pointer
+  // expression `ptr`, into `lhs`: a scalar, string, struct or table of
+  // `type`. A failure returns `ret` + "err" from the enclosing function.
+  std::string GenJSONRead(const Type& type, const std::string& lhs,
+                          const std::string& src, const std::string& ptr,
+                          const std::string& ret, const std::string& indent) {
+    std::string call;
+    if (type.enum_def != nullptr && IsScalar(type.base_type)) {
+      call = std::string(IsJSONBitFlags(*type.enum_def)
+                             ? "flatbuffers.JSONBitFlags("
+                             : "flatbuffers.JSONEnum(") +
+             src + ", " + ptr + ", " + JSONEnumValues(*type.enum_def) + ")";
+    } else if (type.base_type == BASE_TYPE_BOOL) {
+      call = "flatbuffers.JSONBool(" + src + ", " + ptr + ")";
+    } else if (IsFloat(type.base_type)) {
+      call = "flatbuffers.JSONFloat[" + GenTypeBasic(type) + "](" + src +
+             ", " + ptr + ")";
+    } else if (IsInteger(type.base_type)) {
+      call = "flatbuffers.JSONInt[" + GenTypeBasic(type) + "](" + src + ", " +
+             ptr + ")";
+    } else if (IsString(type)) {
+      call = "flatbuffers.JSONString(" + src + ", " + ptr + ")";
+    } else if (type.base_type == BASE_TYPE_STRUCT) {
+      const std::string native =
+          WrapInNameSpaceAndTrack(type.struct_def, NativeName(*type.struct_def));
+      return indent + lhs + " = &" + native + "{}\n" + indent + "if err := " +
+             lhs + ".UnmarshalFlatJSONValue(" + src + ", " + ptr +
+             "); err != nil {\n" + indent + "\t" + ret + "err\n" + indent +
+             "}\n";
+    } else {
+      FLATBUFFERS_ASSERT(0);
+      return "";
+    }
+    return indent + "if " + lhs + ", err = " + call + "; err != nil {\n" +
+           indent + "\t" + ret + "err\n" + indent + "}\n";
+  }
+
+  // The keys of a map or set field, in FlatBuffers key order.
+  std::string GenJSONSortedKeys(const FieldDef& key_field,
+                                const std::string& expr) {
+    return key_field.value.type.base_type == BASE_TYPE_BOOL
+               ? "flatbuffers.JSONBoolMapKeys(" + expr + ")"
+               : "flatbuffers.JSONMapKeys(" + expr + ")";
+  }
+
+  // A map key `k` spelled as a JSON property name.
+  std::string GenJSONKeyText(const Type& key_type) {
+    if (IsString(key_type)) return "k";
+    if (key_type.enum_def != nullptr) {
+      return "flatbuffers.JSONEnumKey(k, " + JSONEnumNames(*key_type.enum_def) +
+             ")";
+    }
+    if (key_type.base_type == BASE_TYPE_BOOL) {
+      return "flatbuffers.JSONBoolKeyText(k)";
+    }
+    return "flatbuffers.JSONIntegerKey(k)";
+  }
+
+  // Go statements parsing map key text `k` (at pointer `p`) into `key`.
+  std::string GenJSONKeyParse(const Type& key_type, const std::string& indent) {
+    if (IsString(key_type)) return indent + "key := k\n";
+    std::string call;
+    if (key_type.enum_def != nullptr) {
+      call = "flatbuffers.JSONEnum(k, p, " +
+             JSONEnumValues(*key_type.enum_def) + ")";
+    } else if (key_type.base_type == BASE_TYPE_BOOL) {
+      call = "flatbuffers.JSONBoolKey(k, p)";
+    } else {
+      call = "flatbuffers.JSONInt[" + GoKeyType(key_type) + "](k, p)";
+    }
+    return indent + "key, err := " + call + "\n" + indent +
+           "if err != nil {\n" + indent + "\treturn err\n" + indent + "}\n";
+  }
+
+  void GenJSONWriteField(const StructDef& struct_def, const FieldDef& field,
+                         std::string* code_ptr) {
+    std::string& code = *code_ptr;
+    const Type& type = field.value.type;
+    if (field.deprecated) return;
+    // A union's type field is written together with the union.
+    if (type.base_type == BASE_TYPE_UTYPE) return;
+    const std::string f = "t." + namer_.Field(field);
+    const std::string key = "\"" + field.name + "\"";
+    const std::string write_key = "w.Key(" + key + ")\n";
+
+    if (field.IsScalarOptional()) {
+      code += "\tif " + f + " != nil {\n\t\t" + write_key + "\t\t" +
+              GenJSONWrite(type, "*" + f) + "\n\t}\n";
+    } else if (IsScalar(type.base_type)) {
+      if (struct_def.fixed) {
+        code += "\t" + write_key + "\t" + GenJSONWrite(type, f) + "\n";
+      } else {
+        code += "\tif " + f + " != " + GenConstant(field) + " {\n\t\t" +
+                write_key + "\t\t" + GenJSONWrite(type, f) + "\n\t}\n";
+      }
+    } else if (IsString(type)) {
+      if (field.IsRequired()) {
+        code += "\t" + write_key + "\t" + GenJSONWrite(type, f) + "\n";
+      } else {
+        code += "\tif " + f + " != \"\" {\n\t\t" + write_key + "\t\t" +
+                GenJSONWrite(type, f) + "\n\t}\n";
+      }
+    } else if (type.base_type == BASE_TYPE_STRUCT) {
+      if (struct_def.fixed || field.IsRequired()) {
+        code += "\t" + write_key + "\t" + GenJSONWrite(type, f) + "\n";
+      } else {
+        code += "\tif " + f + " != nil {\n\t\t" + write_key + "\t\t" +
+                GenJSONWrite(type, f) + "\n\t}\n";
+      }
+    } else if (type.base_type == BASE_TYPE_UNION) {
+      code += "\tif " + f + " != nil && " + f + ".Type != 0 {\n";
+      code += "\t\tw.Key(\"" + field.sibling_union_field->name + "\")\n";
+      code += "\t\t" + f + ".WriteFlatJSONType(w)\n\n";
+      code += "\t\tif " + f + ".Value != nil {\n\t\t\t" + write_key +
+              "\t\t\t" + f + ".WriteFlatJSONValue(w)\n\t\t}\n\t}\n";
+    } else if (IsVector(type)) {
+      const bool is_map = IsMapField(field);
+      const bool is_set = IsSetField(field);
+      std::string body;
+      if (is_map || is_set) {
+        const auto& entry = *type.struct_def;
+        const FieldDef* kf = GetEntryKeyField(entry);
+        body += is_map ? "\t\tw.BeginObject()\n" : "\t\tw.BeginArray()\n";
+        body += "\n\t\tfor _, k := range " + GenJSONSortedKeys(*kf, f) +
+                " {\n";
+        if (is_map) {
+          const FieldDef* vf = GetEntryValueField(entry);
+          body += "\t\t\tw.Key(" + GenJSONKeyText(kf->value.type) + ")\n";
+          body += "\t\t\t" + GenJSONWrite(vf->value.type, f + "[k]") + "\n";
+        } else {
+          body += "\t\t\t" + GenJSONWrite(kf->value.type, "k") + "\n";
+        }
+        body += "\t\t}\n\n";
+        body += is_map ? "\t\tw.EndObject()\n" : "\t\tw.EndArray()\n";
+      } else {
+        body += "\t\tw.BeginArray()\n\n\t\tfor _, e := range " + f + " {\n";
+        body += "\t\t\t" + GenJSONWrite(type.VectorType(), "e") + "\n";
+        body += "\t\t}\n\n\t\tw.EndArray()\n";
+      }
+      if (field.IsRequired()) {
+        code += "\t{\n\t\t" + write_key + body + "\t}\n";
+      } else {
+        code += "\tif len(" + f + ") > 0 {\n\t\t" + write_key + body +
+                "\t}\n";
+      }
+    }
+  }
+
+  void GenJSONReadField(const StructDef& struct_def, const FieldDef& field,
+                        std::string* code_ptr) {
+    std::string& code = *code_ptr;
+    const Type& type = field.value.type;
+    if (field.deprecated) return;
+    if (type.base_type == BASE_TYPE_UTYPE) return;
+    const std::string f = "t." + namer_.Field(field);
+    const std::string key = "\"" + field.name + "\"";
+    const std::string fp = "flatbuffers.JSONPointer(pointer, " + key + ")";
+    const bool required = field.IsRequired() || struct_def.fixed;
+    const std::string missing =
+        required ? " else {\n\t\treturn flatbuffers.JSONRequired(pointer, " +
+                       key + ")\n\t}\n"
+                 : "\n";
+
+    if (type.base_type == BASE_TYPE_UNION) {
+      code += "\tif " + f + ", err = " +
+              WrapInNameSpaceAndTrack(
+                  type.enum_def,
+                  "Unmarshal" + namer_.Type(*type.enum_def) + "FlatJSON") +
+              "(m, pointer, \"" + field.sibling_union_field->name + "\", " +
+              key + "); err != nil {\n\t\treturn err\n\t}\n";
+      return;
+    }
+
+    code += "\tif x, ok := flatbuffers.JSONMember(m, " + key + "); ok {\n";
+    if (field.IsScalarOptional()) {
+      code += "\t\tvar value " + NativeType(type) + "\n";
+      code += GenJSONRead(type, "value", "x", fp, "return ", "\t\t");
+      code += "\t\t" + f + " = &value\n";
+    } else if (!IsVector(type)) {
+      code += GenJSONRead(type, f, "x", fp, "return ", "\t\t");
+    } else if (IsMapField(field)) {
+      const auto& entry = *type.struct_def;
+      const FieldDef* kf = GetEntryKeyField(entry);
+      const FieldDef* vf = GetEntryValueField(entry);
+      code += "\t\tfp := " + fp + "\n\n";
+      code += "\t\to, err := flatbuffers.JSONObject(x, fp)\n";
+      code += "\t\tif err != nil {\n\t\t\treturn err\n\t\t}\n\n";
+      code += "\t\t" + f + " = make(map[" + GoKeyType(kf->value.type) + "]" +
+              NativeType(vf->value.type) + ", len(o))\n\n";
+      code += "\t\tfor _, k := range flatbuffers.JSONSortedKeys(o) {\n";
+      code += "\t\t\tp := flatbuffers.JSONPointer(fp, k)\n";
+      code += GenJSONKeyParse(kf->value.type, "\t\t\t");
+      code += "\n\t\t\tvar value " + NativeType(vf->value.type) + "\n";
+      code += "\t\t\tif e, ok := flatbuffers.JSONMember(o, k); ok {\n";
+      code += GenJSONRead(vf->value.type, "value", "e", "p", "return ",
+                          "\t\t\t\t");
+      code += "\t\t\t}\n\n";
+      code += "\t\t\t" + f + "[key] = value\n\t\t}\n";
+    } else if (IsSetField(field)) {
+      const FieldDef* kf = GetEntryKeyField(*type.struct_def);
+      code += "\t\tfp := " + fp + "\n\n";
+      code += "\t\ta, err := flatbuffers.JSONArray(x, fp)\n";
+      code += "\t\tif err != nil {\n\t\t\treturn err\n\t\t}\n\n";
+      code += "\t\t" + f + " = make(map[" + GoKeyType(kf->value.type) +
+              "]struct{}, len(a))\n\n";
+      code += "\t\tfor i, e := range a {\n";
+      code += "\t\t\tvar key " + GoKeyType(kf->value.type) + "\n";
+      code += GenJSONRead(kf->value.type, "key", "e",
+                          "flatbuffers.JSONIndexPointer(fp, i)", "return ",
+                          "\t\t\t");
+      code += "\t\t\t" + f + "[key] = struct{}{}\n\t\t}\n";
+    } else {
+      code += "\t\tfp := " + fp + "\n\n";
+      code += "\t\ta, err := flatbuffers.JSONArray(x, fp)\n";
+      code += "\t\tif err != nil {\n\t\t\treturn err\n\t\t}\n\n";
+      code += "\t\t" + f + " = make(" + NativeType(type) + ", len(a))\n\n";
+      code += "\t\tfor i, e := range a {\n";
+      code += GenJSONRead(type.VectorType(), f + "[i]", "e",
+                          "flatbuffers.JSONIndexPointer(fp, i)", "return ",
+                          "\t\t\t");
+      code += "\t\t}\n";
+    }
+    code += "\t}" + missing;
+  }
+
+  void GenNativeJSON(const StructDef& struct_def, std::string* code_ptr) {
+    std::string& code = *code_ptr;
+    const std::string native = NativeName(struct_def);
+
+    std::string members;
+    for (const FieldDef* field : struct_def.fields.vec) {
+      const Type& type = field->value.type;
+      members += ", \"" + field->name + "\"";
+      if (field->deprecated) continue;
+      if (IsArray(type)) JSONUnsupported(struct_def, *field, "fixed-size arrays");
+      if (field->nested_flatbuffer) {
+        JSONUnsupported(struct_def, *field, "nested_flatbuffer");
+      }
+      if (field->flexbuffer) JSONUnsupported(struct_def, *field, "flexbuffer");
+      if (IsVector(type) && type.element == BASE_TYPE_UNION) {
+        JSONUnsupported(struct_def, *field, "vectors of unions");
+      }
+    }
+    if (!json_error_.empty()) return;
+
+    code += "// FlatJSONSchema names the JSON Schema definition flatc --jsonschema\n";
+    code += "// generates for " + struct_def.name + ".\n";
+    code += "func (*" + native + ") FlatJSONSchema() (file, definition string) {\n";
+    code += "\treturn \"" + StripExtension(StripPath(struct_def.file)) +
+            ".schema.json\", \"" + JSONSchemaDefinition(struct_def) + "\"\n";
+    code += "}\n\n";
+
+    code += "// MarshalFlatJSON returns t as canonical FlatBuffers JSON.\n";
+    code += "func (t *" + native + ") MarshalFlatJSON() ([]byte, error) {\n";
+    code += "\tw := flatbuffers.NewJSONWriter()\n\tt.WriteFlatJSON(w)\n\n";
+    code += "\treturn w.Bytes()\n}\n\n";
+
+    code += "// WriteFlatJSON writes t to w as canonical FlatBuffers JSON.\n";
+    code += "func (t *" + native + ") WriteFlatJSON(w *flatbuffers.JSONWriter) {\n";
+    code += "\tif t == nil {\n\t\tw.Null()\n\n\t\treturn\n\t}\n\n";
+    code += "\tw.BeginObject()\n";
+    for (const FieldDef* field : struct_def.fields.vec) {
+      GenJSONWriteField(struct_def, *field, &code);
+    }
+    code += "\tw.EndObject()\n}\n\n";
+
+    code += "// UnmarshalFlatJSON replaces t with the value the canonical FlatBuffers\n";
+    code += "// JSON in data describes; an absent scalar takes its schema default.\n";
+    code += "func (t *" + native + ") UnmarshalFlatJSON(data []byte) error {\n";
+    code += "\tv, err := flatbuffers.ParseJSON(data)\n";
+    code += "\tif err != nil {\n\t\treturn err\n\t}\n\n";
+    code += "\treturn t.UnmarshalFlatJSONValue(v, \"\")\n}\n\n";
+
+    code += "// UnmarshalFlatJSONValue is UnmarshalFlatJSON for a value\n";
+    code += "// flatbuffers.ParseJSON has already parsed; pointer locates it in errors.\n";
+    code += "func (t *" + native +
+            ") UnmarshalFlatJSONValue(v any, pointer string) error {\n";
+    code += "\tm, err := flatbuffers.JSONObject(v, pointer)\n";
+    code += "\tif err != nil {\n\t\treturn err\n\t}\n\n";
+    code += "\terr = flatbuffers.JSONCheckMembers(m, pointer" + members + ")\n";
+    code += "\tif err != nil {\n\t\treturn err\n\t}\n\n";
+    code += "\t*t = " + native + "{}\n";
+    if (!struct_def.fixed) {
+      for (const FieldDef* field : struct_def.fields.vec) {
+        const Type& type = field->value.type;
+        if (field->deprecated || field->IsScalarOptional() ||
+            !IsScalar(type.base_type) || type.base_type == BASE_TYPE_UTYPE) {
+          continue;
+        }
+        const std::string constant = GenConstant(*field);
+        if (constant == "0" || constant == "false" || constant == "0.0") {
+          continue;
+        }
+        code += "\tt." + namer_.Field(*field) + " = " + constant + "\n";
+      }
+    }
+    code += "\n";
+    for (const FieldDef* field : struct_def.fields.vec) {
+      GenJSONReadField(struct_def, *field, &code);
+    }
+    code += "\n\treturn nil\n}\n\n";
+  }
+
+  void GenNativeUnionJSON(const EnumDef& enum_def, std::string* code_ptr) {
+    if (enum_def.generated) return;
+    std::string& code = *code_ptr;
+    const std::string native = NativeName(enum_def);
+    const std::string type_name = namer_.Type(enum_def);
+
+    code += "// WriteFlatJSONType writes the union's type as its variant name.\n";
+    code += "func (t *" + native +
+            ") WriteFlatJSONType(w *flatbuffers.JSONWriter) {\n";
+    code += "\tflatbuffers.WriteJSONEnum(w, t.Type, EnumNames" + enum_def.name +
+            ")\n}\n\n";
+
+    code += "// WriteFlatJSONValue writes the union's value; the enclosing table\n";
+    code += "// writes its type.\n";
+    code += "func (t *" + native +
+            ") WriteFlatJSONValue(w *flatbuffers.JSONWriter) {\n";
+    code += "\tswitch v := t.Value.(type) {\n";
+    std::set<std::string> seen;
+    for (const EnumVal* ev : enum_def.Vals()) {
+      if (ev->IsZero()) continue;
+      const std::string variant = NativeType(ev->union_type);
+      if (!seen.insert(variant).second) continue;
+      code += "\tcase " + variant + ":\n\t\tv.WriteFlatJSON(w)\n";
+    }
+    code += "\tdefault:\n\t\tw.Fail(flatbuffers.JSONErrorf(\"\", \"union " +
+            enum_def.name + " holds %T\", t.Value))\n\t}\n}\n\n";
+
+    code += "// Unmarshal" + type_name +
+            "FlatJSON reads the union held by the members typeKey\n";
+    code += "// (the variant name) and valueKey (its value) of the object m. A type\n";
+    code += "// with no value, or no type at all, reads as no union.\n";
+    code += "func Unmarshal" + type_name +
+            "FlatJSON(m map[string]any, pointer, typeKey, valueKey string) (*" +
+            native + ", error) {\n";
+    code += "\ttv, hasType := flatbuffers.JSONMember(m, typeKey)\n";
+    code += "\tvalue, hasValue := flatbuffers.JSONMember(m, valueKey)\n\n";
+    code += "\tif !hasType {\n\t\tif hasValue {\n";
+    code += "\t\t\treturn nil, flatbuffers.JSONErrorf(flatbuffers.JSONPointer(pointer, valueKey), \"union value without %s\", typeKey)\n";
+    code += "\t\t}\n\n\t\treturn nil, nil\n\t}\n\n";
+    code += "\ttyp, err := flatbuffers.JSONEnum(tv, flatbuffers.JSONPointer(pointer, typeKey), EnumValues" +
+            type_name + ")\n";
+    code += "\tif err != nil {\n\t\treturn nil, err\n\t}\n\n";
+    code += "\tif !hasValue {\n\t\treturn nil, nil\n\t}\n\n";
+    code += "\tvp := flatbuffers.JSONPointer(pointer, valueKey)\n\n";
+    code += "\tswitch typ {\n";
+    for (const EnumVal* ev : enum_def.Vals()) {
+      const std::string constant = namer_.EnumVariant(enum_def, *ev);
+      if (ev->IsZero()) {
+        code += "\tcase " + constant +
+                ":\n\t\treturn nil, flatbuffers.JSONErrorf(vp, \"union value under NONE\")\n";
+        continue;
+      }
+      std::string variant = NativeType(ev->union_type);  // "*Pkg.FooT"
+      code += "\tcase " + constant + ":\n";
+      code += "\t\tx := &" + variant.substr(1) + "{}\n";
+      code += "\t\tif err := x.UnmarshalFlatJSONValue(value, vp); err != nil {\n";
+      code += "\t\t\treturn nil, err\n\t\t}\n\n";
+      code += "\t\treturn &" + native + "{Type: typ, Value: x}, nil\n";
+    }
+    code += "\t}\n\n";
+    code += "\treturn nil, flatbuffers.JSONErrorf(flatbuffers.JSONPointer(pointer, typeKey), \"%d is not a variant of " +
+            enum_def.name + "\", typ)\n}\n\n";
   }
 
   std::string GenConstant(const FieldDef& field) {

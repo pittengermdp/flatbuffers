@@ -85,3 +85,76 @@ of the wrong kind, a `json_` name that is not in the table above (a typo such as
 
 These attributes are enforced by JSON Schema validators only. The FlatBuffers
 JSON parser and binary readers do not check them.
+
+## Canonical JSON in Go
+
+flatc's JSON allows more than one spelling of the same value. Canonical JSON
+picks one, so the same message is always the same bytes:
+
+- a value equal to its default is omitted, as are an empty string and an empty
+  vector, map or set, unless the field is required (an Object API value cannot
+  tell absent from zero or empty either);
+- members appear in declaration order, with no whitespace;
+- with `--json-int64-as-string`, `long` and `ulong` are quoted.
+
+Reading accepts every spelling flatc's parser does for these values, plus a
+number for any enum, so any document the JSON Schema accepts can be read.
+
+### Generated methods: `--go-json`
+
+```sh
+flatc --go --gen-object-api --go-json --json-int64-as-string myschema.fbs
+```
+
+Every table and struct Object API type (`FooT`) gets:
+
+| Method | Does |
+| --- | --- |
+| `MarshalFlatJSON() ([]byte, error)` | canonical JSON for the value |
+| `WriteFlatJSON(w *flatbuffers.JSONWriter)` | the same, into a writer shared with enclosing values |
+| `UnmarshalFlatJSON(data []byte) error` | replaces the value; absent scalars take their schema defaults |
+| `UnmarshalFlatJSONValue(v any, pointer string) error` | the same, for a value `flatbuffers.ParseJSON` already parsed |
+| `FlatJSONSchema() (file, definition string)` | the JSON Schema file and definition `--jsonschema` writes for the type |
+
+They satisfy `flatbuffers.FlatJSONMessage`. The names deliberately are not
+`MarshalJSON` / `UnmarshalJSON`, so `encoding/json` keeps encoding Object API
+values exactly as before.
+
+A union field `x` is read and written through methods on its `XT` type and an
+`UnmarshalXFlatJSON` function, so a union declared in another package needs
+nothing extra. `map<K, V>` fields write their keys in FlatBuffers key order
+(strings bytewise, numbers and enums by value), the order the binary holds
+them in.
+
+Errors are `*flatbuffers.JSONError`, located by an RFC 6901 JSON Pointer:
+`/payload/id: "x" is not an integer`.
+
+Not supported, and rejected at generation time: fixed-size arrays,
+`nested_flatbuffer`, `flexbuffer`, and vectors of unions.
+
+### Without generated code: schema reflection
+
+The same format is available for any table a binary schema (`.bfbs`)
+describes:
+
+```go
+schema, _ := flatbuffers.LoadReflectionSchema(bfbs)
+opts := flatbuffers.CanonicalJSONOptions{Int64AsString: true}
+
+js, err := flatbuffers.ReflectToCanonicalJSON(schema, "MyGame.Monster", buf, opts)
+m, err := flatbuffers.ReflectToCanonicalMap(schema, "MyGame.Monster", buf, opts)
+buf, err := flatbuffers.ReflectFromCanonicalJSON(schema, "MyGame.Monster", js)
+buf, err := flatbuffers.ReflectFromCanonicalMap(schema, "MyGame.Monster", m)
+```
+
+`ReflectToCanonicalJSON` writes exactly the bytes `MarshalFlatJSON` writes for
+the same message; each side reads the other's output back to the same value.
+A map passed to `ReflectFromCanonicalMap` may hold plain Go numbers (`int`,
+`uint64`, `float64`, …) as well as `json.Number` and strings.
+
+Generate the `.bfbs` with `--bfbs-builtins`: `bit_flags`, `map<K, V>` and
+`set<K>` are recorded as built-in attributes, which a binary schema otherwise
+leaves out. Without them, bit flags read and write as plain numbers and maps
+and sets as arrays of entry tables.
+
+`ReflectPack` and `ReflectUnpack` are unchanged and keep their own map format.

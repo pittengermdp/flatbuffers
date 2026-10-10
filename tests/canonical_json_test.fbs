@@ -1,0 +1,30 @@
+// Every kind of field canonical JSON spells, for the Go JSON methods
+// (--go-json), schema reflection (ReflectToCanonicalJSON) and JSON Schema.
+include "canonical_json_include.fbs";
+
+namespace CanonicalJson;
+
+union Payload { CanonicalJsonInc.Leaf }
+
+table Root {
+  name: string (required);
+  flags: CanonicalJsonInc.Flags = "A C";
+  mode: CanonicalJsonInc.Mode = On;
+  cars: ubyte = 3;
+  ratio: double = 0.5;
+  big: ulong = 7;
+  neg: long;
+  maybe_big: long = null;
+  bigs: [long];
+  tags: [string];
+  scores: map<string, long>;
+  by_mode: map<CanonicalJsonInc.Mode, string>;
+  seen: set<ulong>;
+  pt: CanonicalJsonInc.Pt;
+  payload: Payload;
+  leaf: CanonicalJsonInc.Leaf;
+  leaves: [CanonicalJsonInc.Leaf];
+  pts: [CanonicalJsonInc.Pt];
+}
+
+root_type Root;

@@ -500,6 +500,20 @@ flatc(
     prefix="jsonschema_options",
 )
 
+# Go canonical JSON methods (--go-json), committed so a change to what the
+# generator writes is reviewed; GoTest.sh compiles and tests the same code
+# (tests/go_canonical_json_test) against flatc and schema reflection.
+flatc(
+    ["--go", "--gen-object-api", "--go-json", "--json-int64-as-string"],
+    schema=["canonical_json_test.fbs", "canonical_json_include.fbs"],
+    prefix="go_json",
+)
+flatc(
+    JSONSCHEMA_ALL_OPTS,
+    schema=["canonical_json_test.fbs", "canonical_json_include.fbs"],
+    prefix="jsonschema_options",
+)
+
 # Type / field collsion
 type_field_collsion_schema = "type_field_collsion.fbs"
 

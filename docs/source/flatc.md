@@ -265,6 +265,10 @@ list of `FILES...`.
 -   `--jsonschema-defaults` : Add a `default` keyword to every defaulted table
     scalar in JSON Schema.
 
+-   `--go-json` : Generate canonical JSON methods (`MarshalFlatJSON`,
+    `UnmarshalFlatJSON`) on every Go Object API type. Requires
+    `--gen-object-api`. See [JSON and JSON Schema](json_schema.md).
+
 -   `--json-nested-bytes` : Allow a nested_flatbuffer field to be parsed as a
     vector of bytes in JSON, which is unsafe unless checked by a verifier
     afterwards.

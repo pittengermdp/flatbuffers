@@ -265,6 +265,9 @@ const static FlatCOption flatc_options[] = {
     {"", "jsonschema-defaults", "",
      "Add a \"default\" keyword to every defaulted table scalar in JSON "
      "Schema."},
+    {"", "go-json", "",
+     "Generate canonical JSON methods (MarshalFlatJSON, UnmarshalFlatJSON) on "
+     "every Go Object API type. (requires --gen-object-api)."},
     {"", "json-nested-bytes", "",
      "Allow a nested_flatbuffer field to be parsed as a vector of bytes "
      "in JSON, which is unsafe unless checked by a verifier afterwards."},
@@ -715,6 +718,8 @@ FlatCOptions FlatCompiler::ParseFromCommandLineArguments(int argc,
         opts.jsonschema_cross_file_refs = true;
       } else if (arg == "--jsonschema-defaults") {
         opts.jsonschema_defaults = true;
+      } else if (arg == "--go-json") {
+        opts.go_gen_json = true;
       } else if (arg == "--json-nested-bytes") {
         opts.json_nested_legacy_flatbuffers = true;
       } else if (arg == "--ts-flat-files") {
@@ -850,6 +855,10 @@ void FlatCompiler::ValidateOptions(const FlatCOptions& options) {
     Error(
         "--cs-gen-json-serializer requires --gen-object-api to be set as "
         "well.");
+  }
+
+  if (opts.go_gen_json && !opts.generate_object_based_api) {
+    Error("--go-json requires --gen-object-api to be set as well.");
   }
 }
 

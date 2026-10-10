@@ -714,6 +714,8 @@ struct IDLOptions {
   bool jsonschema_cross_file_refs;
   // JSON Schema output: a "default" keyword on every defaulted table scalar.
   bool jsonschema_defaults;
+  // Go Object API: canonical JSON methods on every *T (MarshalFlatJSON...).
+  bool go_gen_json;
   std::vector<std::string> cpp_includes;
   std::string cpp_std;
   bool cpp_static_reflection;
@@ -872,6 +874,7 @@ struct IDLOptions {
         jsonschema_2020_12(false),
         jsonschema_cross_file_refs(false),
         jsonschema_defaults(false),
+        go_gen_json(false),
         cpp_static_reflection(false),
         filename_suffix("_generated"),
         filename_extension(),
