@@ -722,6 +722,12 @@ flatc_reflection(
     "com/google/flatbuffers/reflection",
 )
 
+# Rust Reflection. The flatbuffers-reflection crate compiles this module, so it
+# has to be regenerated here like every other generated file: left out, it
+# froze at whatever the generator emitted when it was last copied in by hand,
+# and the regen-diff gate could not notice. rustfmt runs on it below.
+flatc_reflection(["--rust"], "rust/reflection/src", "reflection_generated.rs")
+
 # Annotation
 
 
@@ -892,6 +898,14 @@ def format_generated_code():
     if rs:
       run_chunked(["rustfmt", "--edition", "2018"], rs)
     print(f"[format] rustfmt: {len(rs)} Rust files", flush=True)
+    # The reflection crate is edition 2024, and `cargo fmt` there formats
+    # with that edition's style, so its generated module must match it.
+    reflection_rs = sources(Path(root_path, "rust/reflection/src"),
+                            "*_generated.rs")
+    if reflection_rs:
+      run_chunked(["rustfmt", "--edition", "2024"], reflection_rs)
+    print(f"[format] rustfmt: {len(reflection_rs)} Rust reflection files",
+          flush=True)
   else:
     print("[format] rustfmt not found; skipping Rust", flush=True)
 
