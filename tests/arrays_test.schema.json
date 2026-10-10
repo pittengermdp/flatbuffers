@@ -27,13 +27,14 @@
                 "maxItems": 2
               }
       },
+      "required" : ["a", "b", "c", "d"],
       "additionalProperties" : false
     },
     "MyGame_Example_ArrayStruct" : {
       "type" : "object",
       "properties" : {
         "a" : {
-                "type" : "number"
+                "type" : "number", "minimum" : -3.4028235e+38, "maximum" : 3.4028235e+38
               },
         "b" : {
                 "type" : "array", "items" : {"type" : "integer", "minimum" : -2147483648, "maximum" : 2147483647},
@@ -57,18 +58,19 @@
                 "maxItems": 2
               }
       },
+      "required" : ["a", "b", "c", "d", "e", "f"],
       "additionalProperties" : false
     },
     "MyGame_Example_LargeArrayStruct" : {
       "type" : "object",
       "properties" : {
         "d" : {
-                "type" : "array", "items" : {"type" : "integer", "minimum" : 0, "maximum" :255},
+                "type" : "array", "items" : {"type" : "integer", "minimum" : 0, "maximum" : 255},
                 "minItems": 64,
                 "maxItems": 64
               },
         "e" : {
-                "type" : "array", "items" : {"type" : "number"},
+                "type" : "array", "items" : {"type" : "number", "minimum" : -3.4028235e+38, "maximum" : 3.4028235e+38},
                 "minItems": 64,
                 "maxItems": 64
               },
@@ -88,6 +90,7 @@
                 "maxItems": 64
               }
       },
+      "required" : ["d", "e", "f", "g", "h"],
       "additionalProperties" : false
     },
     "MyGame_Example_ArrayTable" : {

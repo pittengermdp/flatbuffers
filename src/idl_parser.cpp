@@ -1864,6 +1864,32 @@ CheckedError Parser::ParseAlignAttribute(const std::string& align_constant,
 // Parse a JSON map object {"key": val, ...} into a vector of entry tables.
 // Each JSON property becomes an entry table with key and value fields.
 // After parsing, the vector is sorted by key (same as normal keyed vectors).
+// Adds one scalar field of a map/set entry table from its parsed constant, at
+// the field's own type and width, and omitted when it equals the field's
+// default -- exactly as the same field parses in the entry-vector form.
+// Reading every scalar through an int64 silently zeroed floats, overflowed
+// uint64 keys past INT64_MAX, and turned enum or bool spellings into 0.
+CheckedError Parser::AddEntryScalar(const FieldDef& field,
+                                    const std::string& constant) {
+  switch (field.value.type.base_type) {
+    // clang-format off
+    #define FLATBUFFERS_TD(ENUM, IDLTYPE, CTYPE, ...) \
+      case BASE_TYPE_ ## ENUM: { \
+        CTYPE val, valdef; \
+        ECHECK(atot(constant.c_str(), *this, &val)); \
+        ECHECK(atot(field.value.constant.c_str(), *this, &valdef)); \
+        builder_.AddElement(field.value.offset, val, valdef); \
+        break; \
+      }
+      FLATBUFFERS_GEN_TYPES_SCALAR(FLATBUFFERS_TD)
+    #undef FLATBUFFERS_TD
+    // clang-format on
+    default:
+      return Error("map/set entry field is not a scalar: " + field.name);
+  }
+  return NoError();
+}
+
 CheckedError Parser::ParseMapObject(const Type& vector_type, uoffset_t* ovalue,
                                     FieldDef* field) {
   (void)field;
@@ -1885,8 +1911,20 @@ CheckedError Parser::ParseMapObject(const Type& vector_type, uoffset_t* ovalue,
   for (;;) {
     if ((!opts.strict_json || !count) && Is('}')) break;
 
-    // Parse the JSON property name — this becomes the entry key.
+    // Parse the JSON property name — this becomes the entry key. A property
+    // name is always a string, so a non-string key is spelled inside it: an
+    // enum by its variant name(s) -- converted now, while the name is still
+    // the current token -- a bool as true/false, a number as its digits.
     std::string key_str = attribute_;
+    std::string key_constant = key_str;
+    const Type& key_type = key_field->value.type;
+    if (key_type.enum_def != nullptr && !key_str.empty() &&
+        !is_digit(key_str[0]) && key_str[0] != '-' && key_str[0] != '+') {
+      ECHECK(ParseEnumFromString(key_type, &key_constant));
+    } else if (key_type.base_type == BASE_TYPE_BOOL) {
+      if (key_str == "true") key_constant = "1";
+      if (key_str == "false") key_constant = "0";
+    }
     if (Is(kTokenStringConstant)) {
       NEXT();
     } else {
@@ -1896,18 +1934,23 @@ CheckedError Parser::ParseMapObject(const Type& vector_type, uoffset_t* ovalue,
 
     // Build key value.
     Offset<void> key_offset{0};
-    std::string key_constant;
-    if (IsString(key_field->value.type)) {
+    if (IsString(key_type)) {
       key_offset = Offset<void>(builder_.CreateString(key_str).o);
       key_constant = NumToString(key_offset.o);
-    } else {
-      key_constant = key_str;
     }
 
-    // Parse the map value.
+    // Parse the map value. A string or table value may be null, as it prints
+    // when the entry lacks one: the entry is then written without it.
     Offset<void> val_offset{0};
     std::string val_constant;
-    if (value_field) {
+    bool has_value = value_field != nullptr;
+    if (value_field && IsIdent("null") &&
+        (IsString(value_field->value.type) ||
+         (value_field->value.type.base_type == BASE_TYPE_STRUCT &&
+          !value_field->value.type.struct_def->fixed))) {
+      NEXT();
+      has_value = false;
+    } else if (value_field) {
       Value vv;
       vv.type = value_field->value.type;
       ECHECK(ParseAnyValue(vv, value_field, 0, &entry_def, 0, false));
@@ -1923,36 +1966,19 @@ CheckedError Parser::ParseMapObject(const Type& vector_type, uoffset_t* ovalue,
       ECHECK(atot(key_constant.c_str(), *this, &koff));
       builder_.AddOffset(key_field->value.offset, Offset<void>(koff));
     } else {
-      // Scalar key — add as element.
-      int64_t ival = 0;
-      StringToNumber(key_constant.c_str(), &ival);
-      switch (SizeOf(key_field->value.type.base_type)) {
-        case 1: builder_.AddElement<int8_t>(key_field->value.offset,
-                    static_cast<int8_t>(ival), 0); break;
-        case 2: builder_.AddElement<int16_t>(key_field->value.offset,
-                    static_cast<int16_t>(ival), 0); break;
-        case 4: builder_.AddElement<int32_t>(key_field->value.offset,
-                    static_cast<int32_t>(ival), 0); break;
-        case 8: builder_.AddElement<int64_t>(key_field->value.offset,
-                    ival, 0); break;
-      }
+      ECHECK(AddEntryScalar(*key_field, key_constant));
     }
 
-    // Add value field.
-    if (value_field) {
+    // Add value field. A struct value is stored inline in the entry table,
+    // as a struct field of any table is; its parsed constant is the struct's
+    // bytes, not an offset.
+    if (has_value) {
       if (IsScalar(value_field->value.type.base_type)) {
-        int64_t vval = 0;
-        StringToNumber(val_constant.c_str(), &vval);
-        switch (SizeOf(value_field->value.type.base_type)) {
-          case 1: builder_.AddElement<int8_t>(value_field->value.offset,
-                      static_cast<int8_t>(vval), 0); break;
-          case 2: builder_.AddElement<int16_t>(value_field->value.offset,
-                      static_cast<int16_t>(vval), 0); break;
-          case 4: builder_.AddElement<int32_t>(value_field->value.offset,
-                      static_cast<int32_t>(vval), 0); break;
-          case 8: builder_.AddElement<int64_t>(value_field->value.offset,
-                      vval, 0); break;
-        }
+        ECHECK(AddEntryScalar(*value_field, val_constant));
+      } else if (IsStruct(value_field->value.type)) {
+        Value struct_val = value_field->value;
+        struct_val.constant = val_constant;
+        SerializeStruct(*value_field->value.type.struct_def, struct_val);
       } else {
         uoffset_t voff;
         ECHECK(atot(val_constant.c_str(), *this, &voff));
@@ -2056,18 +2082,7 @@ CheckedError Parser::ParseSetArray(const Type& vector_type, uoffset_t* ovalue,
       ECHECK(atot(key_constant.c_str(), *this, &koff));
       builder_.AddOffset(key_field->value.offset, Offset<void>(koff));
     } else {
-      int64_t ival = 0;
-      StringToNumber(key_constant.c_str(), &ival);
-      switch (SizeOf(key_field->value.type.base_type)) {
-        case 1: builder_.AddElement<int8_t>(key_field->value.offset,
-                    static_cast<int8_t>(ival), 0); break;
-        case 2: builder_.AddElement<int16_t>(key_field->value.offset,
-                    static_cast<int16_t>(ival), 0); break;
-        case 4: builder_.AddElement<int32_t>(key_field->value.offset,
-                    static_cast<int32_t>(ival), 0); break;
-        case 8: builder_.AddElement<int64_t>(key_field->value.offset,
-                    ival, 0); break;
-      }
+      ECHECK(AddEntryScalar(*key_field, key_constant));
     }
     auto entry_offset = builder_.EndTable(tbl_start);
 
@@ -3210,7 +3225,7 @@ bool Parser::SupportsOptionalScalars(const flatbuffers::IDLOptions& opts) {
       IDLOptions::kKotlin | IDLOptions::kKotlinKmp | IDLOptions::kCpp |
       IDLOptions::kJava | IDLOptions::kCSharp | IDLOptions::kTs |
       IDLOptions::kBinary | IDLOptions::kGo | IDLOptions::kPython |
-      IDLOptions::kJson | IDLOptions::kNim;
+      IDLOptions::kJson | IDLOptions::kJsonSchema | IDLOptions::kNim;
   unsigned long langs = opts.lang_to_generate;
   return (langs > 0 && langs < IDLOptions::kMAX) && !(langs & ~supported_langs);
 }
@@ -4596,13 +4611,32 @@ Offset<reflection::Field> FieldDef::Serialize(FlatBufferBuilder* builder,
   auto docs__ = parser.opts.binary_schema_comments && !doc_comment.empty()
                     ? builder->CreateVectorOfStrings(doc_comment)
                     : 0;
-  double d;
+  double d = 0;
   StringToNumber(value.constant.c_str(), &d);
+  // A float default read straight to float can differ from the same literal
+  // read to double and then narrowed -- double rounding, for a literal right
+  // at a midpoint between two floats. Readers narrow default_real to float,
+  // so store the double that narrows to the float the field really holds.
+  if (value.type.base_type == BASE_TYPE_FLOAT) {
+    float f = 0;
+    if (StringToNumber(value.constant.c_str(), &f) &&
+        static_cast<float>(d) != f) {
+      d = f;
+    }
+  }
+  // default_integer is an int64: a ulong default past INT64_MAX is stored as
+  // its two's-complement bits (StringToInt would overflow it to 0), and
+  // Deserialize reads it back the same way.
+  int64_t i = 0;
+  if (value.type.base_type == BASE_TYPE_ULONG) {
+    uint64_t u = 0;
+    StringToNumber(value.constant.c_str(), &u);
+    i = static_cast<int64_t>(u);
+  } else if (IsInteger(value.type.base_type)) {
+    i = StringToInt(value.constant.c_str());
+  }
   return reflection::CreateField(
-      *builder, name__, type__, id, value.offset,
-      // Is uint64>max(int64) tested?
-      IsInteger(value.type.base_type) ? StringToInt(value.constant.c_str()) : 0,
-      // result may be platform-dependent if underlying is float (not double)
+      *builder, name__, type__, id, value.offset, i,
       IsFloat(value.type.base_type) ? d : 0.0, deprecated, IsRequired(), key,
       attr__, docs__, IsOptional(), static_cast<uint16_t>(padding), offset64);
   // TODO: value.constant is almost always "0", we could save quite a bit of
@@ -4614,7 +4648,10 @@ bool FieldDef::Deserialize(Parser& parser, const reflection::Field* field) {
   defined_namespace = parser.current_namespace_;
   if (!value.type.Deserialize(parser, field->type())) return false;
   value.offset = field->offset();
-  if (IsInteger(value.type.base_type)) {
+  if (value.type.base_type == BASE_TYPE_ULONG) {
+    value.constant =
+        NumToString(static_cast<uint64_t>(field->default_integer()));
+  } else if (IsInteger(value.type.base_type)) {
     value.constant = NumToString(field->default_integer());
   } else if (IsFloat(value.type.base_type)) {
     value.constant = FloatToString(field->default_real(), 17);
