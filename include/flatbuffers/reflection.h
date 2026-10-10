@@ -505,12 +505,16 @@ inline bool SetFieldT(Table* table, const reflection::Field& field,
 // Note: this does not deal with DAGs correctly. If the table passed forms a
 // DAG, the copy will be a tree instead (with duplicates). Strings can be
 // shared however, by passing true for use_string_pooling.
+// Unions, and vectors of unions, are copied whether their members are tables,
+// structs or strings.
 // Returns a null offset (see Offset::IsNull) if the copy reaches a field set
 // with a 64-bit offset (`offset64` or `vector64`), which a 32-bit
-// FlatBufferBuilder cannot write. Anything copied before that is left in fbb,
-// unreferenced, and fbb can still be used. Check IsNull() before passing the
-// result on: AddOffset() drops a null offset without a trace, and Finish()
-// cannot take one.
+// FlatBufferBuilder cannot write, or a union value it cannot copy: one whose
+// type is NONE or not in the schema (as in a buffer written with a newer
+// schema), or a vector of unions without a `_type` vector of the same size.
+// Anything copied before that is left in fbb, unreferenced, and fbb can still
+// be used. Check IsNull() before passing the result on: AddOffset() drops a
+// null offset without a trace, and Finish() cannot take one.
 
 Offset<const Table*> CopyTable(FlatBufferBuilder& fbb,
                                const reflection::Schema& schema,

@@ -656,6 +656,50 @@ const uint8_t* AddFlatBuffer(std::vector<uint8_t>& flatbuf,
   return flatbuf.data() + insertion_point + root_offset;
 }
 
+// The `<name>_type` field flatc pairs with a union, or a vector of unions, to
+// hold its type, or types. Null if the schema has none.
+static const reflection::Field* GetUnionTypeField(
+    const reflection::Object& objectdef, const reflection::Field& unionfield) {
+  return objectdef.fields()->LookupByKey(
+      (unionfield.name()->str() + UnionTypeFieldSuffix()).c_str());
+}
+
+// Copies the value of a union, or of one element of a vector of unions, whose
+// type is `type`. Its member may be a table, a struct or a string. Returns a
+// null offset for NONE, which has no value to copy, and for a type the schema
+// does not have, as in a buffer written with a newer schema, whose value has a
+// shape this schema cannot tell.
+static Offset<void> CopyUnionValue(FlatBufferBuilder& fbb,
+                                   const reflection::Schema& schema,
+                                   const reflection::Enum& enumdef,
+                                   const uint8_t type, const Table* value,
+                                   const bool use_string_pooling) {
+  const reflection::EnumVal* enumval = enumdef.values()->LookupByKey(type);
+  if (!enumval) return Offset<void>();
+  const reflection::Type& member = *enumval->union_type();
+  switch (member.base_type()) {
+    case reflection::String: {
+      const auto str = reinterpret_cast<const String*>(value);
+      return use_string_pooling ? fbb.CreateSharedString(str).Union()
+                                : fbb.CreateString(str).Union();
+    }
+    case reflection::Obj: {
+      auto& memberdef = *schema.objects()->Get(member.index());
+      if (memberdef.is_struct()) {
+        // Out of line, as CreateStruct() writes it.
+        fbb.StartStruct(memberdef.minalign());
+        fbb.PushBytes(reinterpret_cast<const uint8_t*>(value),
+                      memberdef.bytesize());
+        return Offset<void>(fbb.EndStruct());
+      }
+      return CopyTable(fbb, schema, memberdef, *value, use_string_pooling)
+          .Union();
+    }
+    default:  // NONE.
+      return Offset<void>();
+  }
+}
+
 Offset<const Table*> CopyTable(FlatBufferBuilder& fbb,
                                const reflection::Schema& schema,
                                const reflection::Object& objectdef,
@@ -696,11 +740,14 @@ Offset<const Table*> CopyTable(FlatBufferBuilder& fbb,
         break;
       }
       case reflection::Union: {
-        auto& subobjectdef = GetUnionType(schema, objectdef, fielddef, table);
-        const auto copy =
-            CopyTable(fbb, schema, subobjectdef, *GetFieldT(table, fielddef),
-                      use_string_pooling);
-        if (copy.IsNull()) return copy;
+        const reflection::Field* type_field =
+            GetUnionTypeField(objectdef, fielddef);
+        if (!type_field) return Offset<const Table*>();
+        const auto copy = CopyUnionValue(
+            fbb, schema, *schema.enums()->Get(fielddef.type()->index()),
+            GetFieldI<uint8_t>(table, *type_field), GetFieldT(table, fielddef),
+            use_string_pooling);
+        if (copy.IsNull()) return Offset<const Table*>();
         offset = copy.o;
         break;
       }
@@ -720,6 +767,26 @@ Offset<const Table*> CopyTable(FlatBufferBuilder& fbb,
               elements[i] = use_string_pooling
                                 ? fbb.CreateSharedString(vec_s->Get(i)).o
                                 : fbb.CreateString(vec_s->Get(i)).o;
+            }
+            offset = fbb.CreateVector(elements).o;
+            break;
+          }
+          case reflection::Union: {
+            // Each element's type is at its index in the `<name>_type` vector,
+            // which is copied as a field of its own, a vector of scalars.
+            const reflection::Field* type_field =
+                GetUnionTypeField(objectdef, fielddef);
+            const auto types =
+                type_field ? GetFieldV<uint8_t>(table, *type_field) : nullptr;
+            if (!types || types->size() != vec->size()) {
+              return Offset<const Table*>();
+            }
+            auto& enumdef = *schema.enums()->Get(fielddef.type()->index());
+            std::vector<Offset<void>> elements(vec->size());
+            for (uoffset_t i = 0; i < vec->size(); i++) {
+              elements[i] = CopyUnionValue(fbb, schema, enumdef, types->Get(i),
+                                           vec->Get(i), use_string_pooling);
+              if (elements[i].IsNull()) return Offset<const Table*>();
             }
             offset = fbb.CreateVector(elements).o;
             break;

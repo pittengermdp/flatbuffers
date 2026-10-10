@@ -656,17 +656,17 @@ void Offset64ReflectionCopyTable() {
   }
 }
 
-// A 64-bit field below a table, union or vector of tables, none of which
-// test_64bit.fbs has. Field names sort as s, t, ts, u, so each place a copy
-// fails in leaves what came before it copied.
+// A 64-bit field below a table, union, vector of tables or vector of unions,
+// none of which test_64bit.fbs has. Field names sort as s, t, ts, u, us, so
+// each place a copy fails in leaves what came before it copied.
 static const char kSubTablesSchema[] =
     "table Inner { v:[ubyte] (offset64); }"
     "union U { Inner }"
-    "table Outer { s:string; t:Inner; u:U; ts:[Inner]; }"
+    "table Outer { s:string; t:Inner; u:U; ts:[Inner]; us:[U]; }"
     "root_type Outer;";
 
 // Which Inner of an Outer has its 64-bit field set.
-enum class Far { kNone, kTable, kUnion, kLastOfVector };
+enum class Far { kNone, kTable, kUnion, kLastOfVector, kLastOfUnionVector };
 
 // Packs an Outer with every field set, but Inner.v only in the Inner at `far`.
 // The schema has no generated code, so fields go to their reflected offsets.
@@ -697,6 +697,11 @@ static std::vector<uint8_t> PackOuter(const reflection::Schema& schema,
   const std::vector<Offset<void>> ts = {pack_inner(false), pack_inner(false),
                                         pack_inner(far == Far::kLastOfVector)};
   const auto ts_vector = fbb.CreateVector(ts);
+  const std::vector<Offset<void>> us = {
+      pack_inner(false), pack_inner(far == Far::kLastOfUnionVector)};
+  const auto us_vector = fbb.CreateVector(us);
+  const auto us_type_vector = fbb.CreateVector(std::vector<uint8_t>(
+      us.size(), static_cast<uint8_t>(inner_type.value())));
   const Offset<String> s = fbb.CreateString("near");
 
   const uoffset_t start = fbb.StartTable();
@@ -706,6 +711,8 @@ static std::vector<uint8_t> PackOuter(const reflection::Schema& schema,
                           static_cast<uint8_t>(inner_type.value()), 0);
   fbb.AddOffset(offset_of(outer, "u"), u);
   fbb.AddOffset(offset_of(outer, "ts"), ts_vector);
+  fbb.AddOffset(offset_of(outer, "us_type"), us_type_vector);
+  fbb.AddOffset(offset_of(outer, "us"), us_vector);
   fbb.Finish(Offset<void>(fbb.EndTable(start)));
   return std::vector<uint8_t>(fbb.GetBufferPointer(),
                               fbb.GetBufferPointer() + fbb.GetSize());
@@ -732,6 +739,8 @@ static void CheckOuterCopy(FlatBufferBuilder& fbb,
   TEST_NOTNULL(GetFieldT(root, field("t")));
   TEST_NOTNULL(GetFieldT(root, field("u")));
   TEST_EQ(GetFieldAnyV(root, field("ts"))->size(), 3u);
+  TEST_EQ(GetFieldAnyV(root, field("us_type"))->size(), 2u);
+  TEST_EQ(GetFieldAnyV(root, field("us"))->size(), 2u);
 }
 
 void Offset64ReflectionCopyTableSubTables() {
@@ -748,7 +757,8 @@ void Offset64ReflectionCopyTableSubTables() {
     }
     // A sub-table that fails the copy fails its parent, and every table above
     // that, rather than leave a null offset in them.
-    for (const Far far : {Far::kTable, Far::kUnion, Far::kLastOfVector}) {
+    for (const Far far : {Far::kTable, Far::kUnion, Far::kLastOfVector,
+                          Far::kLastOfUnionVector}) {
       FlatBufferBuilder fbb;
       TEST_EQ(ReflectionCopy(fbb, schema, PackOuter(schema, far),
                              use_string_pooling)
