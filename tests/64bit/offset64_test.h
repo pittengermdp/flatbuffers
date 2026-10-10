@@ -10,6 +10,7 @@ void Offset64NestedFlatBuffer();
 void Offset64CreateDirect();
 void Offset64Evolution();
 void Offset64VectorOfStructs();
+void Offset64VectorOfStructsMisaligned();
 void Offset64SizePrefix();
 void Offset64ManyVectors();
 void Offset64ForceAlign();

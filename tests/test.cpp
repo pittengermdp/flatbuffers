@@ -1718,6 +1718,7 @@ static void Offset64Tests() {
   Offset64CreateDirect();
   Offset64Evolution();
   Offset64VectorOfStructs();
+  Offset64VectorOfStructsMisaligned();
   Offset64SizePrefix();
   Offset64ManyVectors();
   Offset64ForceAlign();
