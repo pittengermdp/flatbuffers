@@ -48,7 +48,8 @@ impl<'a> Struct<'a> {
     /// The value of the corresponding slot must have type T
     #[inline]
     pub unsafe fn get<T: Follow<'a> + 'a>(&self, byte_loc: usize) -> T::Inner {
-        <T>::follow(self.buf, self.loc + byte_loc)
+        // SAFETY: the caller guarantees the slot at `byte_loc` holds a `T`.
+        unsafe { <T>::follow(self.buf, self.loc + byte_loc) }
     }
 }
 
