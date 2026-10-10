@@ -719,6 +719,10 @@ class FlatBufferBuilderImpl {
   template <bool is_64 = Is64Aware>
   typename std::enable_if<is_64, void>::type ForceVectorAlignment64(
       const size_t len, const size_t elemsize, const size_t alignment) {
+    // An empty vector needs no padding, so this call writes nothing and may
+    // follow 32-bit data. Return before the 64-bit region is checked or moved.
+    if (len == 0) return;
+
     // If you hit this assertion, you are trying to force alignment on a
     // vector with offset64 after serializing a 32-bit offset.
     FLATBUFFERS_ASSERT(GetSize() == length_of_64_bit_region_);
