@@ -467,6 +467,39 @@ flatc(["--jsonschema"], schema=optional_scalars_schema)
 # $ref. This one also has a union, so it pins the `type`/`type_type` pairing.
 flatc(["--jsonschema"], schema="keyword_test.fbs")
 
+# map<K, V> is a JSON object keyed by the map keys, set<K> an array of the
+# keys; neither exposes the generated entry tables.
+flatc(["--jsonschema"], schema="map_set_test.fbs")
+
+# Every opt-in JSON Schema option at once: draft 2020-12, cross-file refs
+# (monster_test's include_test types are referred to in their own files'
+# schemas, not copied), defaults, and 64-bit integers as number or string.
+JSONSCHEMA_ALL_OPTS = [
+    "--jsonschema",
+    "--jsonschema-2020-12",
+    "--jsonschema-cross-file-refs",
+    "--jsonschema-defaults",
+    "--json-int64-as-string",
+]
+flatc(
+    JSONSCHEMA_ALL_OPTS,
+    include="include_test",
+    schema="monster_test.fbs",
+    prefix="jsonschema_options",
+)
+flatc(
+    JSONSCHEMA_ALL_OPTS,
+    include="include_test",
+    schema="include_test/include_test1.fbs",
+    prefix="jsonschema_options",
+)
+flatc(
+    JSONSCHEMA_ALL_OPTS,
+    include="include_test",
+    schema="include_test/sub/include_test2.fbs",
+    prefix="jsonschema_options",
+)
+
 # Type / field collsion
 type_field_collsion_schema = "type_field_collsion.fbs"
 

@@ -6,16 +6,14 @@
       "enum": ["IncludeVal"]
     },
     "MyGame_Example_Color" : {
-      "type" : "string",
-      "enum": ["Red", "Green", "Blue"]
+      "anyOf" : [{ "type" : "string", "pattern" : "^(Red|Green|Blue)( (Red|Green|Blue))*$" }, { "type" : "integer", "minimum" : 0, "maximum" :255 }]
     },
     "MyGame_Example_Race" : {
       "type" : "string",
       "enum": ["None", "Human", "Dwarf", "Elf"]
     },
     "MyGame_Example_LongEnum" : {
-      "type" : "string",
-      "enum": ["LongOne", "LongTwo", "LongBig"]
+      "anyOf" : [{ "type" : "string", "pattern" : "^(LongOne|LongTwo|LongBig)( (LongOne|LongTwo|LongBig))*$" }, { "type" : "integer", "minimum" : 0, "maximum" : 18446744073709551615 }]
     },
     "MyGame_Example_Any" : {
       "type" : "string",

@@ -704,6 +704,16 @@ struct IDLOptions {
   bool force_defaults;
   bool java_primitive_has_method;
   bool cs_gen_json_serializer;
+  // JSON text and JSON Schema: write 64-bit integers as quoted decimal strings
+  // (both forms are read), so readers that hold numbers as doubles keep them.
+  bool json_int64_as_string;
+  // JSON Schema output: draft 2020-12 with $defs instead of 2019-09.
+  bool jsonschema_2020_12;
+  // JSON Schema output: each file holds only its own types and refers to an
+  // included file's types in that file's schema.
+  bool jsonschema_cross_file_refs;
+  // JSON Schema output: a "default" keyword on every defaulted table scalar.
+  bool jsonschema_defaults;
   std::vector<std::string> cpp_includes;
   std::string cpp_std;
   bool cpp_static_reflection;
@@ -858,6 +868,10 @@ struct IDLOptions {
         force_defaults(false),
         java_primitive_has_method(false),
         cs_gen_json_serializer(false),
+        json_int64_as_string(false),
+        jsonschema_2020_12(false),
+        jsonschema_cross_file_refs(false),
+        jsonschema_defaults(false),
         cpp_static_reflection(false),
         filename_suffix("_generated"),
         filename_extension(),
@@ -1166,6 +1180,8 @@ class Parser : public ParserState {
   FLATBUFFERS_CHECKED_ERROR ParseVectorDelimiters(size_t& count, F body);
   FLATBUFFERS_CHECKED_ERROR ParseVector(const Type& type, uoffset_t* ovalue,
                                         FieldDef* field, size_t fieldn);
+  FLATBUFFERS_CHECKED_ERROR AddEntryScalar(const FieldDef& field,
+                                           const std::string& constant);
   FLATBUFFERS_CHECKED_ERROR ParseMapObject(const Type& vector_type,
                                            uoffset_t* ovalue, FieldDef* field);
   FLATBUFFERS_CHECKED_ERROR ParseSetArray(const Type& vector_type,

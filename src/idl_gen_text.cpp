@@ -98,6 +98,18 @@ struct JsonPrinter {
       // print as numeric value
     }
 
+    // A 64-bit integer can exceed what a double holds exactly, so a reader
+    // that keeps JSON numbers as doubles would round it. Quoted, it survives;
+    // the parser reads the quoted form back as the same integer.
+    if (opts.json_int64_as_string && type.enum_def == nullptr &&
+        (type.base_type == BASE_TYPE_LONG ||
+         type.base_type == BASE_TYPE_ULONG)) {
+      text += '\"';
+      text += NumToString(val);
+      text += '\"';
+      return;
+    }
+
     text += NumToString(val);
     return;
   }
@@ -278,6 +290,47 @@ struct JsonPrinter {
     }
   }
 
+  // Print one key or value of a map/set entry table exactly as the same value
+  // prints anywhere else: read at its own width, enums by name, strings
+  // escaped, 64-bit integers quoted under --json-int64-as-string. (Reading
+  // every non-string key as an int64 printed narrower keys as garbage and
+  // collapsed enum keys onto one name.)
+  const char* PrintEntryMember(const FieldDef& fd, const Table* entry,
+                               int indent) {
+    switch (fd.value.type.base_type) {
+      case BASE_TYPE_STRING: {
+        auto s = entry->GetPointer<const String*>(fd.value.offset);
+        if (!s) {
+          text += "null";
+          return nullptr;
+        }
+        return PrintOffset(s, fd.value.type, indent, nullptr, -1);
+      }
+      case BASE_TYPE_STRUCT: {
+        if (IsStruct(fd.value.type)) {
+          return PrintOffset(entry->GetStruct<const void*>(fd.value.offset),
+                             fd.value.type, indent, nullptr, -1);
+        }
+        auto tbl = entry->GetPointer<const Table*>(fd.value.offset);
+        if (!tbl) {
+          text += "null";
+          return nullptr;
+        }
+        return GenStruct(*fd.value.type.struct_def, tbl, indent);
+      }
+      // clang-format off
+      #define FLATBUFFERS_TD(ENUM, IDLTYPE, CTYPE, ...) \
+        case BASE_TYPE_ ## ENUM: \
+          GenField<CTYPE>(fd, entry, false, indent); \
+          return nullptr;
+        FLATBUFFERS_GEN_TYPES_SCALAR(FLATBUFFERS_TD)
+      #undef FLATBUFFERS_TD
+      // clang-format on
+      default:
+        return "unsupported map/set member type";
+    }
+  }
+
   // Generate text for non-scalar field.
   // Emit a map field as a JSON object: {"key1": val1, "key2": val2, ...}
   const char* PrintMapAsObject(const FieldDef& fd, const Table* table,
@@ -303,73 +356,21 @@ struct JsonPrinter {
       if (i) { AddComma(); AddNewLine(); }
       AddIndent(elem_indent);
       auto entry = vec->Get(i);
-      // Emit the key as the JSON property name (always quoted).
-      if (IsString(kf->value.type)) {
-        auto k = entry->GetPointer<const String*>(kf->value.offset);
-        text += '\"';
-        if (k) text += k->c_str();
-        text += '\"';
-      } else {
-        // Numeric/bool/enum key — always quoted as a JSON property name.
-        text += '\"';
-        auto ival = entry->GetField<int64_t>(kf->value.offset, 0);
-        if (kf->value.type.enum_def && opts.output_enum_identifiers) {
-          if (auto ev = kf->value.type.enum_def->ReverseLookup(ival)) {
-            text += ev->name;
-          } else {
-            text += NumToString(ival);
-          }
-        } else if (kf->value.type.base_type == BASE_TYPE_BOOL) {
-          text += ival ? "true" : "false";
-        } else {
-          text += NumToString(ival);
-        }
+      // A JSON property name is a string: a key that printed as a bare number
+      // or boolean is quoted; enum names, strings and quoted 64-bit integers
+      // already are.
+      const auto key_start = text.length();
+      auto err = PrintEntryMember(*kf, entry, elem_indent);
+      if (err) return err;
+      if (text[key_start] != '\"') {
+        text.insert(key_start, 1, '\"');
         text += '\"';
       }
       text += ':';
       text += ' ';
-      // Emit the value.
       if (vf) {
-        switch (vf->value.type.base_type) {
-          case BASE_TYPE_STRING: {
-            auto s = entry->GetPointer<const String*>(vf->value.offset);
-            if (s) {
-              text += '\"';
-              text += s->c_str();
-              text += '\"';
-            } else {
-              text += "null";
-            }
-            break;
-          }
-          case BASE_TYPE_STRUCT: {
-            if (IsStruct(vf->value.type)) {
-              auto sval = entry->GetStruct<const void*>(vf->value.offset);
-              auto err = PrintOffset(sval, vf->value.type, elem_indent,
-                                     nullptr, -1);
-              if (err) return err;
-            } else {
-              auto tbl = entry->GetPointer<const Table*>(vf->value.offset);
-              if (tbl) {
-                auto err = GenStruct(*vf->value.type.struct_def, tbl,
-                                     elem_indent);
-                if (err) return err;
-              } else {
-                text += "null";
-              }
-            }
-            break;
-          }
-          // clang-format off
-          #define FLATBUFFERS_TD(ENUM, IDLTYPE, CTYPE, ...) \
-            case BASE_TYPE_ ## ENUM: \
-              GenField<CTYPE>(*vf, entry, false, elem_indent); \
-              break;
-            FLATBUFFERS_GEN_TYPES_SCALAR(FLATBUFFERS_TD)
-          #undef FLATBUFFERS_TD
-          // clang-format on
-          default: break;
-        }
+        err = PrintEntryMember(*vf, entry, elem_indent);
+        if (err) return err;
       }
     }
     AddNewLine();
@@ -399,15 +400,8 @@ struct JsonPrinter {
     for (uoffset_t i = 0; i < vec->size(); i++) {
       if (i) { AddComma(); AddNewLine(); }
       AddIndent(elem_indent);
-      auto entry = vec->Get(i);
-      if (IsString(kf->value.type)) {
-        auto s = entry->GetPointer<const String*>(kf->value.offset);
-        text += '\"';
-        if (s) text += s->c_str();
-        text += '\"';
-      } else {
-        GenField<int64_t>(*kf, entry, false, elem_indent);
-      }
+      auto err = PrintEntryMember(*kf, vec->Get(i), elem_indent);
+      if (err) return err;
     }
     AddNewLine();
     AddIndent(indent);

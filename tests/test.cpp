@@ -1919,6 +1919,117 @@ void MapSetJsonRoundTripTest() {
   TEST_EQ(unpacked->tags.count("world"), 1u);
 }
 
+// Every key and value kind a map/set can hold, through JSON text and back.
+// Map keys travel as JSON property names, so non-string keys are spelled
+// inside strings: an enum by name, an integer by its digits. A parser that
+// read every such key (and every scalar value) through an int64 zeroed enum
+// keys and float values and overflowed uint keys past INT32_MAX; a printer
+// that did the same printed narrower keys as garbage.
+void MapSetJsonAllKindsTest() {
+  using namespace MapSetTest;
+  const char* schema =
+      "namespace MapSetTest;"
+      "enum Color : byte { Red = 0, Green, Blue }"
+      "table Stats { hp:int; strength:float; }"
+      "table Config {"
+      "  settings:map<string, int>;"
+      "  id_to_name:map<uint, string>;"
+      "  color_scores:map<Color, float>;"
+      "  profiles:map<string, Stats>;"
+      "  tags:set<string>;"
+      "  active_ids:set<int>;"
+      "}"
+      "root_type Config;";
+  const char* json =
+      "{"
+      "  settings: { \"q\\\"uote\": 3 },"
+      "  id_to_name: { \"7\": \"seven\", \"4000000000\": \"big\" },"
+      "  color_scores: { \"Blue\": 1.5, \"Red\": 0.5 },"
+      "  profiles: { \"x\": { hp: 3, strength: 2.5 } },"
+      "  active_ids: [ 5, -2 ]"
+      "}";
+
+  flatbuffers::Parser parser;
+  TEST_EQ(parser.Parse(schema), true);
+  if (!parser.Parse(json)) {
+    TEST_OUTPUT_LINE("JSON parse error: %s", parser.error_.c_str());
+  }
+  TEST_EQ(parser.Parse(json), true);
+
+  auto check = [](const ConfigT& c) {
+    TEST_EQ(c.settings.size(), 1u);
+    TEST_EQ(c.settings.at("q\"uote"), 3);
+    TEST_EQ(c.id_to_name.size(), 2u);
+    TEST_EQ_STR(c.id_to_name.at(7u).c_str(), "seven");
+    TEST_EQ_STR(c.id_to_name.at(4000000000u).c_str(), "big");
+    TEST_EQ(c.color_scores.size(), 2u);
+    TEST_EQ(c.color_scores.at(MapSetTest::Color_Blue), 1.5f);
+    TEST_EQ(c.color_scores.at(MapSetTest::Color_Red), 0.5f);
+    TEST_EQ(c.profiles.at("x")->hp, 3);
+    TEST_EQ(c.profiles.at("x")->strength, 2.5f);
+    TEST_EQ(c.active_ids.size(), 2u);
+    TEST_EQ(c.active_ids.count(-2), 1u);
+    TEST_EQ(c.active_ids.count(5), 1u);
+  };
+  auto parsed = GetConfig(parser.builder_.GetBufferPointer())->UnPack();
+  check(*parsed);
+
+  // Printed text must spell every key the way the parser reads it back.
+  std::string text;
+  TEST_NULL(flatbuffers::GenText(parser, parser.builder_.GetBufferPointer(),
+                                 &text));
+  TEST_ASSERT(text.find("\"4000000000\": \"big\"") != std::string::npos);
+  TEST_ASSERT(text.find("\"Blue\": 1.5") != std::string::npos);
+  TEST_ASSERT(text.find("\"q\\\"uote\": 3") != std::string::npos);
+
+  flatbuffers::Parser reparser;
+  TEST_EQ(reparser.Parse(schema), true);
+  TEST_EQ(reparser.Parse(text.c_str()), true);
+  auto reparsed = GetConfig(reparser.builder_.GetBufferPointer())->UnPack();
+  check(*reparsed);
+
+  // An enum key that names no variant is an error, not a silent zero.
+  flatbuffers::Parser bad;
+  TEST_EQ(bad.Parse(schema), true);
+  TEST_EQ(bad.Parse("{ color_scores: { \"Purple\": 1.0 } }"), false);
+}
+
+// --json-int64-as-string: 64-bit integers print as quoted decimal strings (a
+// double cannot hold every one exactly) and parse back to the same value;
+// narrower integers and 64-bit enums keep their usual spelling.
+void JsonInt64AsStringTest() {
+  flatbuffers::IDLOptions opts;
+  opts.json_int64_as_string = true;
+  opts.strict_json = true;
+  opts.indent_step = -1;
+  flatbuffers::Parser parser(opts);
+  TEST_EQ(parser.Parse("table T { u:ulong; i:long; v:[long]; n:int; }"
+                       "root_type T;"),
+          true);
+  TEST_EQ(parser.Parse("{ \"u\": 18446744073709551615, "
+                       "\"i\": \"-9223372036854775808\", "
+                       "\"v\": [1, \"-2\"], \"n\": 7 }"),
+          true);
+  std::string text;
+  TEST_NULL(flatbuffers::GenText(parser, parser.builder_.GetBufferPointer(),
+                                 &text));
+  TEST_EQ_STR(text.c_str(),
+              "{\"u\": \"18446744073709551615\","
+              "\"i\": \"-9223372036854775808\","
+              "\"v\": [\"1\",\"-2\"],"
+              "\"n\": 7}");
+
+  flatbuffers::Parser reparser(opts);
+  TEST_EQ(reparser.Parse("table T { u:ulong; i:long; v:[long]; n:int; }"
+                         "root_type T;"),
+          true);
+  TEST_EQ(reparser.Parse(text.c_str()), true);
+  std::string again;
+  TEST_NULL(flatbuffers::GenText(
+      reparser, reparser.builder_.GetBufferPointer(), &again));
+  TEST_EQ_STR(again.c_str(), text.c_str());
+}
+
 void FbsReEmitTest() {
   using flatbuffers::Parser;
   // Parse a schema with map/set syntax, then re-emit it as FBS.
@@ -2050,6 +2161,8 @@ int FlatBufferTests(const std::string& tests_data_path) {
   MapSetSyntaxTest();
   MapSetRoundTripTest();
   MapSetJsonRoundTripTest();
+  MapSetJsonAllKindsTest();
+  JsonInt64AsStringTest();
   FbsReEmitTest();
   StringVectorDefaultsTest();
   FlexBuffersFloatingPointTest();

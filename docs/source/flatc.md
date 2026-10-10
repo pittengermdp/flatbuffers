@@ -251,6 +251,20 @@ list of `FILES...`.
 
 -   `--cs-global-alias` : Prepend `global::` to all user generated csharp classes and structs.
 
+-   `--json-int64-as-string` : Write 64-bit integers in JSON as quoted decimal
+    strings, and let JSON Schema accept them as number or string. Both forms
+    are always read. See [JSON and JSON Schema](json_schema.md).
+
+-   `--jsonschema-2020-12` : Generate JSON Schema draft 2020-12 (`$defs`)
+    instead of 2019-09 (`definitions`).
+
+-   `--jsonschema-cross-file-refs` : Give each JSON Schema file only the types
+    its `.fbs` declares, referring to an included file's types in that file's
+    schema instead of copying them.
+
+-   `--jsonschema-defaults` : Add a `default` keyword to every defaulted table
+    scalar in JSON Schema.
+
 -   `--json-nested-bytes` : Allow a nested_flatbuffer field to be parsed as a
     vector of bytes in JSON, which is unsafe unless checked by a verifier
     afterwards.

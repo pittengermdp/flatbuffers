@@ -1,0 +1,440 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "monster_test.schema.json",
+  "$defs": {
+    "MyGame_Example_Color" : {
+      "anyOf" : [{ "type" : "string", "pattern" : "^(Red|Green|Blue)( (Red|Green|Blue))*$" }, { "type" : "integer", "minimum" : 0, "maximum" :255 }]
+    },
+    "MyGame_Example_Race" : {
+      "type" : "string",
+      "enum": ["None", "Human", "Dwarf", "Elf"]
+    },
+    "MyGame_Example_LongEnum" : {
+      "anyOf" : [{ "type" : "string", "pattern" : "^(LongOne|LongTwo|LongBig)( (LongOne|LongTwo|LongBig))*$" }, { "type" : "integer", "minimum" : 0, "maximum" : 18446744073709551615 }]
+    },
+    "MyGame_Example_Any" : {
+      "type" : "string",
+      "enum": ["NONE", "Monster", "TestSimpleTableWithEnum", "MyGame_Example2_Monster"]
+    },
+    "MyGame_Example_AnyUniqueAliases" : {
+      "type" : "string",
+      "enum": ["NONE", "M", "TS", "M2"]
+    },
+    "MyGame_Example_AnyAmbiguousAliases" : {
+      "type" : "string",
+      "enum": ["NONE", "M1", "M2", "M3"]
+    },
+    "MyGame_InParentNamespace" : {
+      "type" : "object",
+      "properties" : {
+      },
+      "additionalProperties" : false
+    },
+    "MyGame_Example2_Monster" : {
+      "type" : "object",
+      "properties" : {
+      },
+      "additionalProperties" : false
+    },
+    "MyGame_Example_Test" : {
+      "type" : "object",
+      "properties" : {
+        "a" : {
+                "type" : "integer", "minimum" : -32768, "maximum" : 32767
+              },
+        "b" : {
+                "type" : "integer", "minimum" : -128, "maximum" : 127
+              }
+      },
+      "required" : ["a", "b"],
+      "additionalProperties" : false
+    },
+    "MyGame_Example_TestSimpleTableWithEnum" : {
+      "type" : "object",
+      "properties" : {
+        "color" : {
+                "$ref" : "#/$defs/MyGame_Example_Color",
+                "default" : "Green"
+              }
+      },
+      "additionalProperties" : false
+    },
+    "MyGame_Example_Vec3" : {
+      "type" : "object",
+      "properties" : {
+        "x" : {
+                "type" : "number"
+              },
+        "y" : {
+                "type" : "number"
+              },
+        "z" : {
+                "type" : "number"
+              },
+        "test1" : {
+                "type" : "number"
+              },
+        "test2" : {
+                "$ref" : "#/$defs/MyGame_Example_Color"
+              },
+        "test3" : {
+                "$ref" : "#/$defs/MyGame_Example_Test"
+              }
+      },
+      "required" : ["x", "y", "z", "test1", "test2", "test3"],
+      "additionalProperties" : false
+    },
+    "MyGame_Example_Ability" : {
+      "type" : "object",
+      "properties" : {
+        "id" : {
+                "type" : "integer", "minimum" : 0, "maximum" : 4294967295
+              },
+        "distance" : {
+                "type" : "integer", "minimum" : 0, "maximum" : 4294967295
+              }
+      },
+      "required" : ["id", "distance"],
+      "additionalProperties" : false
+    },
+    "MyGame_Example_StructOfStructs" : {
+      "type" : "object",
+      "properties" : {
+        "a" : {
+                "$ref" : "#/$defs/MyGame_Example_Ability"
+              },
+        "b" : {
+                "$ref" : "#/$defs/MyGame_Example_Test"
+              },
+        "c" : {
+                "$ref" : "#/$defs/MyGame_Example_Ability"
+              }
+      },
+      "required" : ["a", "b", "c"],
+      "additionalProperties" : false
+    },
+    "MyGame_Example_StructOfStructsOfStructs" : {
+      "type" : "object",
+      "properties" : {
+        "a" : {
+                "$ref" : "#/$defs/MyGame_Example_StructOfStructs"
+              }
+      },
+      "required" : ["a"],
+      "additionalProperties" : false
+    },
+    "MyGame_Example_Stat" : {
+      "type" : "object",
+      "properties" : {
+        "id" : {
+                "type" : "string"
+              },
+        "val" : {
+                "anyOf" : [{ "type" : "integer", "minimum" : -9223372036854775808, "maximum" : 9223372036854775807 }, { "type" : "string", "pattern" : "^(0|[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6]|9223372036854775807|-([1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-7]|9223372036854775808))$" }],
+                "default" : "0"
+              },
+        "count" : {
+                "type" : "integer", "minimum" : 0, "maximum" : 65535,
+                "default" : 0
+              }
+      },
+      "additionalProperties" : false
+    },
+    "MyGame_Example_Referrable" : {
+      "type" : "object",
+      "properties" : {
+        "id" : {
+                "anyOf" : [{ "type" : "integer", "minimum" : 0, "maximum" : 18446744073709551615 }, { "type" : "string", "pattern" : "^(0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$" }],
+                "default" : "0"
+              }
+      },
+      "additionalProperties" : false
+    },
+    "MyGame_Example_Monster" : {
+      "type" : "object",
+      "description" : "an example documentation comment: \"monster object\"",
+      "properties" : {
+        "pos" : {
+                "$ref" : "#/$defs/MyGame_Example_Vec3"
+              },
+        "mana" : {
+                "type" : "integer", "minimum" : -32768, "maximum" : 32767,
+                "default" : 150
+              },
+        "hp" : {
+                "type" : "integer", "minimum" : -32768, "maximum" : 32767,
+                "default" : 100
+              },
+        "name" : {
+                "type" : "string"
+              },
+        "friendly" : {
+                "type" : "boolean",
+                "default" : false,
+                "deprecated" : true
+              },
+        "inventory" : {
+                "type" : "array", "items" : {"type" : "integer", "minimum" : 0, "maximum" :255}
+              },
+        "color" : {
+                "$ref" : "#/$defs/MyGame_Example_Color",
+                "default" : "Blue"
+              },
+        "test_type" : {
+                "$ref" : "#/$defs/MyGame_Example_Any"
+              },
+        "test" : {
+                "anyOf": [{ "$ref" : "#/$defs/MyGame_Example_Monster" },{ "$ref" : "#/$defs/MyGame_Example_TestSimpleTableWithEnum" },{ "$ref" : "#/$defs/MyGame_Example2_Monster" }]
+              },
+        "test4" : {
+                "type" : "array", "items" : {"$ref" : "#/$defs/MyGame_Example_Test"}
+              },
+        "testarrayofstring" : {
+                "type" : "array", "items" : {"type" : "string"}
+              },
+        "testarrayoftables" : {
+                "type" : "array", "items" : {"$ref" : "#/$defs/MyGame_Example_Monster"},
+                "description" : "an example documentation comment: this will end up in the generated code\nmultiline too"
+              },
+        "enemy" : {
+                "$ref" : "#/$defs/MyGame_Example_Monster"
+              },
+        "testnestedflatbuffer" : {
+                "type" : "array", "items" : {"type" : "integer", "minimum" : 0, "maximum" :255}
+              },
+        "testempty" : {
+                "$ref" : "#/$defs/MyGame_Example_Stat"
+              },
+        "testbool" : {
+                "type" : "boolean",
+                "default" : false
+              },
+        "testhashs32_fnv1" : {
+                "type" : "integer", "minimum" : -2147483648, "maximum" : 2147483647,
+                "default" : 0
+              },
+        "testhashu32_fnv1" : {
+                "type" : "integer", "minimum" : 0, "maximum" : 4294967295,
+                "default" : 0
+              },
+        "testhashs64_fnv1" : {
+                "anyOf" : [{ "type" : "integer", "minimum" : -9223372036854775808, "maximum" : 9223372036854775807 }, { "type" : "string", "pattern" : "^(0|[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6]|9223372036854775807|-([1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-7]|9223372036854775808))$" }],
+                "default" : "0"
+              },
+        "testhashu64_fnv1" : {
+                "anyOf" : [{ "type" : "integer", "minimum" : 0, "maximum" : 18446744073709551615 }, { "type" : "string", "pattern" : "^(0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$" }],
+                "default" : "0"
+              },
+        "testhashs32_fnv1a" : {
+                "type" : "integer", "minimum" : -2147483648, "maximum" : 2147483647,
+                "default" : 0
+              },
+        "testhashu32_fnv1a" : {
+                "type" : "integer", "minimum" : 0, "maximum" : 4294967295,
+                "default" : 0
+              },
+        "testhashs64_fnv1a" : {
+                "anyOf" : [{ "type" : "integer", "minimum" : -9223372036854775808, "maximum" : 9223372036854775807 }, { "type" : "string", "pattern" : "^(0|[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6]|9223372036854775807|-([1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-7]|9223372036854775808))$" }],
+                "default" : "0"
+              },
+        "testhashu64_fnv1a" : {
+                "anyOf" : [{ "type" : "integer", "minimum" : 0, "maximum" : 18446744073709551615 }, { "type" : "string", "pattern" : "^(0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$" }],
+                "default" : "0"
+              },
+        "testarrayofbools" : {
+                "type" : "array", "items" : {"type" : "boolean"}
+              },
+        "testf" : {
+                "type" : "number",
+                "default" : 3.14159
+              },
+        "testf2" : {
+                "type" : "number",
+                "default" : 3.0
+              },
+        "testf3" : {
+                "type" : "number",
+                "default" : 0.0
+              },
+        "testarrayofstring2" : {
+                "type" : "array", "items" : {"type" : "string"}
+              },
+        "testarrayofsortedstruct" : {
+                "type" : "array", "items" : {"$ref" : "#/$defs/MyGame_Example_Ability"}
+              },
+        "flex" : {
+                "type" : "array", "items" : {"type" : "integer", "minimum" : 0, "maximum" :255}
+              },
+        "test5" : {
+                "type" : "array", "items" : {"$ref" : "#/$defs/MyGame_Example_Test"}
+              },
+        "vector_of_longs" : {
+                "type" : "array", "items" : {"anyOf" : [{ "type" : "integer", "minimum" : -9223372036854775808, "maximum" : 9223372036854775807 }, { "type" : "string", "pattern" : "^(0|[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6]|9223372036854775807|-([1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-7]|9223372036854775808))$" }]}
+              },
+        "vector_of_doubles" : {
+                "type" : "array", "items" : {"type" : "number"}
+              },
+        "parent_namespace_test" : {
+                "$ref" : "#/$defs/MyGame_InParentNamespace"
+              },
+        "vector_of_referrables" : {
+                "type" : "array", "items" : {"$ref" : "#/$defs/MyGame_Example_Referrable"}
+              },
+        "single_weak_reference" : {
+                "anyOf" : [{ "type" : "integer", "minimum" : 0, "maximum" : 18446744073709551615 }, { "type" : "string", "pattern" : "^(0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$" }],
+                "default" : "0"
+              },
+        "vector_of_weak_references" : {
+                "type" : "array", "items" : {"anyOf" : [{ "type" : "integer", "minimum" : 0, "maximum" : 18446744073709551615 }, { "type" : "string", "pattern" : "^(0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$" }]}
+              },
+        "vector_of_strong_referrables" : {
+                "type" : "array", "items" : {"$ref" : "#/$defs/MyGame_Example_Referrable"}
+              },
+        "co_owning_reference" : {
+                "anyOf" : [{ "type" : "integer", "minimum" : 0, "maximum" : 18446744073709551615 }, { "type" : "string", "pattern" : "^(0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$" }],
+                "default" : "0"
+              },
+        "vector_of_co_owning_references" : {
+                "type" : "array", "items" : {"anyOf" : [{ "type" : "integer", "minimum" : 0, "maximum" : 18446744073709551615 }, { "type" : "string", "pattern" : "^(0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$" }]}
+              },
+        "non_owning_reference" : {
+                "anyOf" : [{ "type" : "integer", "minimum" : 0, "maximum" : 18446744073709551615 }, { "type" : "string", "pattern" : "^(0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$" }],
+                "default" : "0"
+              },
+        "vector_of_non_owning_references" : {
+                "type" : "array", "items" : {"anyOf" : [{ "type" : "integer", "minimum" : 0, "maximum" : 18446744073709551615 }, { "type" : "string", "pattern" : "^(0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$" }]}
+              },
+        "any_unique_type" : {
+                "$ref" : "#/$defs/MyGame_Example_AnyUniqueAliases"
+              },
+        "any_unique" : {
+                "anyOf": [{ "$ref" : "#/$defs/MyGame_Example_Monster" },{ "$ref" : "#/$defs/MyGame_Example_TestSimpleTableWithEnum" },{ "$ref" : "#/$defs/MyGame_Example2_Monster" }]
+              },
+        "any_ambiguous_type" : {
+                "$ref" : "#/$defs/MyGame_Example_AnyAmbiguousAliases"
+              },
+        "any_ambiguous" : {
+                "anyOf": [{ "$ref" : "#/$defs/MyGame_Example_Monster" },{ "$ref" : "#/$defs/MyGame_Example_Monster" },{ "$ref" : "#/$defs/MyGame_Example_Monster" }]
+              },
+        "vector_of_enums" : {
+                "type" : "array", "items" : {"$ref" : "#/$defs/MyGame_Example_Color"}
+              },
+        "signed_enum" : {
+                "$ref" : "#/$defs/MyGame_Example_Race",
+                "default" : "None"
+              },
+        "testrequirednestedflatbuffer" : {
+                "type" : "array", "items" : {"type" : "integer", "minimum" : 0, "maximum" :255}
+              },
+        "scalar_key_sorted_tables" : {
+                "type" : "array", "items" : {"$ref" : "#/$defs/MyGame_Example_Stat"}
+              },
+        "native_inline" : {
+                "$ref" : "#/$defs/MyGame_Example_Test"
+              },
+        "long_enum_non_enum_default" : {
+                "$ref" : "#/$defs/MyGame_Example_LongEnum",
+                "default" : 0
+              },
+        "long_enum_normal_default" : {
+                "$ref" : "#/$defs/MyGame_Example_LongEnum",
+                "default" : "LongOne"
+              },
+        "nan_default" : {
+                "type" : "number"
+              },
+        "inf_default" : {
+                "type" : "number"
+              },
+        "positive_inf_default" : {
+                "type" : "number"
+              },
+        "infinity_default" : {
+                "type" : "number"
+              },
+        "positive_infinity_default" : {
+                "type" : "number"
+              },
+        "negative_inf_default" : {
+                "type" : "number"
+              },
+        "negative_infinity_default" : {
+                "type" : "number"
+              },
+        "double_inf_default" : {
+                "type" : "number"
+              }
+      },
+      "required" : ["name"],
+      "dependentRequired" : { "test" : ["test_type"], "any_unique" : ["any_unique_type"], "any_ambiguous" : ["any_ambiguous_type"] },
+      "allOf" : [
+        { "if" : { "properties" : { "test_type" : { "const" : "NONE" } }, "required" : ["test_type"] }, "then" : { "not" : { "required" : ["test"] } } },
+        { "if" : { "properties" : { "test_type" : { "const" : "Monster" } }, "required" : ["test_type"] }, "then" : { "properties" : { "test" : { "$ref" : "#/$defs/MyGame_Example_Monster" } } } },
+        { "if" : { "properties" : { "test_type" : { "const" : "TestSimpleTableWithEnum" } }, "required" : ["test_type"] }, "then" : { "properties" : { "test" : { "$ref" : "#/$defs/MyGame_Example_TestSimpleTableWithEnum" } } } },
+        { "if" : { "properties" : { "test_type" : { "const" : "MyGame_Example2_Monster" } }, "required" : ["test_type"] }, "then" : { "properties" : { "test" : { "$ref" : "#/$defs/MyGame_Example2_Monster" } } } },
+        { "if" : { "properties" : { "any_unique_type" : { "const" : "NONE" } }, "required" : ["any_unique_type"] }, "then" : { "not" : { "required" : ["any_unique"] } } },
+        { "if" : { "properties" : { "any_unique_type" : { "const" : "M" } }, "required" : ["any_unique_type"] }, "then" : { "properties" : { "any_unique" : { "$ref" : "#/$defs/MyGame_Example_Monster" } } } },
+        { "if" : { "properties" : { "any_unique_type" : { "const" : "TS" } }, "required" : ["any_unique_type"] }, "then" : { "properties" : { "any_unique" : { "$ref" : "#/$defs/MyGame_Example_TestSimpleTableWithEnum" } } } },
+        { "if" : { "properties" : { "any_unique_type" : { "const" : "M2" } }, "required" : ["any_unique_type"] }, "then" : { "properties" : { "any_unique" : { "$ref" : "#/$defs/MyGame_Example2_Monster" } } } },
+        { "if" : { "properties" : { "any_ambiguous_type" : { "const" : "NONE" } }, "required" : ["any_ambiguous_type"] }, "then" : { "not" : { "required" : ["any_ambiguous"] } } },
+        { "if" : { "properties" : { "any_ambiguous_type" : { "const" : "M1" } }, "required" : ["any_ambiguous_type"] }, "then" : { "properties" : { "any_ambiguous" : { "$ref" : "#/$defs/MyGame_Example_Monster" } } } },
+        { "if" : { "properties" : { "any_ambiguous_type" : { "const" : "M2" } }, "required" : ["any_ambiguous_type"] }, "then" : { "properties" : { "any_ambiguous" : { "$ref" : "#/$defs/MyGame_Example_Monster" } } } },
+        { "if" : { "properties" : { "any_ambiguous_type" : { "const" : "M3" } }, "required" : ["any_ambiguous_type"] }, "then" : { "properties" : { "any_ambiguous" : { "$ref" : "#/$defs/MyGame_Example_Monster" } } } }
+      ],
+      "additionalProperties" : false
+    },
+    "MyGame_Example_TypeAliases" : {
+      "type" : "object",
+      "properties" : {
+        "i8" : {
+                "type" : "integer", "minimum" : -128, "maximum" : 127,
+                "default" : 0
+              },
+        "u8" : {
+                "type" : "integer", "minimum" : 0, "maximum" :255,
+                "default" : 0
+              },
+        "i16" : {
+                "type" : "integer", "minimum" : -32768, "maximum" : 32767,
+                "default" : 0
+              },
+        "u16" : {
+                "type" : "integer", "minimum" : 0, "maximum" : 65535,
+                "default" : 0
+              },
+        "i32" : {
+                "type" : "integer", "minimum" : -2147483648, "maximum" : 2147483647,
+                "default" : 0
+              },
+        "u32" : {
+                "type" : "integer", "minimum" : 0, "maximum" : 4294967295,
+                "default" : 0
+              },
+        "i64" : {
+                "anyOf" : [{ "type" : "integer", "minimum" : -9223372036854775808, "maximum" : 9223372036854775807 }, { "type" : "string", "pattern" : "^(0|[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6]|9223372036854775807|-([1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-7]|9223372036854775808))$" }],
+                "default" : "0"
+              },
+        "u64" : {
+                "anyOf" : [{ "type" : "integer", "minimum" : 0, "maximum" : 18446744073709551615 }, { "type" : "string", "pattern" : "^(0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$" }],
+                "default" : "0"
+              },
+        "f32" : {
+                "type" : "number",
+                "default" : 0.0
+              },
+        "f64" : {
+                "type" : "number",
+                "default" : 0.0
+              },
+        "v8" : {
+                "type" : "array", "items" : {"type" : "integer", "minimum" : -128, "maximum" : 127}
+              },
+        "vf64" : {
+                "type" : "array", "items" : {"type" : "number"}
+              }
+      },
+      "additionalProperties" : false
+    }
+  },
+  "$ref" : "#/$defs/MyGame_Example_Monster"
+}
