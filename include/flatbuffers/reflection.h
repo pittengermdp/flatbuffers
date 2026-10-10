@@ -528,9 +528,11 @@ Offset<const Table*> CopyTable(FlatBufferBuilder& fbb,
 // root should point to the root type for this flatbuffer.
 // buf should point to the start of flatbuffer data.
 // length specifies the size of the flatbuffer data.
-// It checks what the generated Verify<Root>Buffer() checks, except the file
-// identifier and the contents of nested flatbuffers. A length at or above
-// max_size (FLATBUFFERS_MAX_BUFFER_SIZE unless given in opts) fails.
+// The buffer's framing is checked as the generated Verify<Root>Buffer()
+// checks it: its minimum size, and a nonzero, in-bounds root offset. The file
+// identifier and the contents of nested flatbuffers are not checked. A length
+// at or above max_size (FLATBUFFERS_MAX_BUFFER_SIZE unless given in opts)
+// fails.
 bool Verify(const reflection::Schema& schema, const reflection::Object& root,
             const uint8_t* buf, size_t length, uoffset_t max_depth = 64,
             uoffset_t max_tables = 1000000);
@@ -546,7 +548,8 @@ bool VerifySizePrefixed(const reflection::Schema& schema,
                         size_t length, uoffset_t max_depth = 64,
                         uoffset_t max_tables = 1000000);
 
-// SizeT is the width of the size prefix: uoffset64_t for a buffer that
+// SizeT is the width of the size prefix, uoffset_t or uoffset64_t (the only
+// two instantiated): uoffset64_t for a buffer that
 // FlatBufferBuilder64::FinishSizePrefixed() wrote. Read its root with
 // GetAnySizePrefixedRoot<SizeT>().
 template <typename SizeT = uoffset_t>

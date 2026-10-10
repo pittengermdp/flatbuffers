@@ -361,11 +361,12 @@ And example of usage, for the time being, can be found in
 
 ### Verifying with reflection
 
-`flatbuffers::Verify()` checks an untrusted buffer against a binary schema the
-way the generated `Verify<Root>Buffer()` checks it against generated code,
-except for the file identifier and the contents of `nested_flatbuffer` fields.
+`flatbuffers::Verify()` checks an untrusted buffer against a binary schema, and
 `flatbuffers::VerifySizePrefixed()` does the same for a size-prefixed buffer.
-Both have overloads that take a `Verifier::Options`.
+They check the buffer's framing (its minimum size, size prefix and root offset)
+the way the generated `Verify<Root>Buffer()` does, but not the file identifier
+or the contents of `nested_flatbuffer` fields. Both have overloads that take a
+`Verifier::Options`.
 
 A buffer finished with `FlatBufferBuilder64` needs both of these, as generated
 code does for any schema with an `offset64` or `vector64` field:
