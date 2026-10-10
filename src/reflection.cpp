@@ -59,6 +59,30 @@ static bool VerifyVectorOfStructs(flatbuffers::Verifier& v,
   return !p || v.VerifyVectorOrString(p, obj.bytesize());
 }
 
+// Verifies the `_type` field of a union, which is as wide as the union's
+// underlying type, `underlying`: 1 byte by default, but 4 for `union U: int`.
+static bool VerifyUnionTypeField(flatbuffers::Verifier& v,
+                                 const flatbuffers::Table& table,
+                                 voffset_t field_offset,
+                                 reflection::BaseType underlying) {
+  auto offset = table.GetOptionalFieldOffset(field_offset);
+  auto size = GetTypeSize(underlying);
+  return !offset ||
+         v.VerifyFieldStruct(reinterpret_cast<const uint8_t*>(&table), offset,
+                             size, size);
+}
+
+// Verifies the `_type` vector of a vector of unions, whose elements are as
+// wide as the union's underlying type, `underlying`.
+static bool VerifyUnionTypeVector(flatbuffers::Verifier& v,
+                                  const VectorOfAny* types,
+                                  reflection::BaseType underlying) {
+  auto size = GetTypeSize(underlying);
+  return !types ||
+         v.VerifyVectorOrString(reinterpret_cast<const uint8_t*>(types), size,
+                                nullptr, size);
+}
+
 // forward declare to resolve cyclic deps between VerifyObject and VerifyVector
 static bool VerifyObject(flatbuffers::Verifier& v,
                          const reflection::Schema& schema,
@@ -66,13 +90,19 @@ static bool VerifyObject(flatbuffers::Verifier& v,
                          const flatbuffers::Table* table, bool required);
 
 static bool VerifyUnion(flatbuffers::Verifier& v,
-                        const reflection::Schema& schema, uint8_t utype,
+                        const reflection::Schema& schema, int64_t utype,
                         const uint8_t* elem,
                         const reflection::Field& union_field) {
   if (!utype) return true;  // Not present.
   auto fb_enum = schema.enums()->Get(union_field.type()->index());
-  if (utype >= fb_enum->values()->size()) return false;
-  auto elem_type = fb_enum->values()->Get(utype)->union_type();
+  // Members are keyed by value, which need not be their position in values():
+  // in `union U { A = 1, B = 3 }`, B is values()[2]. A type naming no member is
+  // rejected, unlike the generated verifiers, which accept it for forward
+  // compatibility: its value cannot be checked against this schema, and
+  // GetUnionType() would dereference the missing member.
+  auto enum_val = fb_enum->values()->LookupByKey(utype);
+  if (!enum_val) return false;
+  auto elem_type = enum_val->union_type();
   switch (elem_type->base_type()) {
     case reflection::Obj: {
       auto elem_obj = schema.objects()->Get(elem_type->index());
@@ -101,7 +131,8 @@ static bool VerifyVector(flatbuffers::Verifier& v,
 
   switch (vec_field.type()->element()) {
     case reflection::UType:
-      return v.VerifyVector(flatbuffers::GetFieldV<uint8_t>(table, vec_field));
+      return VerifyUnionTypeVector(v, GetFieldAnyV(table, vec_field),
+                                   GetUnionUnderlyingType(schema, vec_field));
     case reflection::Bool:
     case reflection::Byte:
     case reflection::UByte:
@@ -153,13 +184,14 @@ static bool VerifyVector(flatbuffers::Verifier& v,
           table, vec_field);
       if (!v.VerifyVector(vec)) return false;
       if (!vec) return true;
-      auto type_vec = table.GetPointer<Vector<uint8_t>*>(vec_field.offset() -
-                                                         sizeof(voffset_t));
-      if (!v.VerifyVector(type_vec)) return false;
+      auto underlying = GetUnionUnderlyingType(schema, vec_field);
+      auto type_vec = table.GetPointer<const VectorOfAny*>(vec_field.offset() -
+                                                           sizeof(voffset_t));
+      if (!VerifyUnionTypeVector(v, type_vec, underlying)) return false;
       if (type_vec->size() != vec->size()) return false;
       for (uoffset_t j = 0; j < vec->size(); j++) {
         //  get union type from the prev field
-        auto utype = type_vec->Get(j);
+        auto utype = GetAnyVectorElemI(type_vec, underlying, j);
         auto elem = vec->Get(j);
         if (!VerifyUnion(v, schema, utype, elem, vec_field)) return false;
       }
@@ -186,8 +218,8 @@ static bool VerifyObject(flatbuffers::Verifier& v,
         FLATBUFFERS_ASSERT(false);
         break;
       case reflection::UType:
-        if (!table->VerifyField<uint8_t>(v, field_def->offset(),
-                                         sizeof(uint8_t)))
+        if (!VerifyUnionTypeField(v, *table, field_def->offset(),
+                                  GetUnionUnderlyingType(schema, *field_def)))
           return false;
         break;
       case reflection::Bool:
@@ -251,7 +283,14 @@ static bool VerifyObject(flatbuffers::Verifier& v,
       case reflection::Union: {
         //  get union type from the prev field
         voffset_t utype_offset = field_def->offset() - sizeof(voffset_t);
-        auto utype = table->GetField<uint8_t>(utype_offset, 0);
+        // Fields are visited in order of name, so the `_type` field after this
+        // one has not been verified yet.
+        auto underlying = GetUnionUnderlyingType(schema, *field_def);
+        if (!VerifyUnionTypeField(v, *table, utype_offset, underlying)) {
+          return false;
+        }
+        auto utype_ptr = table->GetAddressOf(utype_offset);
+        auto utype = utype_ptr ? GetAnyValueI(underlying, utype_ptr) : 0;
         auto uval = reinterpret_cast<const uint8_t*>(
             flatbuffers::GetFieldT(*table, *field_def));
         if (!VerifyUnion(v, schema, utype, uval, *field_def)) {
@@ -725,7 +764,11 @@ Offset<const Table*> CopyTable(FlatBufferBuilder& fbb,
           }
             FLATBUFFERS_FALLTHROUGH();  // fall thru
           default: {                    // Scalars and structs.
-            auto element_size = GetTypeSize(element_base_type);
+            // A union's types are as wide as its underlying type.
+            auto element_size =
+                GetTypeSize(element_base_type == reflection::UType
+                                ? GetUnionUnderlyingType(schema, fielddef)
+                                : element_base_type);
             auto element_alignment = element_size;  // For primitive elements
             if (elemobjectdef && elemobjectdef->is_struct())
               element_size = elemobjectdef->bytesize();
@@ -768,7 +811,10 @@ Offset<const Table*> CopyTable(FlatBufferBuilder& fbb,
         fbb.AddOffset(fielddef.offset(), Offset<void>(offsets[offset_idx++]));
         break;
       default: {  // Scalars.
-        auto size = GetTypeSize(base_type);
+        // A union's type is as wide as its underlying type.
+        auto size = GetTypeSize(base_type == reflection::UType
+                                    ? GetUnionUnderlyingType(schema, fielddef)
+                                    : base_type);
         CopyInline(fbb, fielddef, table, size, size);
         break;
       }

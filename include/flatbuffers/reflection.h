@@ -424,6 +424,19 @@ pointer_inside_vector<T, U> piv(T* ptr, std::vector<U>& vec) {
 
 constexpr const char* UnionTypeFieldSuffix() { return "_type"; }
 
+// The base type a union's types are stored as: UType, 1 byte, by default, or
+// the underlying type the union declares, e.g. Int for `union U: int`. The
+// `_type` field says UType either way, so read and size its types with this.
+// `field` must refer to the union: it is the union field, its `_type` field,
+// or a vector of either.
+inline reflection::BaseType GetUnionUnderlyingType(
+    const reflection::Schema& schema, const reflection::Field& field) {
+  return schema.enums()
+      ->Get(field.type()->index())
+      ->underlying_type()
+      ->base_type();
+}
+
 // Helper to figure out the actual table type a union refers to.
 inline const reflection::Object& GetUnionType(
     const reflection::Schema& schema, const reflection::Object& parent,
@@ -433,7 +446,11 @@ inline const reflection::Object& GetUnionType(
   auto type_field = parent.fields()->LookupByKey(
       (unionfield.name()->str() + UnionTypeFieldSuffix()).c_str());
   FLATBUFFERS_ASSERT(type_field);
-  auto union_type = GetFieldI<uint8_t>(table, *type_field);
+  auto type_ptr = table.GetAddressOf(type_field->offset());
+  auto union_type =
+      type_ptr
+          ? GetAnyValueI(GetUnionUnderlyingType(schema, unionfield), type_ptr)
+          : type_field->default_integer();
   auto enumval = enumdef->values()->LookupByKey(union_type);
   return *schema.objects()->Get(enumval->union_type()->index());
 }
