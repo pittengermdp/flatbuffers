@@ -299,7 +299,25 @@ class JsonSchemaGenerator : public BaseGenerator {
   struct ValidationKeywords {
     std::string value;
     std::string array;
+    // `value` carries an integer field's minimum and maximum, replacing the
+    // range its type would otherwise contribute.
+    bool replaces_integer_range = false;
   };
+
+  // Set while one property's schema is generated, when its validation
+  // keywords already bound its integers.
+  bool omit_integer_range_ = false;
+
+  // A scalar's type keyword with its integer range, unless validation
+  // keywords for the same property already bound it.
+  std::string GenRangedType(BaseType type) const {
+    const char* type_name = JsonTypeName(type);
+    if (type_name == nullptr) {
+      return "";
+    }
+    return GenType(std::string(type_name)) +
+           (omit_integer_range_ ? "" : GenIntegerRange(type));
+  }
 
   bool Int64AsString() const { return parser_.opts.json_int64_as_string; }
 
@@ -337,10 +355,10 @@ class JsonSchemaGenerator : public BaseGenerator {
   // survives a reader that holds numbers as doubles.
   std::string GenScalarType(BaseType type) const {
     if (Is64BitInteger(type) && Int64AsString()) {
-      return "\"anyOf\" : [{ " + GenType(type) + " }, { " +
+      return "\"anyOf\" : [{ " + GenRangedType(type) + " }, { " +
              GenInt64StringType(type) + " }]";
     }
-    return GenType(type);
+    return GenRangedType(type);
   }
 
   // An optional scalar (`field: T = null`) has no default to fall back on, so
@@ -363,7 +381,7 @@ class JsonSchemaGenerator : public BaseGenerator {
       return "";
     }
     return "\"type\" : [\"" + std::string(type_name) + "\", \"null\"]" +
-           GenIntegerRange(type.base_type);
+           (omit_integer_range_ ? "" : GenIntegerRange(type.base_type));
   }
 
   std::string GenBaseType(const Type& type) const {
@@ -606,6 +624,54 @@ class JsonSchemaGenerator : public BaseGenerator {
 
   // Appends one numeric keyword from an attribute value, normalised so the
   // schema always holds a JSON number whatever spelling the .fbs used.
+  // json_minimum / json_maximum on an integer field replace the range its
+  // type contributes rather than repeating it -- one JSON object cannot hold
+  // two "minimum" members -- clamped so a bound never widens the type.
+  bool GenIntegerBounds(const FieldDef& field, BaseType type,
+                        ValidationKeywords* out) {
+    const Value* lo = field.attributes.Lookup("json_minimum");
+    const Value* hi = field.attributes.Lookup("json_maximum");
+    if (lo == nullptr && hi == nullptr) {
+      return true;
+    }
+    std::string type_max;
+    std::string negative_magnitude;
+    IntegerBounds(type, &type_max, &negative_magnitude);
+    int64_t minimum = 0;
+    if (!negative_magnitude.empty()) {
+      StringToNumber(("-" + negative_magnitude).c_str(), &minimum);
+    }
+    uint64_t type_maximum = 0;
+    StringToNumber(type_max.c_str(), &type_maximum);
+    std::string maximum = type_max;
+
+    int64_t bound = 0;
+    if (lo != nullptr) {
+      if (!StringToNumber(lo->constant.c_str(), &bound)) {
+        return Fail(field, "json_minimum on an integer field must be an "
+                           "integer, got `" + lo->constant + "`");
+      }
+      minimum = std::max(minimum, bound);
+    }
+    if (hi != nullptr) {
+      if (!StringToNumber(hi->constant.c_str(), &bound)) {
+        return Fail(field, "json_maximum on an integer field must be an "
+                           "integer, got `" + hi->constant + "`");
+      }
+      if (bound < minimum) {
+        return Fail(field, "json_maximum is below the field's minimum, so no "
+                           "value could pass");
+      }
+      if (static_cast<uint64_t>(bound) < type_maximum) {
+        maximum = NumToString(bound);
+      }
+    }
+    out->value += ", \"minimum\" : " + NumToString(minimum) +
+                  ", \"maximum\" : " + maximum;
+    out->replaces_integer_range = true;
+    return true;
+  }
+
   bool AppendNumberKeyword(const FieldDef& field, const std::string& attribute,
                            const char* keyword, const Value& value,
                            std::string* keywords) {
@@ -685,6 +751,7 @@ class JsonSchemaGenerator : public BaseGenerator {
         return Fail(field, "unknown validation attribute `" + it->first + "`");
       }
     }
+    const bool is_integer = is_number && IsInteger(element.base_type);
     for (const auto& a : kNumberAttributes) {
       const Value* value = field.attributes.Lookup(a.attribute);
       if (value == nullptr) continue;
@@ -698,10 +765,18 @@ class JsonSchemaGenerator : public BaseGenerator {
                                "--json-int64-as-string: its string form "
                                "would escape the bound");
       }
+      const std::string attribute = a.attribute;
+      if (is_integer &&
+          (attribute == "json_minimum" || attribute == "json_maximum")) {
+        continue;  // merged with the type's range below
+      }
       if (!AppendNumberKeyword(field, a.attribute, a.keyword, *value,
                                &out->value)) {
         return false;
       }
+    }
+    if (is_integer && !GenIntegerBounds(field, element.base_type, out)) {
+      return false;
     }
     for (const auto& a : kLengthAttributes) {
       const Value* value = field.attributes.Lookup(a.attribute);
@@ -965,7 +1040,9 @@ class JsonSchemaGenerator : public BaseGenerator {
         }
         std::string typeLine = Indent(4) + "\"" + property->name + "\"";
         typeLine += " : {" + NewLine() + Indent(8);
+        omit_integer_range_ = validation.replaces_integer_range;
         typeLine += GenPropertyType(*property, validation);
+        omit_integer_range_ = false;
         typeLine += arrayInfo;
         typeLine += default_info;
         typeLine += deprecated_info;

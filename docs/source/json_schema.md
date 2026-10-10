@@ -74,7 +74,11 @@ table Adapter {
 | `json_min_items`, `json_max_items` | `minItems`, `maxItems` (`minProperties`, `maxProperties` on a map) | vectors, maps, sets |
 
 On a vector, number and string attributes constrain each element; on a map,
-each value; on a set, each key. A float bound must be quoted
+each value; on a set, each key. On an integer, `json_minimum` and
+`json_maximum` replace the range the type contributes rather than adding a
+second `minimum` / `maximum` to the same object, clamped so they never widen
+it: `ubyte (json_minimum: -9, json_maximum: 900)` is written as `0..255`, and a
+maximum below the minimum stops generation. A float bound must be quoted
 (`json_minimum: "-0.5"`), because attribute values cannot be float literals; it
 is written to the schema as a number.
 

@@ -471,6 +471,9 @@ flatc(["--jsonschema"], schema="keyword_test.fbs")
 # keys; neither exposes the generated entry tables.
 flatc(["--jsonschema"], schema="map_set_test.fbs")
 
+# json_* validation attributes on every kind of field, one keyword each.
+flatc(["--jsonschema"], schema="jsonschema_validation_test.fbs")
+
 # Every opt-in JSON Schema option at once: draft 2020-12, cross-file refs
 # (monster_test's include_test types are referred to in their own files'
 # schemas, not copied), defaults, and 64-bit integers as number or string.

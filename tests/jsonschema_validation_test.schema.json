@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "definitions": {
+    "JsonSchemaValidation_Bounded" : {
+      "type" : "object",
+      "properties" : {
+        "cars" : {
+                "type" : "integer", "minimum" : 1, "maximum" : 64
+              },
+        "clamped" : {
+                "type" : "integer", "minimum" : 0, "maximum" : 255
+              },
+        "floor_only" : {
+                "type" : "integer", "minimum" : 0, "maximum" : 2147483647
+              },
+        "maybe" : {
+                "type" : ["integer", "null"], "minimum" : -2147483648, "maximum" : 10
+              },
+        "ratio" : {
+                "type" : "number", "minimum" : -0.5, "exclusiveMaximum" : 1
+              },
+        "name" : {
+                "type" : "string", "minLength" : 1, "maxLength" : 8, "pattern" : "^[a-z]+$"
+              },
+        "email" : {
+                "type" : "string", "format" : "email"
+              },
+        "counts" : {
+                "type" : "array", "items" : {"type" : "integer", "minimum" : 0, "maximum" : 32767}, "minItems" : 1, "maxItems" : 4
+              },
+        "tags" : {
+                "type" : "array", "items" : {"type" : "string", "pattern" : "^t"}, "maxItems" : 3
+              },
+        "limits" : {
+                "type" : "object", "propertyNames" : {"type" : "string"}, "additionalProperties" : {"type" : "integer", "minimum" : 0, "maximum" : 9}, "maxProperties" : 2
+              },
+        "ids" : {
+                "type" : "array", "items" : {"type" : "integer", "minimum" : 1, "maximum" : 2147483647}, "uniqueItems" : true
+              }
+      },
+      "additionalProperties" : false
+    },
+    "JsonSchemaValidation___Map_string_ubyte_Entry" : {
+      "type" : "object",
+      "properties" : {
+        "key" : {
+                "type" : "string"
+              },
+        "value" : {
+                "type" : "integer", "minimum" : 0, "maximum" :255
+              }
+      },
+      "required" : ["key"],
+      "additionalProperties" : false
+    },
+    "JsonSchemaValidation___Set_int_Entry" : {
+      "type" : "object",
+      "properties" : {
+        "key" : {
+                "type" : "integer", "minimum" : -2147483648, "maximum" : 2147483647
+              }
+      },
+      "additionalProperties" : false
+    }
+  },
+  "$ref" : "#/definitions/JsonSchemaValidation_Bounded"
+}
