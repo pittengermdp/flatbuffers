@@ -1375,7 +1375,7 @@ unsafe fn update_offset(
             }
             BaseType::Vector => {
                 let elem_type = field.type_().element();
-                if elem_type != BaseType::Obj || elem_type != BaseType::String {
+                if elem_type != BaseType::Obj && elem_type != BaseType::String {
                     continue;
                 }
                 if elem_type == BaseType::Obj

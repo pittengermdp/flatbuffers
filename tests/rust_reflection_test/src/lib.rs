@@ -8,7 +8,7 @@ use flatbuffers_reflection::{
 };
 use flatbuffers_reflection::{FieldValue, SafeBuffer, Struct};
 
-use flatbuffers::{FlatBufferBuilder, Table, VerifierOptions};
+use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, Table, Vector, VerifierOptions};
 
 use std::error::Error;
 use std::fs::File;
@@ -1702,6 +1702,139 @@ fn test_buffer_set_string_in_nested_table_succeeds() {
         let stat = monster.testempty.as_mut().unwrap();
         assert_eq!(stat.id.as_deref(), Some("AStringWithSlightlyBiggerSize"));
         stat.id = Some(String::from("Fred"));
+    });
+}
+
+#[test]
+fn test_buffer_set_string_updates_string_vector_spanning_insertion() {
+    // An element offset must change when its string lies beyond the resized
+    // one. `MonsterT::pack` writes a [string] vector's strings directly above
+    // the vector, so no table string can sit between the two; assemble the
+    // root with the generated builder API instead, writing the strings before
+    // `name` and the vector after it.
+    let mut builder = FlatBufferBuilder::new();
+    let alpha = builder.create_string("alpha");
+    let beta = builder.create_string("beta");
+    let name = builder.create_string("Fred");
+    let testarrayofstring = builder.create_vector(&[alpha, beta]);
+    let root = my_game::example::Monster::create(
+        &mut builder,
+        &my_game::example::MonsterArgs {
+            name: Some(name),
+            testarrayofstring: Some(testarrayofstring),
+            ..Default::default()
+        },
+    );
+    builder.finish(root, None);
+    let mut buffer = builder.finished_data().to_vec();
+    let monster = my_game::example::root_as_monster(&buffer).unwrap();
+    let strings = monster.testarrayofstring().unwrap();
+    assert!(
+        strings.bytes().as_ptr() < monster.name().as_ptr()
+            && monster.name().as_ptr() < strings.get(0).as_ptr()
+            && monster.name().as_ptr() < strings.get(1).as_ptr(),
+        "fixture must place name between testarrayofstring's offsets and strings"
+    );
+    // The builder lays the root out differently from `pack`, so compare
+    // against the original's own repack.
+    let original_repacked = pack_monster(&monster.unpack());
+    let schema_buffer = load_file_as_buffer("../monster_test.bfbs");
+    let schema = root_as_schema(schema_buffer.as_slice()).unwrap();
+    let string_field = get_schema_field(&schema_buffer, "name");
+    let table_loc = unsafe { get_any_root(&buffer) }.loc();
+
+    let res = unsafe {
+        set_string(
+            &mut buffer,
+            table_loc,
+            &string_field,
+            "AStringWithSlightlyBiggerSize",
+            &schema,
+        )
+    };
+
+    assert_eq!(res, Ok(()));
+    assert_unpacks_to_original(&buffer, &original_repacked, |monster| {
+        assert_eq!(monster.name, "AStringWithSlightlyBiggerSize");
+        monster.name = String::from("Fred");
+    });
+}
+
+#[test]
+fn test_buffer_set_string_updates_table_vector_spanning_insertion() {
+    // `pack` writes testarrayoftables[0] above [1], and [1].enemy between [1]
+    // and [1].name. Growing [1].enemy.name moves [0], so [0]'s element offset
+    // must change, and moves [1].name, so the walk must recurse into element
+    // [1] to change that table's own offset.
+    let original = my_game::example::MonsterT {
+        name: String::from("Root"),
+        testarrayoftables: Some(vec![
+            my_game::example::MonsterT {
+                name: String::from("First"),
+                ..Default::default()
+            },
+            my_game::example::MonsterT {
+                name: String::from("Second"),
+                enemy: Some(Box::new(my_game::example::MonsterT {
+                    name: String::from("Fred"),
+                    ..Default::default()
+                })),
+                ..Default::default()
+            },
+        ]),
+        ..Default::default()
+    };
+    let original_bytes = pack_monster(&original);
+    let mut buffer = original_bytes.clone();
+    let schema_buffer = load_file_as_buffer("../monster_test.bfbs");
+    let schema = root_as_schema(schema_buffer.as_slice()).unwrap();
+    let string_field = get_schema_field(&schema_buffer, "name");
+    let enemy_field = get_schema_field(&schema_buffer, "enemy");
+    let testarrayoftables_field = get_schema_field(&schema_buffer, "testarrayoftables");
+    let root = unsafe { get_any_root(&original_bytes) };
+    let tables = unsafe {
+        root.get::<ForwardsUOffset<Vector<ForwardsUOffset<Table>>>>(
+            testarrayoftables_field.offset(),
+            None,
+        )
+    }
+    .unwrap();
+    let second = tables.get(1);
+    let enemy_loc = unsafe { get_field_table(&second, &enemy_field) }
+        .unwrap()
+        .unwrap()
+        .loc();
+    let loc_of = |s: &str| s.as_ptr() as usize - original_bytes.as_ptr() as usize;
+    let monster = my_game::example::root_as_monster(&original_bytes).unwrap();
+    let second_monster = monster.testarrayoftables().unwrap().get(1);
+    let resized_loc = loc_of(second_monster.enemy().unwrap().name());
+    assert!(
+        tables.get(0).loc() > resized_loc,
+        "fixture must place testarrayoftables[0] above the resized string"
+    );
+    assert!(
+        second.loc() < resized_loc && loc_of(second_monster.name()) > resized_loc,
+        "fixture must place the resized string between testarrayoftables[1] and its name"
+    );
+
+    let res = unsafe {
+        set_string(
+            &mut buffer,
+            enemy_loc,
+            &string_field,
+            "AStringWithSlightlyBiggerSize",
+            &schema,
+        )
+    };
+
+    assert_eq!(res, Ok(()));
+    assert_unpacks_to_original(&buffer, &original_bytes, |monster| {
+        let enemy = monster.testarrayoftables.as_mut().unwrap()[1]
+            .enemy
+            .as_mut()
+            .unwrap();
+        assert_eq!(enemy.name, "AStringWithSlightlyBiggerSize");
+        enemy.name = String::from("Fred");
     });
 }
 
