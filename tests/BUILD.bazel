@@ -128,6 +128,7 @@ cc_test(
         ":prototest/twice-id.proto",
         ":prototest/use-reserved-id.proto",
         ":unicode_test.json",
+        ":union_value_gap_test.fbs",
         ":union_vector/union_vector.fbs",
         ":union_vector/union_vector.json",
     ],
@@ -144,6 +145,7 @@ cc_test(
         ":monster_extra_cc_fbs",
         ":monster_test_cc_fbs",
         ":native_type_test_cc_fbs",
+        ":union_value_gap_test_cc_fbs",
         "//:flatbuffers",
         "//src:generate_fbs",
     ],
@@ -298,6 +300,14 @@ flatbuffer_cc_library(
 flatbuffer_cc_library(
     name = "map_set_test_cc_fbs",
     srcs = ["map_set_test.fbs"],
+)
+
+# reflection_test.cpp builds its fixtures with union_value_gap_test_generated.h,
+# which CMake produces via compile_schema_for_test, and parses the schema at
+# run time. DEFAULT_FLATC_ARGS matches the FLATC_OPT_COMP set CMake uses.
+flatbuffer_cc_library(
+    name = "union_value_gap_test_cc_fbs",
+    srcs = ["union_value_gap_test.fbs"],
 )
 
 flatbuffer_cc_library(

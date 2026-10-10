@@ -1,5 +1,6 @@
 #include "reflection_test.h"
 
+#include "flatbuffers/idl.h"
 #include "flatbuffers/minireflect.h"
 #include "flatbuffers/reflection.h"
 #include "flatbuffers/reflection_generated.h"
@@ -8,6 +9,7 @@
 #include "monster_test_generated.h"
 #include "test_assert.h"
 #include "tests/arrays_test_generated.h"
+#include "tests/union_value_gap_test_generated.h"
 
 namespace flatbuffers {
 namespace tests {
@@ -246,6 +248,79 @@ void ReflectionTest(const std::string& tests_data_path, uint8_t* flatbuf,
   TEST_EQ(flatbuffers::Verify(schema, *schema.root_table(),
                               fbb.GetBufferPointer(), fbb.GetSize()),
           true);
+}
+
+// Packs `holder`, checks that the generated verifier accepts it, and returns
+// whether the reflection verifier accepts the same bytes.
+static bool ReflectionVerifiesGapHolder(const reflection::Schema& schema,
+                                        const UnionValueGap::HolderT& holder) {
+  flatbuffers::FlatBufferBuilder fbb;
+  UnionValueGap::FinishHolderBuffer(fbb,
+                                    UnionValueGap::Holder::Pack(fbb, &holder));
+  flatbuffers::Verifier verifier(fbb.GetBufferPointer(), fbb.GetSize());
+  TEST_EQ(UnionValueGap::VerifyHolderBuffer(verifier), true);
+  return flatbuffers::Verify(schema, *schema.root_table(),
+                             fbb.GetBufferPointer(), fbb.GetSize());
+}
+
+// Union members are keyed by value, not by their position in the union's list
+// of values. The reflection verifier used to index that list by the type, so
+// with `union Gap { Alpha = 1, Beta = 3, Gamma = 4 }` it verified a Beta as
+// the Gamma at position 3 and rejected a Gamma as out of range, though the
+// generated verifier accepts both.
+void ReflectionVerifyUnionByValueTest(const std::string& tests_data_path) {
+  std::string schemafile;
+  TEST_EQ(flatbuffers::LoadFile(
+              (tests_data_path + "union_value_gap_test.fbs").c_str(), false,
+              &schemafile),
+          true);
+  flatbuffers::IDLOptions idl_opts;
+  idl_opts.lang_to_generate |= flatbuffers::IDLOptions::kBinary;
+  flatbuffers::Parser parser(idl_opts);
+  TEST_EQ(parser.Parse(schemafile.c_str()), true);
+  parser.Serialize();
+  auto schema = reflection::GetSchema(parser.builder_.GetBufferPointer());
+
+  // The premise: Beta and Gamma do not sit at the positions their values name.
+  auto gap = schema->enums()->LookupByKey("UnionValueGap.Gap");
+  TEST_NOTNULL(gap);
+  TEST_EQ(gap->values()->size(), 4u);
+  TEST_EQ(gap->values()->Get(2)->value(), 3);
+  TEST_EQ(gap->values()->Get(3)->value(), 4);
+
+  UnionValueGap::BetaT beta;
+  beta.b = 1000000;  // Read as Gamma's string offset, it points off the end.
+  UnionValueGap::GammaT gamma;
+  gamma.g = "gamma";
+
+  UnionValueGap::HolderT none;
+  TEST_EQ(ReflectionVerifiesGapHolder(*schema, none), true);
+
+  UnionValueGap::HolderT single_alpha;
+  single_alpha.single.Set(UnionValueGap::AlphaT());
+  TEST_EQ(ReflectionVerifiesGapHolder(*schema, single_alpha), true);
+
+  UnionValueGap::HolderT single_beta;
+  single_beta.single.Set(beta);
+  TEST_EQ(ReflectionVerifiesGapHolder(*schema, single_beta), true);
+
+  UnionValueGap::HolderT single_gamma;
+  single_gamma.single.Set(gamma);
+  TEST_EQ(ReflectionVerifiesGapHolder(*schema, single_gamma), true);
+
+  UnionValueGap::HolderT many;
+  many.many.resize(3);
+  many.many[0].Set(UnionValueGap::AlphaT());
+  many.many[1].Set(beta);
+  many.many[2].Set(gamma);
+  TEST_EQ(ReflectionVerifiesGapHolder(*schema, many), true);
+
+  // 2 lies in the gap and names no member. The generated verifier accepts an
+  // unknown type for forward compatibility; reflection verifies against the
+  // schema it is given, so it rejects one.
+  UnionValueGap::HolderT unknown;
+  unknown.single.type = static_cast<UnionValueGap::Gap>(2);
+  TEST_EQ(ReflectionVerifiesGapHolder(*schema, unknown), false);
 }
 
 // Test that ForAllFields with reverse=true iterates fields in descending
