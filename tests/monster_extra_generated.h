@@ -241,16 +241,16 @@ inline ::flatbuffers::Offset<MonsterExtra> CreateMonsterExtraDirect(
 
 inline bool operator==(const MonsterExtraT &lhs, const MonsterExtraT &rhs) {
   return
-      (lhs.d0 == rhs.d0) &&
-      (lhs.d1 == rhs.d1) &&
-      (lhs.d2 == rhs.d2) &&
-      (lhs.d3 == rhs.d3) &&
-      (lhs.f0 == rhs.f0) &&
-      (lhs.f1 == rhs.f1) &&
-      (lhs.f2 == rhs.f2) &&
-      (lhs.f3 == rhs.f3) &&
-      (lhs.dvec == rhs.dvec) &&
-      (lhs.fvec == rhs.fvec);
+      ::flatbuffers::IsFloatTheSameAs(lhs.d0, rhs.d0) &&
+      ::flatbuffers::IsFloatTheSameAs(lhs.d1, rhs.d1) &&
+      ::flatbuffers::IsFloatTheSameAs(lhs.d2, rhs.d2) &&
+      ::flatbuffers::IsFloatTheSameAs(lhs.d3, rhs.d3) &&
+      ::flatbuffers::IsFloatTheSameAs(lhs.f0, rhs.f0) &&
+      ::flatbuffers::IsFloatTheSameAs(lhs.f1, rhs.f1) &&
+      ::flatbuffers::IsFloatTheSameAs(lhs.f2, rhs.f2) &&
+      ::flatbuffers::IsFloatTheSameAs(lhs.f3, rhs.f3) &&
+      (lhs.dvec.size() == rhs.dvec.size() && std::equal(lhs.dvec.cbegin(), lhs.dvec.cend(), rhs.dvec.cbegin(), ::flatbuffers::IsFloatTheSameAs<double>)) &&
+      (lhs.fvec.size() == rhs.fvec.size() && std::equal(lhs.fvec.cbegin(), lhs.fvec.cend(), rhs.fvec.cbegin(), ::flatbuffers::IsFloatTheSameAs<float>));
 }
 
 inline bool operator!=(const MonsterExtraT &lhs, const MonsterExtraT &rhs) {
