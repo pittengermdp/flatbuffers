@@ -1,5 +1,6 @@
 #include <bfbs_gen_lua.h>
 #include <bfbs_gen_nim.h>
+#include <flatbuffers/file_manager.h>
 #include <flatbuffers/flatc.h>
 #include <idl_gen_binary.h>
 #include <idl_gen_csharp.h>
@@ -85,6 +86,12 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     return 0;
 
   flatbuffers::IDLOptions opts;
+  // Generators write through opts.file_saver, which flatc's main always sets
+  // (it asserts one is). Without it the first generator to save -- the
+  // binary one, for any schema that parses -- dereferenced null. Names are
+  // recorded rather than files written: the target is crashes in generation.
+  flatbuffers::FileNameSaver file_saver;
+  opts.file_saver = &file_saver;
   opts.strict_json = (flags & flags_strict_json);
   opts.skip_unexpected_fields_in_json =
       (flags & flags_skip_unexpected_fields_in_json);

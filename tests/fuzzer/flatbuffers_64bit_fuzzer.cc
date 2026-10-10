@@ -1,6 +1,8 @@
 #include <cstdint>
+#include <cstring>
 #include <filesystem>
 #include <type_traits>
+#include <vector>
 
 #include "64bit/test_64bit_bfbs_generated.h"
 #include "64bit/test_64bit_generated.h"
@@ -28,9 +30,13 @@ uint64_t Hash(T value, uint64_t hash) {
   return (hash * kFnvPrime) ^ value;
 }
 
+// Hashes the double's bits: converting a NaN, an infinity or anything out of
+// uint64_t's range to an integer is undefined behaviour.
 uint64_t Hash(double value, uint64_t hash) {
   static_assert(sizeof(double) == sizeof(uint64_t));
-  return (hash * kFnvPrime) ^ static_cast<uint64_t>(value);
+  uint64_t bits;
+  memcpy(&bits, &value, sizeof(bits));
+  return (hash * kFnvPrime) ^ bits;
 }
 
 uint64_t Hash(const flatbuffers::String* value, uint64_t hash) {
@@ -119,6 +125,14 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   const uint8_t flags = data[0];
   data++;
   size--;
+
+  // The verifier checks alignment relative to the buffer's start, so the
+  // buffer itself must start aligned, as a real one does; one byte past the
+  // input's start does not, and every read would then be misaligned.
+  std::vector<uint64_t> aligned((size + sizeof(uint64_t) - 1) /
+                                sizeof(uint64_t));
+  memcpy(aligned.data(), data, size);
+  data = reinterpret_cast<const uint8_t*>(aligned.data());
 
   Verifier::Options options;
   options.assert = true;
