@@ -21,9 +21,9 @@ var EnumValuesWide = map[string]Wide{
 	"One":  WideOne,
 }
 
-func (v Wide) String() string {
-	if s, ok := EnumNamesWide[v]; ok {
-		return s
+func (v_ Wide) String() string {
+	if s_, ok_ := EnumNamesWide[v_]; ok_ {
+		return s_
 	}
-	return "Wide(" + strconv.FormatInt(int64(v), 10) + ")"
+	return "Wide(" + strconv.FormatInt(int64(v_), 10) + ")"
 }

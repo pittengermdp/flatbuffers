@@ -12,29 +12,29 @@ type __Map_string_long_EntryT struct {
 	Value int64  `json:"value,omitempty"`
 }
 
-func (t *__Map_string_long_EntryT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *__Map_string_long_EntryT) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	keyOffset := builder.CreateString(t.Key)
-	__Map_string_long_EntryStart(builder)
-	__Map_string_long_EntryAddKey(builder, keyOffset)
-	__Map_string_long_EntryAddValue(builder, t.Value)
-	return __Map_string_long_EntryEnd(builder)
+	keyOffset_ := builder_.CreateString(t_.Key)
+	__Map_string_long_EntryStart(builder_)
+	__Map_string_long_EntryAddKey(builder_, keyOffset_)
+	__Map_string_long_EntryAddValue(builder_, t_.Value)
+	return __Map_string_long_EntryEnd(builder_)
 }
 
-func (rcv *__Map_string_long_Entry) UnPackTo(t *__Map_string_long_EntryT) {
-	t.Key = string(rcv.Key())
-	t.Value = rcv.Value()
+func (rcv_ *__Map_string_long_Entry) UnPackTo(t_ *__Map_string_long_EntryT) {
+	t_.Key = string(rcv_.Key())
+	t_.Value = rcv_.Value()
 }
 
-func (rcv *__Map_string_long_Entry) UnPack() *__Map_string_long_EntryT {
-	if rcv == nil {
+func (rcv_ *__Map_string_long_Entry) UnPack() *__Map_string_long_EntryT {
+	if rcv_ == nil {
 		return nil
 	}
-	t := &__Map_string_long_EntryT{}
-	rcv.UnPackTo(t)
-	return t
+	t_ := &__Map_string_long_EntryT{}
+	rcv_.UnPackTo(t_)
+	return t_
 }
 
 const (
@@ -46,38 +46,38 @@ const (
 // Fields not in the list are left at their zero/default values.
 // This avoids materializing the entire table tree. Pass the
 // generated __Map_string_long_EntryField* constants rather than raw strings.
-func (rcv *__Map_string_long_Entry) UnpackFields(fields ...string) *__Map_string_long_EntryT {
-	t := &__Map_string_long_EntryT{}
-	fieldSet := make(map[string]bool, len(fields))
-	for _, f := range fields {
-		fieldSet[f] = true
+func (rcv_ *__Map_string_long_Entry) UnpackFields(fields_ ...string) *__Map_string_long_EntryT {
+	t_ := &__Map_string_long_EntryT{}
+	fieldSet_ := make(map[string]bool, len(fields_))
+	for _, f_ := range fields_ {
+		fieldSet_[f_] = true
 	}
-	if fieldSet["key"] {
-		t.Key = string(rcv.Key())
+	if fieldSet_["key"] {
+		t_.Key = string(rcv_.Key())
 	}
-	if fieldSet["value"] {
-		t.Value = rcv.Value()
+	if fieldSet_["value"] {
+		t_.Value = rcv_.Value()
 	}
-	return t
+	return t_
 }
 
 // FlatJSONSchema names the JSON Schema definition flatc --jsonschema
-// generates for __Map_string_long_Entry.
-func (*__Map_string_long_EntryT) FlatJSONSchema() (file, definition string) {
+// generates for __Map_string_long_Entry: its file, and its name there.
+func (*__Map_string_long_EntryT) FlatJSONSchema() (string, string) {
 	return "canonical_json_test.schema.json", "CanonicalJson___Map_string_long_Entry"
 }
 
 // MarshalFlatJSON returns t as canonical FlatBuffers JSON.
-func (t *__Map_string_long_EntryT) MarshalFlatJSON() ([]byte, error) {
+func (t_ *__Map_string_long_EntryT) MarshalFlatJSON() ([]byte, error) {
 	w_ := flatbuffers.NewJSONWriter()
-	t.WriteFlatJSON(w_)
+	t_.WriteFlatJSON(w_)
 
 	return w_.Bytes()
 }
 
 // WriteFlatJSON writes t to w_ as canonical FlatBuffers JSON.
-func (t *__Map_string_long_EntryT) WriteFlatJSON(w_ *flatbuffers.JSONWriter) {
-	if t == nil {
+func (t_ *__Map_string_long_EntryT) WriteFlatJSON(w_ *flatbuffers.JSONWriter) {
+	if t_ == nil {
 		w_.Null()
 
 		return
@@ -85,28 +85,28 @@ func (t *__Map_string_long_EntryT) WriteFlatJSON(w_ *flatbuffers.JSONWriter) {
 
 	w_.BeginObject()
 	w_.Key("key")
-	w_.String(t.Key)
-	if t.Value != 0 {
+	w_.String(t_.Key)
+	if t_.Value != 0 {
 		w_.Key("value")
-		w_.IntString(t.Value)
+		w_.IntString(t_.Value)
 	}
 	w_.EndObject()
 }
 
 // UnmarshalFlatJSON replaces t with the value the canonical FlatBuffers
 // JSON in data_ describes; an absent scalar takes its schema default.
-func (t *__Map_string_long_EntryT) UnmarshalFlatJSON(data_ []byte) error {
+func (t_ *__Map_string_long_EntryT) UnmarshalFlatJSON(data_ []byte) error {
 	v_, err_ := flatbuffers.ParseJSON(data_)
 	if err_ != nil {
 		return err_
 	}
 
-	return t.UnmarshalFlatJSONValue(v_, "")
+	return t_.UnmarshalFlatJSONValue(v_, "")
 }
 
 // UnmarshalFlatJSONValue is UnmarshalFlatJSON for a value
 // flatbuffers.ParseJSON has already parsed; pointer_ locates it in errors.
-func (t *__Map_string_long_EntryT) UnmarshalFlatJSONValue(v_ any, pointer_ string) error {
+func (t_ *__Map_string_long_EntryT) UnmarshalFlatJSONValue(v_ any, pointer_ string) error {
 	m_, err_ := flatbuffers.JSONObject(v_, pointer_)
 	if err_ != nil {
 		return err_
@@ -117,17 +117,17 @@ func (t *__Map_string_long_EntryT) UnmarshalFlatJSONValue(v_ any, pointer_ strin
 		return err_
 	}
 
-	*t = __Map_string_long_EntryT{}
+	*t_ = __Map_string_long_EntryT{}
 
 	if x_, ok_ := flatbuffers.JSONMember(m_, "key"); ok_ {
-		if t.Key, err_ = flatbuffers.JSONString(x_, flatbuffers.JSONPointer(pointer_, "key")); err_ != nil {
+		if t_.Key, err_ = flatbuffers.JSONString(x_, flatbuffers.JSONPointer(pointer_, "key")); err_ != nil {
 			return err_
 		}
 	} else {
 		return flatbuffers.JSONRequired(pointer_, "key")
 	}
 	if x_, ok_ := flatbuffers.JSONMember(m_, "value"); ok_ {
-		if t.Value, err_ = flatbuffers.JSONInt[int64](x_, flatbuffers.JSONPointer(pointer_, "value")); err_ != nil {
+		if t_.Value, err_ = flatbuffers.JSONInt[int64](x_, flatbuffers.JSONPointer(pointer_, "value")); err_ != nil {
 			return err_
 		}
 	}
@@ -139,138 +139,138 @@ type __Map_string_long_Entry struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAs__Map_string_long_Entry(buf []byte, offset flatbuffers.UOffsetT) *__Map_string_long_Entry {
-	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &__Map_string_long_Entry{}
-	x.Init(buf, n+offset)
-	return x
+func GetRootAs__Map_string_long_Entry(buf_ []byte, offset_ flatbuffers.UOffsetT) *__Map_string_long_Entry {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_:])
+	x_ := &__Map_string_long_Entry{}
+	x_.Init(buf_, n_+offset_)
+	return x_
 }
 
-func Finish__Map_string_long_EntryBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.Finish(offset)
+func Finish__Map_string_long_EntryBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.Finish(offset_)
 }
 
-func GetSizePrefixedRootAs__Map_string_long_Entry(buf []byte, offset flatbuffers.UOffsetT) *__Map_string_long_Entry {
-	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &__Map_string_long_Entry{}
-	x.Init(buf, n+offset+flatbuffers.SizeUint32)
-	return x
+func GetSizePrefixedRootAs__Map_string_long_Entry(buf_ []byte, offset_ flatbuffers.UOffsetT) *__Map_string_long_Entry {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_+flatbuffers.SizeUint32:])
+	x_ := &__Map_string_long_Entry{}
+	x_.Init(buf_, n_+offset_+flatbuffers.SizeUint32)
+	return x_
 }
 
-func FinishSizePrefixed__Map_string_long_EntryBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.FinishSizePrefixed(offset)
+func FinishSizePrefixed__Map_string_long_EntryBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.FinishSizePrefixed(offset_)
 }
 
-func VerifyRootAs__Map_string_long_Entry(buf []byte, opts *flatbuffers.VerifierOptions) error {
-	v := flatbuffers.NewVerifier(buf, opts)
-	tablePos, err := v.CheckUOffsetT(0)
-	if err != nil {
-		return err
+func VerifyRootAs__Map_string_long_Entry(buf_ []byte, opts_ *flatbuffers.VerifierOptions) error {
+	v_ := flatbuffers.NewVerifier(buf_, opts_)
+	tablePos_, err_ := v_.CheckUOffsetT(0)
+	if err_ != nil {
+		return err_
 	}
-	return verify__Map_string_long_Entry(v, int(tablePos))
+	return verify__Map_string_long_Entry(v_, int(tablePos_))
 }
 
-func Verify__Map_string_long_Entry(v *flatbuffers.Verifier, tablePos int) error {
-	return verify__Map_string_long_Entry(v, tablePos)
+func Verify__Map_string_long_Entry(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	return verify__Map_string_long_Entry(v_, tablePos_)
 }
 
-func verify__Map_string_long_Entry(v *flatbuffers.Verifier, tablePos int) error {
-	if err := v.CheckTable(tablePos); err != nil {
-		return err
+func verify__Map_string_long_Entry(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	if err_ := v_.CheckTable(tablePos_); err_ != nil {
+		return err_
 	}
-	if err := v.CountTable(); err != nil {
-		return err
+	if err_ := v_.CountTable(); err_ != nil {
+		return err_
 	}
-	if err := v.PushDepth(); err != nil {
-		return err
+	if err_ := v_.PushDepth(); err_ != nil {
+		return err_
 	}
-	defer v.PopDepth()
+	defer v_.PopDepth()
 
-	if pos, err := v.CheckOffsetField(tablePos, 4); err != nil {
-		return err
-	} else if pos != 0 {
-		if err := v.CheckString(pos); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 4); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := v_.CheckString(pos_); err_ != nil {
+			return err_
 		}
 	}
-	if err := v.CheckRequiredField(tablePos, 4, "key"); err != nil {
-		return err
+	if err_ := v_.CheckRequiredField(tablePos_, 4, "key"); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 6, 8); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (rcv *__Map_string_long_Entry) Init(buf []byte, i flatbuffers.UOffsetT) {
-	rcv._tab.Bytes = buf
-	rcv._tab.Pos = i
-}
-
-func (rcv *__Map_string_long_Entry) Table() flatbuffers.Table {
-	return rcv._tab
-}
-
-func (rcv *__Map_string_long_Entry) Key() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
-	if o != 0 {
-		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	if err_ := v_.CheckScalarField(tablePos_, 6, 8); err_ != nil {
+		return err_
 	}
 	return nil
 }
 
-func __Map_string_long_EntryKeyCompare(o1, o2 flatbuffers.UOffsetT, buf []byte) bool {
-	var obj1, obj2 __Map_string_long_Entry
-	obj1.Init(buf, flatbuffers.UOffsetT(len(buf))-o1)
-	obj2.Init(buf, flatbuffers.UOffsetT(len(buf))-o2)
-	return string(obj1.Key()) < string(obj2.Key())
+func (rcv_ *__Map_string_long_Entry) Init(buf_ []byte, i_ flatbuffers.UOffsetT) {
+	rcv_._tab.Bytes = buf_
+	rcv_._tab.Pos = i_
 }
 
-func (rcv *__Map_string_long_Entry) LookupByKey(key string, vectorLocation flatbuffers.UOffsetT, buf []byte) bool {
-	span := flatbuffers.GetUOffsetT(buf[vectorLocation-4:])
-	start := flatbuffers.UOffsetT(0)
-	bKey := []byte(key)
-	for span != 0 {
-		middle := span / 2
-		tableOffset := flatbuffers.GetIndirectOffset(buf, vectorLocation+4*(start+middle))
-		var obj __Map_string_long_Entry
-		obj.Init(buf, tableOffset)
-		comp := bytes.Compare(obj.Key(), bKey)
-		if comp > 0 {
-			span = middle
-		} else if comp < 0 {
-			middle += 1
-			start += middle
-			span -= middle
+func (rcv_ *__Map_string_long_Entry) Table() flatbuffers.Table {
+	return rcv_._tab
+}
+
+func (rcv_ *__Map_string_long_Entry) Key() []byte {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(4))
+	if o_ != 0 {
+		return rcv_._tab.ByteVector(o_ + rcv_._tab.Pos)
+	}
+	return nil
+}
+
+func __Map_string_long_EntryKeyCompare(o1_, o2_ flatbuffers.UOffsetT, buf_ []byte) bool {
+	var obj1_, obj2_ __Map_string_long_Entry
+	obj1_.Init(buf_, flatbuffers.UOffsetT(len(buf_))-o1_)
+	obj2_.Init(buf_, flatbuffers.UOffsetT(len(buf_))-o2_)
+	return string(obj1_.Key()) < string(obj2_.Key())
+}
+
+func (rcv_ *__Map_string_long_Entry) LookupByKey(key_ string, vectorLocation_ flatbuffers.UOffsetT, buf_ []byte) bool {
+	span_ := flatbuffers.GetUOffsetT(buf_[vectorLocation_-4:])
+	start_ := flatbuffers.UOffsetT(0)
+	bKey_ := []byte(key_)
+	for span_ != 0 {
+		middle_ := span_ / 2
+		tableOffset_ := flatbuffers.GetIndirectOffset(buf_, vectorLocation_+4*(start_+middle_))
+		var obj_ __Map_string_long_Entry
+		obj_.Init(buf_, tableOffset_)
+		comp_ := bytes.Compare(obj_.Key(), bKey_)
+		if comp_ > 0 {
+			span_ = middle_
+		} else if comp_ < 0 {
+			middle_ += 1
+			start_ += middle_
+			span_ -= middle_
 		} else {
-			rcv.Init(buf, tableOffset)
+			rcv_.Init(buf_, tableOffset_)
 			return true
 		}
 	}
 	return false
 }
 
-func (rcv *__Map_string_long_Entry) Value() int64 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
-	if o != 0 {
-		return rcv._tab.GetInt64(o + rcv._tab.Pos)
+func (rcv_ *__Map_string_long_Entry) Value() int64 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(6))
+	if o_ != 0 {
+		return rcv_._tab.GetInt64(o_ + rcv_._tab.Pos)
 	}
 	return 0
 }
 
-func (rcv *__Map_string_long_Entry) MutateValue(n int64) bool {
-	return rcv._tab.MutateInt64Slot(6, n)
+func (rcv_ *__Map_string_long_Entry) MutateValue(n_ int64) bool {
+	return rcv_._tab.MutateInt64Slot(6, n_)
 }
 
-func __Map_string_long_EntryStart(builder *flatbuffers.Builder) {
-	builder.StartObject(2)
+func __Map_string_long_EntryStart(builder_ *flatbuffers.Builder) {
+	builder_.StartObject(2)
 }
-func __Map_string_long_EntryAddKey(builder *flatbuffers.Builder, key flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(key), 0)
+func __Map_string_long_EntryAddKey(builder_ *flatbuffers.Builder, key_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(key_), 0)
 }
-func __Map_string_long_EntryAddValue(builder *flatbuffers.Builder, value int64) {
-	builder.PrependInt64Slot(1, value, 0)
+func __Map_string_long_EntryAddValue(builder_ *flatbuffers.Builder, value_ int64) {
+	builder_.PrependInt64Slot(1, value_, 0)
 }
-func __Map_string_long_EntryEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	return builder.EndObject()
+func __Map_string_long_EntryEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder_.EndObject()
 }

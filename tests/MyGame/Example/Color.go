@@ -28,9 +28,9 @@ var EnumValuesColor = map[string]Color{
 	"Blue":  ColorBlue,
 }
 
-func (v Color) String() string {
-	if s, ok := EnumNamesColor[v]; ok {
-		return s
+func (v_ Color) String() string {
+	if s_, ok_ := EnumNamesColor[v_]; ok_ {
+		return s_
 	}
-	return "Color(" + strconv.FormatInt(int64(v), 10) + ")"
+	return "Color(" + strconv.FormatInt(int64(v_), 10) + ")"
 }

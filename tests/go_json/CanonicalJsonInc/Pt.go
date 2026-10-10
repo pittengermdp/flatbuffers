@@ -11,43 +11,43 @@ type PtT struct {
 	Y int32 `json:"y,omitempty"`
 }
 
-func (t *PtT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *PtT) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	return CreatePt(builder, t.X, t.Y)
+	return CreatePt(builder_, t_.X, t_.Y)
 }
-func (rcv *Pt) UnPackTo(t *PtT) {
-	t.X = rcv.X()
-	t.Y = rcv.Y()
+func (rcv_ *Pt) UnPackTo(t_ *PtT) {
+	t_.X = rcv_.X()
+	t_.Y = rcv_.Y()
 }
 
-func (rcv *Pt) UnPack() *PtT {
-	if rcv == nil {
+func (rcv_ *Pt) UnPack() *PtT {
+	if rcv_ == nil {
 		return nil
 	}
-	t := &PtT{}
-	rcv.UnPackTo(t)
-	return t
+	t_ := &PtT{}
+	rcv_.UnPackTo(t_)
+	return t_
 }
 
 // FlatJSONSchema names the JSON Schema definition flatc --jsonschema
-// generates for Pt.
-func (*PtT) FlatJSONSchema() (file, definition string) {
+// generates for Pt: its file, and its name there.
+func (*PtT) FlatJSONSchema() (string, string) {
 	return "canonical_json_include.schema.json", "CanonicalJsonInc_Pt"
 }
 
 // MarshalFlatJSON returns t as canonical FlatBuffers JSON.
-func (t *PtT) MarshalFlatJSON() ([]byte, error) {
+func (t_ *PtT) MarshalFlatJSON() ([]byte, error) {
 	w_ := flatbuffers.NewJSONWriter()
-	t.WriteFlatJSON(w_)
+	t_.WriteFlatJSON(w_)
 
 	return w_.Bytes()
 }
 
 // WriteFlatJSON writes t to w_ as canonical FlatBuffers JSON.
-func (t *PtT) WriteFlatJSON(w_ *flatbuffers.JSONWriter) {
-	if t == nil {
+func (t_ *PtT) WriteFlatJSON(w_ *flatbuffers.JSONWriter) {
+	if t_ == nil {
 		w_.Null()
 
 		return
@@ -55,26 +55,26 @@ func (t *PtT) WriteFlatJSON(w_ *flatbuffers.JSONWriter) {
 
 	w_.BeginObject()
 	w_.Key("x")
-	w_.Int(int64(t.X))
+	w_.Int(int64(t_.X))
 	w_.Key("y")
-	w_.Int(int64(t.Y))
+	w_.Int(int64(t_.Y))
 	w_.EndObject()
 }
 
 // UnmarshalFlatJSON replaces t with the value the canonical FlatBuffers
 // JSON in data_ describes; an absent scalar takes its schema default.
-func (t *PtT) UnmarshalFlatJSON(data_ []byte) error {
+func (t_ *PtT) UnmarshalFlatJSON(data_ []byte) error {
 	v_, err_ := flatbuffers.ParseJSON(data_)
 	if err_ != nil {
 		return err_
 	}
 
-	return t.UnmarshalFlatJSONValue(v_, "")
+	return t_.UnmarshalFlatJSONValue(v_, "")
 }
 
 // UnmarshalFlatJSONValue is UnmarshalFlatJSON for a value
 // flatbuffers.ParseJSON has already parsed; pointer_ locates it in errors.
-func (t *PtT) UnmarshalFlatJSONValue(v_ any, pointer_ string) error {
+func (t_ *PtT) UnmarshalFlatJSONValue(v_ any, pointer_ string) error {
 	m_, err_ := flatbuffers.JSONObject(v_, pointer_)
 	if err_ != nil {
 		return err_
@@ -85,17 +85,17 @@ func (t *PtT) UnmarshalFlatJSONValue(v_ any, pointer_ string) error {
 		return err_
 	}
 
-	*t = PtT{}
+	*t_ = PtT{}
 
 	if x_, ok_ := flatbuffers.JSONMember(m_, "x"); ok_ {
-		if t.X, err_ = flatbuffers.JSONInt[int32](x_, flatbuffers.JSONPointer(pointer_, "x")); err_ != nil {
+		if t_.X, err_ = flatbuffers.JSONInt[int32](x_, flatbuffers.JSONPointer(pointer_, "x")); err_ != nil {
 			return err_
 		}
 	} else {
 		return flatbuffers.JSONRequired(pointer_, "x")
 	}
 	if x_, ok_ := flatbuffers.JSONMember(m_, "y"); ok_ {
-		if t.Y, err_ = flatbuffers.JSONInt[int32](x_, flatbuffers.JSONPointer(pointer_, "y")); err_ != nil {
+		if t_.Y, err_ = flatbuffers.JSONInt[int32](x_, flatbuffers.JSONPointer(pointer_, "y")); err_ != nil {
 			return err_
 		}
 	} else {
@@ -109,32 +109,32 @@ type Pt struct {
 	_tab flatbuffers.Struct
 }
 
-func (rcv *Pt) Init(buf []byte, i flatbuffers.UOffsetT) {
-	rcv._tab.Bytes = buf
-	rcv._tab.Pos = i
+func (rcv_ *Pt) Init(buf_ []byte, i_ flatbuffers.UOffsetT) {
+	rcv_._tab.Bytes = buf_
+	rcv_._tab.Pos = i_
 }
 
-func (rcv *Pt) Table() flatbuffers.Table {
-	return rcv._tab.Table
+func (rcv_ *Pt) Table() flatbuffers.Table {
+	return rcv_._tab.Table
 }
 
-func (rcv *Pt) X() int32 {
-	return rcv._tab.GetInt32(rcv._tab.Pos + flatbuffers.UOffsetT(0))
+func (rcv_ *Pt) X() int32 {
+	return rcv_._tab.GetInt32(rcv_._tab.Pos + flatbuffers.UOffsetT(0))
 }
-func (rcv *Pt) MutateX(n int32) bool {
-	return rcv._tab.MutateInt32(rcv._tab.Pos+flatbuffers.UOffsetT(0), n)
-}
-
-func (rcv *Pt) Y() int32 {
-	return rcv._tab.GetInt32(rcv._tab.Pos + flatbuffers.UOffsetT(4))
-}
-func (rcv *Pt) MutateY(n int32) bool {
-	return rcv._tab.MutateInt32(rcv._tab.Pos+flatbuffers.UOffsetT(4), n)
+func (rcv_ *Pt) MutateX(n_ int32) bool {
+	return rcv_._tab.MutateInt32(rcv_._tab.Pos+flatbuffers.UOffsetT(0), n_)
 }
 
-func CreatePt(builder *flatbuffers.Builder, x int32, y int32) flatbuffers.UOffsetT {
-	builder.Prep(4, 8)
-	builder.PrependInt32(y)
-	builder.PrependInt32(x)
-	return builder.Offset()
+func (rcv_ *Pt) Y() int32 {
+	return rcv_._tab.GetInt32(rcv_._tab.Pos + flatbuffers.UOffsetT(4))
+}
+func (rcv_ *Pt) MutateY(n_ int32) bool {
+	return rcv_._tab.MutateInt32(rcv_._tab.Pos+flatbuffers.UOffsetT(4), n_)
+}
+
+func CreatePt(builder_ *flatbuffers.Builder, x_ int32, y_ int32) flatbuffers.UOffsetT {
+	builder_.Prep(4, 8)
+	builder_.PrependInt32(y_)
+	builder_.PrependInt32(x_)
+	return builder_.Offset()
 }

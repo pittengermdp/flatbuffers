@@ -11,30 +11,30 @@ type NodeT struct {
 	Right *NodeT `json:"right,omitempty"`
 }
 
-func (t *NodeT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *NodeT) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	leftOffset := t.Left.Pack(builder)
-	rightOffset := t.Right.Pack(builder)
-	NodeStart(builder)
-	NodeAddLeft(builder, leftOffset)
-	NodeAddRight(builder, rightOffset)
-	return NodeEnd(builder)
+	leftOffset_ := t_.Left.Pack(builder_)
+	rightOffset_ := t_.Right.Pack(builder_)
+	NodeStart(builder_)
+	NodeAddLeft(builder_, leftOffset_)
+	NodeAddRight(builder_, rightOffset_)
+	return NodeEnd(builder_)
 }
 
-func (rcv *Node) UnPackTo(t *NodeT) {
-	t.Left = rcv.Left(nil).UnPack()
-	t.Right = rcv.Right(nil).UnPack()
+func (rcv_ *Node) UnPackTo(t_ *NodeT) {
+	t_.Left = rcv_.Left(nil).UnPack()
+	t_.Right = rcv_.Right(nil).UnPack()
 }
 
-func (rcv *Node) UnPack() *NodeT {
-	if rcv == nil {
+func (rcv_ *Node) UnPack() *NodeT {
+	if rcv_ == nil {
 		return nil
 	}
-	t := &NodeT{}
-	rcv.UnPackTo(t)
-	return t
+	t_ := &NodeT{}
+	rcv_.UnPackTo(t_)
+	return t_
 }
 
 const (
@@ -46,69 +46,69 @@ const (
 // Fields not in the list are left at their zero/default values.
 // This avoids materializing the entire table tree. Pass the
 // generated NodeField* constants rather than raw strings.
-func (rcv *Node) UnpackFields(fields ...string) *NodeT {
-	t := &NodeT{}
-	fieldSet := make(map[string]bool, len(fields))
-	for _, f := range fields {
-		fieldSet[f] = true
+func (rcv_ *Node) UnpackFields(fields_ ...string) *NodeT {
+	t_ := &NodeT{}
+	fieldSet_ := make(map[string]bool, len(fields_))
+	for _, f_ := range fields_ {
+		fieldSet_[f_] = true
 	}
-	if fieldSet["left"] {
-		t.Left = rcv.Left(nil).UnPack()
+	if fieldSet_["left"] {
+		t_.Left = rcv_.Left(nil).UnPack()
 	}
-	if fieldSet["right"] {
-		t.Right = rcv.Right(nil).UnPack()
+	if fieldSet_["right"] {
+		t_.Right = rcv_.Right(nil).UnPack()
 	}
-	return t
+	return t_
 }
 
 // FlatJSONSchema names the JSON Schema definition flatc --jsonschema
-// generates for Node.
-func (*NodeT) FlatJSONSchema() (file, definition string) {
+// generates for Node: its file, and its name there.
+func (*NodeT) FlatJSONSchema() (string, string) {
 	return "canonical_json_edge.schema.json", "CanonicalJsonEdge_Node"
 }
 
 // MarshalFlatJSON returns t as canonical FlatBuffers JSON.
-func (t *NodeT) MarshalFlatJSON() ([]byte, error) {
+func (t_ *NodeT) MarshalFlatJSON() ([]byte, error) {
 	w_ := flatbuffers.NewJSONWriter()
-	t.WriteFlatJSON(w_)
+	t_.WriteFlatJSON(w_)
 
 	return w_.Bytes()
 }
 
 // WriteFlatJSON writes t to w_ as canonical FlatBuffers JSON.
-func (t *NodeT) WriteFlatJSON(w_ *flatbuffers.JSONWriter) {
-	if t == nil {
+func (t_ *NodeT) WriteFlatJSON(w_ *flatbuffers.JSONWriter) {
+	if t_ == nil {
 		w_.Null()
 
 		return
 	}
 
 	w_.BeginObject()
-	if t.Left != nil {
+	if t_.Left != nil {
 		w_.Key("left")
-		t.Left.WriteFlatJSON(w_)
+		t_.Left.WriteFlatJSON(w_)
 	}
-	if t.Right != nil {
+	if t_.Right != nil {
 		w_.Key("right")
-		t.Right.WriteFlatJSON(w_)
+		t_.Right.WriteFlatJSON(w_)
 	}
 	w_.EndObject()
 }
 
 // UnmarshalFlatJSON replaces t with the value the canonical FlatBuffers
 // JSON in data_ describes; an absent scalar takes its schema default.
-func (t *NodeT) UnmarshalFlatJSON(data_ []byte) error {
+func (t_ *NodeT) UnmarshalFlatJSON(data_ []byte) error {
 	v_, err_ := flatbuffers.ParseJSON(data_)
 	if err_ != nil {
 		return err_
 	}
 
-	return t.UnmarshalFlatJSONValue(v_, "")
+	return t_.UnmarshalFlatJSONValue(v_, "")
 }
 
 // UnmarshalFlatJSONValue is UnmarshalFlatJSON for a value
 // flatbuffers.ParseJSON has already parsed; pointer_ locates it in errors.
-func (t *NodeT) UnmarshalFlatJSONValue(v_ any, pointer_ string) error {
+func (t_ *NodeT) UnmarshalFlatJSONValue(v_ any, pointer_ string) error {
 	m_, err_ := flatbuffers.JSONObject(v_, pointer_)
 	if err_ != nil {
 		return err_
@@ -119,17 +119,17 @@ func (t *NodeT) UnmarshalFlatJSONValue(v_ any, pointer_ string) error {
 		return err_
 	}
 
-	*t = NodeT{}
+	*t_ = NodeT{}
 
 	if x_, ok_ := flatbuffers.JSONMember(m_, "left"); ok_ {
-		t.Left = &NodeT{}
-		if err_ := t.Left.UnmarshalFlatJSONValue(x_, flatbuffers.JSONPointer(pointer_, "left")); err_ != nil {
+		t_.Left = &NodeT{}
+		if err_ := t_.Left.UnmarshalFlatJSONValue(x_, flatbuffers.JSONPointer(pointer_, "left")); err_ != nil {
 			return err_
 		}
 	}
 	if x_, ok_ := flatbuffers.JSONMember(m_, "right"); ok_ {
-		t.Right = &NodeT{}
-		if err_ := t.Right.UnmarshalFlatJSONValue(x_, flatbuffers.JSONPointer(pointer_, "right")); err_ != nil {
+		t_.Right = &NodeT{}
+		if err_ := t_.Right.UnmarshalFlatJSONValue(x_, flatbuffers.JSONPointer(pointer_, "right")); err_ != nil {
 			return err_
 		}
 	}
@@ -141,114 +141,114 @@ type Node struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsNode(buf []byte, offset flatbuffers.UOffsetT) *Node {
-	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &Node{}
-	x.Init(buf, n+offset)
-	return x
+func GetRootAsNode(buf_ []byte, offset_ flatbuffers.UOffsetT) *Node {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_:])
+	x_ := &Node{}
+	x_.Init(buf_, n_+offset_)
+	return x_
 }
 
-func FinishNodeBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.Finish(offset)
+func FinishNodeBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.Finish(offset_)
 }
 
-func GetSizePrefixedRootAsNode(buf []byte, offset flatbuffers.UOffsetT) *Node {
-	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &Node{}
-	x.Init(buf, n+offset+flatbuffers.SizeUint32)
-	return x
+func GetSizePrefixedRootAsNode(buf_ []byte, offset_ flatbuffers.UOffsetT) *Node {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_+flatbuffers.SizeUint32:])
+	x_ := &Node{}
+	x_.Init(buf_, n_+offset_+flatbuffers.SizeUint32)
+	return x_
 }
 
-func FinishSizePrefixedNodeBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.FinishSizePrefixed(offset)
+func FinishSizePrefixedNodeBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.FinishSizePrefixed(offset_)
 }
 
-func VerifyRootAsNode(buf []byte, opts *flatbuffers.VerifierOptions) error {
-	v := flatbuffers.NewVerifier(buf, opts)
-	tablePos, err := v.CheckUOffsetT(0)
-	if err != nil {
-		return err
+func VerifyRootAsNode(buf_ []byte, opts_ *flatbuffers.VerifierOptions) error {
+	v_ := flatbuffers.NewVerifier(buf_, opts_)
+	tablePos_, err_ := v_.CheckUOffsetT(0)
+	if err_ != nil {
+		return err_
 	}
-	return verifyNode(v, int(tablePos))
+	return verifyNode(v_, int(tablePos_))
 }
 
-func VerifyNode(v *flatbuffers.Verifier, tablePos int) error {
-	return verifyNode(v, tablePos)
+func VerifyNode(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	return verifyNode(v_, tablePos_)
 }
 
-func verifyNode(v *flatbuffers.Verifier, tablePos int) error {
-	if err := v.CheckTable(tablePos); err != nil {
-		return err
+func verifyNode(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	if err_ := v_.CheckTable(tablePos_); err_ != nil {
+		return err_
 	}
-	if err := v.CountTable(); err != nil {
-		return err
+	if err_ := v_.CountTable(); err_ != nil {
+		return err_
 	}
-	if err := v.PushDepth(); err != nil {
-		return err
+	if err_ := v_.PushDepth(); err_ != nil {
+		return err_
 	}
-	defer v.PopDepth()
+	defer v_.PopDepth()
 
-	if pos, err := v.CheckOffsetField(tablePos, 4); err != nil {
-		return err
-	} else if pos != 0 {
-		if err := verifyNode(v, pos); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 4); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := verifyNode(v_, pos_); err_ != nil {
+			return err_
 		}
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 6); err != nil {
-		return err
-	} else if pos != 0 {
-		if err := verifyNode(v, pos); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 6); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := verifyNode(v_, pos_); err_ != nil {
+			return err_
 		}
 	}
 	return nil
 }
 
-func (rcv *Node) Init(buf []byte, i flatbuffers.UOffsetT) {
-	rcv._tab.Bytes = buf
-	rcv._tab.Pos = i
+func (rcv_ *Node) Init(buf_ []byte, i_ flatbuffers.UOffsetT) {
+	rcv_._tab.Bytes = buf_
+	rcv_._tab.Pos = i_
 }
 
-func (rcv *Node) Table() flatbuffers.Table {
-	return rcv._tab
+func (rcv_ *Node) Table() flatbuffers.Table {
+	return rcv_._tab
 }
 
-func (rcv *Node) Left(obj *Node) *Node {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
-	if o != 0 {
-		x := rcv._tab.Indirect(o + rcv._tab.Pos)
-		if obj == nil {
-			obj = new(Node)
+func (rcv_ *Node) Left(obj_ *Node) *Node {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(4))
+	if o_ != 0 {
+		x_ := rcv_._tab.Indirect(o_ + rcv_._tab.Pos)
+		if obj_ == nil {
+			obj_ = new(Node)
 		}
-		obj.Init(rcv._tab.Bytes, x)
-		return obj
+		obj_.Init(rcv_._tab.Bytes, x_)
+		return obj_
 	}
 	return nil
 }
 
-func (rcv *Node) Right(obj *Node) *Node {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
-	if o != 0 {
-		x := rcv._tab.Indirect(o + rcv._tab.Pos)
-		if obj == nil {
-			obj = new(Node)
+func (rcv_ *Node) Right(obj_ *Node) *Node {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(6))
+	if o_ != 0 {
+		x_ := rcv_._tab.Indirect(o_ + rcv_._tab.Pos)
+		if obj_ == nil {
+			obj_ = new(Node)
 		}
-		obj.Init(rcv._tab.Bytes, x)
-		return obj
+		obj_.Init(rcv_._tab.Bytes, x_)
+		return obj_
 	}
 	return nil
 }
 
-func NodeStart(builder *flatbuffers.Builder) {
-	builder.StartObject(2)
+func NodeStart(builder_ *flatbuffers.Builder) {
+	builder_.StartObject(2)
 }
-func NodeAddLeft(builder *flatbuffers.Builder, left flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(left), 0)
+func NodeAddLeft(builder_ *flatbuffers.Builder, left_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(left_), 0)
 }
-func NodeAddRight(builder *flatbuffers.Builder, right flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(right), 0)
+func NodeAddRight(builder_ *flatbuffers.Builder, right_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(right_), 0)
 }
-func NodeEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	return builder.EndObject()
+func NodeEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder_.EndObject()
 }

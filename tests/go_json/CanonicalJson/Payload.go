@@ -26,11 +26,11 @@ var EnumValuesPayload = map[string]Payload{
 	"CanonicalJsonInc_Leaf": PayloadCanonicalJsonInc_Leaf,
 }
 
-func (v Payload) String() string {
-	if s, ok := EnumNamesPayload[v]; ok {
-		return s
+func (v_ Payload) String() string {
+	if s_, ok_ := EnumNamesPayload[v_]; ok_ {
+		return s_
 	}
-	return "Payload(" + strconv.FormatInt(int64(v), 10) + ")"
+	return "Payload(" + strconv.FormatInt(int64(v_), 10) + ")"
 }
 
 type PayloadT struct {
@@ -38,23 +38,23 @@ type PayloadT struct {
 	Value interface{}
 }
 
-func (t *PayloadT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *PayloadT) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	switch t.Type {
+	switch t_.Type {
 	case PayloadCanonicalJsonInc_Leaf:
-		return t.Value.(*CanonicalJsonInc.LeafT).Pack(builder)
+		return t_.Value.(*CanonicalJsonInc.LeafT).Pack(builder_)
 	}
 	return 0
 }
 
-func (rcv Payload) UnPack(table flatbuffers.Table) *PayloadT {
-	switch rcv {
+func (rcv_ Payload) UnPack(table_ flatbuffers.Table) *PayloadT {
+	switch rcv_ {
 	case PayloadCanonicalJsonInc_Leaf:
-		var x CanonicalJsonInc.Leaf
-		x.Init(table.Bytes, table.Pos)
-		return &PayloadT{Type: PayloadCanonicalJsonInc_Leaf, Value: x.UnPack()}
+		var x_ CanonicalJsonInc.Leaf
+		x_.Init(table_.Bytes, table_.Pos)
+		return &PayloadT{Type: PayloadCanonicalJsonInc_Leaf, Value: x_.UnPack()}
 	}
 	return nil
 }
@@ -62,33 +62,33 @@ func (rcv Payload) UnPack(table flatbuffers.Table) *PayloadT {
 // Match dispatches to the appropriate callback based on the union variant.
 // Each callback receives the correctly typed value. If the variant is NONE
 // or unrecognized, no callback is invoked.
-func (u *PayloadT) Match(
-	onCanonicalJsonInc_Leaf func(*CanonicalJsonInc.LeafT),
+func (t_ *PayloadT) Match(
+	onCanonicalJsonInc_Leaf_ func(*CanonicalJsonInc.LeafT),
 ) {
-	if u == nil {
+	if t_ == nil {
 		return
 	}
-	switch u.Type {
+	switch t_.Type {
 	case PayloadCanonicalJsonInc_Leaf:
-		if v, ok := u.Value.(*CanonicalJsonInc.LeafT); ok {
-			onCanonicalJsonInc_Leaf(v)
+		if v_, ok_ := t_.Value.(*CanonicalJsonInc.LeafT); ok_ {
+			onCanonicalJsonInc_Leaf_(v_)
 		}
 	}
 }
 
 // WriteFlatJSONType writes the union's type as its variant name.
-func (t *PayloadT) WriteFlatJSONType(w_ *flatbuffers.JSONWriter) {
-	flatbuffers.WriteJSONEnum(w_, t.Type, EnumNamesPayload)
+func (t_ *PayloadT) WriteFlatJSONType(w_ *flatbuffers.JSONWriter) {
+	flatbuffers.WriteJSONEnum(w_, t_.Type, EnumNamesPayload)
 }
 
 // WriteFlatJSONValue writes the union's value; the enclosing table
 // writes its type.
-func (t *PayloadT) WriteFlatJSONValue(w_ *flatbuffers.JSONWriter) {
-	switch v_ := t.Value.(type) {
+func (t_ *PayloadT) WriteFlatJSONValue(w_ *flatbuffers.JSONWriter) {
+	switch v_ := t_.Value.(type) {
 	case *CanonicalJsonInc.LeafT:
 		v_.WriteFlatJSON(w_)
 	default:
-		w_.Fail(flatbuffers.JSONErrorf("", "union Payload holds %T", t.Value))
+		w_.Fail(flatbuffers.JSONErrorf("", "union Payload holds %T", t_.Value))
 	}
 }
 

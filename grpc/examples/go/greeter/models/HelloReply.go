@@ -10,86 +10,86 @@ type HelloReply struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsHelloReply(buf []byte, offset flatbuffers.UOffsetT) *HelloReply {
-	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &HelloReply{}
-	x.Init(buf, n+offset)
-	return x
+func GetRootAsHelloReply(buf_ []byte, offset_ flatbuffers.UOffsetT) *HelloReply {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_:])
+	x_ := &HelloReply{}
+	x_.Init(buf_, n_+offset_)
+	return x_
 }
 
-func FinishHelloReplyBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.Finish(offset)
+func FinishHelloReplyBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.Finish(offset_)
 }
 
-func GetSizePrefixedRootAsHelloReply(buf []byte, offset flatbuffers.UOffsetT) *HelloReply {
-	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &HelloReply{}
-	x.Init(buf, n+offset+flatbuffers.SizeUint32)
-	return x
+func GetSizePrefixedRootAsHelloReply(buf_ []byte, offset_ flatbuffers.UOffsetT) *HelloReply {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_+flatbuffers.SizeUint32:])
+	x_ := &HelloReply{}
+	x_.Init(buf_, n_+offset_+flatbuffers.SizeUint32)
+	return x_
 }
 
-func FinishSizePrefixedHelloReplyBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.FinishSizePrefixed(offset)
+func FinishSizePrefixedHelloReplyBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.FinishSizePrefixed(offset_)
 }
 
-func VerifyRootAsHelloReply(buf []byte, opts *flatbuffers.VerifierOptions) error {
-	v := flatbuffers.NewVerifier(buf, opts)
-	tablePos, err := v.CheckUOffsetT(0)
-	if err != nil {
-		return err
+func VerifyRootAsHelloReply(buf_ []byte, opts_ *flatbuffers.VerifierOptions) error {
+	v_ := flatbuffers.NewVerifier(buf_, opts_)
+	tablePos_, err_ := v_.CheckUOffsetT(0)
+	if err_ != nil {
+		return err_
 	}
-	return verifyHelloReply(v, int(tablePos))
+	return verifyHelloReply(v_, int(tablePos_))
 }
 
-func VerifyHelloReply(v *flatbuffers.Verifier, tablePos int) error {
-	return verifyHelloReply(v, tablePos)
+func VerifyHelloReply(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	return verifyHelloReply(v_, tablePos_)
 }
 
-func verifyHelloReply(v *flatbuffers.Verifier, tablePos int) error {
-	if err := v.CheckTable(tablePos); err != nil {
-		return err
+func verifyHelloReply(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	if err_ := v_.CheckTable(tablePos_); err_ != nil {
+		return err_
 	}
-	if err := v.CountTable(); err != nil {
-		return err
+	if err_ := v_.CountTable(); err_ != nil {
+		return err_
 	}
-	if err := v.PushDepth(); err != nil {
-		return err
+	if err_ := v_.PushDepth(); err_ != nil {
+		return err_
 	}
-	defer v.PopDepth()
+	defer v_.PopDepth()
 
-	if pos, err := v.CheckOffsetField(tablePos, 4); err != nil {
-		return err
-	} else if pos != 0 {
-		if err := v.CheckString(pos); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 4); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := v_.CheckString(pos_); err_ != nil {
+			return err_
 		}
 	}
 	return nil
 }
 
-func (rcv *HelloReply) Init(buf []byte, i flatbuffers.UOffsetT) {
-	rcv._tab.Bytes = buf
-	rcv._tab.Pos = i
+func (rcv_ *HelloReply) Init(buf_ []byte, i_ flatbuffers.UOffsetT) {
+	rcv_._tab.Bytes = buf_
+	rcv_._tab.Pos = i_
 }
 
-func (rcv *HelloReply) Table() flatbuffers.Table {
-	return rcv._tab
+func (rcv_ *HelloReply) Table() flatbuffers.Table {
+	return rcv_._tab
 }
 
-func (rcv *HelloReply) Message() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
-	if o != 0 {
-		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+func (rcv_ *HelloReply) Message() []byte {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(4))
+	if o_ != 0 {
+		return rcv_._tab.ByteVector(o_ + rcv_._tab.Pos)
 	}
 	return nil
 }
 
-func HelloReplyStart(builder *flatbuffers.Builder) {
-	builder.StartObject(1)
+func HelloReplyStart(builder_ *flatbuffers.Builder) {
+	builder_.StartObject(1)
 }
-func HelloReplyAddMessage(builder *flatbuffers.Builder, message flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(message), 0)
+func HelloReplyAddMessage(builder_ *flatbuffers.Builder, message_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(message_), 0)
 }
-func HelloReplyEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	return builder.EndObject()
+func HelloReplyEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder_.EndObject()
 }

@@ -21,11 +21,11 @@ var EnumValuesEmpty = map[string]Empty{
 	"NONE": EmptyNONE,
 }
 
-func (v Empty) String() string {
-	if s, ok := EnumNamesEmpty[v]; ok {
-		return s
+func (v_ Empty) String() string {
+	if s_, ok_ := EnumNamesEmpty[v_]; ok_ {
+		return s_
 	}
-	return "Empty(" + strconv.FormatInt(int64(v), 10) + ")"
+	return "Empty(" + strconv.FormatInt(int64(v_), 10) + ")"
 }
 
 type EmptyT struct {
@@ -33,17 +33,17 @@ type EmptyT struct {
 	Value interface{}
 }
 
-func (t *EmptyT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *EmptyT) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	switch t.Type {
+	switch t_.Type {
 	}
 	return 0
 }
 
-func (rcv Empty) UnPack(table flatbuffers.Table) *EmptyT {
-	switch rcv {
+func (rcv_ Empty) UnPack(table_ flatbuffers.Table) *EmptyT {
+	switch rcv_ {
 	}
 	return nil
 }
@@ -51,25 +51,25 @@ func (rcv Empty) UnPack(table flatbuffers.Table) *EmptyT {
 // Match dispatches to the appropriate callback based on the union variant.
 // Each callback receives the correctly typed value. If the variant is NONE
 // or unrecognized, no callback is invoked.
-func (u *EmptyT) Match() {
-	if u == nil {
+func (t_ *EmptyT) Match() {
+	if t_ == nil {
 		return
 	}
-	switch u.Type {
+	switch t_.Type {
 	}
 }
 
 // WriteFlatJSONType writes the union's type as its variant name.
-func (t *EmptyT) WriteFlatJSONType(w_ *flatbuffers.JSONWriter) {
-	flatbuffers.WriteJSONEnum(w_, t.Type, EnumNamesEmpty)
+func (t_ *EmptyT) WriteFlatJSONType(w_ *flatbuffers.JSONWriter) {
+	flatbuffers.WriteJSONEnum(w_, t_.Type, EnumNamesEmpty)
 }
 
 // WriteFlatJSONValue writes the union's value; the enclosing table
 // writes its type.
-func (t *EmptyT) WriteFlatJSONValue(w_ *flatbuffers.JSONWriter) {
-	switch t.Value.(type) {
+func (t_ *EmptyT) WriteFlatJSONValue(w_ *flatbuffers.JSONWriter) {
+	switch t_.Value.(type) {
 	default:
-		w_.Fail(flatbuffers.JSONErrorf("", "union Empty holds %T", t.Value))
+		w_.Fail(flatbuffers.JSONErrorf("", "union Empty holds %T", t_.Value))
 	}
 }
 

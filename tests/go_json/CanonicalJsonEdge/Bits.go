@@ -21,9 +21,9 @@ var EnumValuesBits = map[string]Bits{
 	"Q": BitsQ,
 }
 
-func (v Bits) String() string {
-	if s, ok := EnumNamesBits[v]; ok {
-		return s
+func (v_ Bits) String() string {
+	if s_, ok_ := EnumNamesBits[v_]; ok_ {
+		return s_
 	}
-	return "Bits(" + strconv.FormatInt(int64(v), 10) + ")"
+	return "Bits(" + strconv.FormatInt(int64(v_), 10) + ")"
 }

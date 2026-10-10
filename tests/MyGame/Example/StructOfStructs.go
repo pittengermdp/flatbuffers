@@ -12,82 +12,82 @@ type StructOfStructsT struct {
 	C *AbilityT `json:"c,omitempty"`
 }
 
-func (t *StructOfStructsT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *StructOfStructsT) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	if t.A == nil {
-		t.A = &AbilityT{}
+	if t_.A == nil {
+		t_.A = &AbilityT{}
 	}
-	if t.B == nil {
-		t.B = &TestT{}
+	if t_.B == nil {
+		t_.B = &TestT{}
 	}
-	if t.C == nil {
-		t.C = &AbilityT{}
+	if t_.C == nil {
+		t_.C = &AbilityT{}
 	}
-	return CreateStructOfStructs(builder, t.A.Id, t.A.Distance, t.B.A, t.B.B, t.C.Id, t.C.Distance)
+	return CreateStructOfStructs(builder_, t_.A.Id, t_.A.Distance, t_.B.A, t_.B.B, t_.C.Id, t_.C.Distance)
 }
-func (rcv *StructOfStructs) UnPackTo(t *StructOfStructsT) {
-	t.A = rcv.A(nil).UnPack()
-	t.B = rcv.B(nil).UnPack()
-	t.C = rcv.C(nil).UnPack()
+func (rcv_ *StructOfStructs) UnPackTo(t_ *StructOfStructsT) {
+	t_.A = rcv_.A(nil).UnPack()
+	t_.B = rcv_.B(nil).UnPack()
+	t_.C = rcv_.C(nil).UnPack()
 }
 
-func (rcv *StructOfStructs) UnPack() *StructOfStructsT {
-	if rcv == nil {
+func (rcv_ *StructOfStructs) UnPack() *StructOfStructsT {
+	if rcv_ == nil {
 		return nil
 	}
-	t := &StructOfStructsT{}
-	rcv.UnPackTo(t)
-	return t
+	t_ := &StructOfStructsT{}
+	rcv_.UnPackTo(t_)
+	return t_
 }
 
 type StructOfStructs struct {
 	_tab flatbuffers.Struct
 }
 
-func (rcv *StructOfStructs) Init(buf []byte, i flatbuffers.UOffsetT) {
-	rcv._tab.Bytes = buf
-	rcv._tab.Pos = i
+func (rcv_ *StructOfStructs) Init(buf_ []byte, i_ flatbuffers.UOffsetT) {
+	rcv_._tab.Bytes = buf_
+	rcv_._tab.Pos = i_
 }
 
-func (rcv *StructOfStructs) Table() flatbuffers.Table {
-	return rcv._tab.Table
+func (rcv_ *StructOfStructs) Table() flatbuffers.Table {
+	return rcv_._tab.Table
 }
 
-func (rcv *StructOfStructs) A(obj *Ability) *Ability {
-	if obj == nil {
-		obj = new(Ability)
+func (rcv_ *StructOfStructs) A(obj_ *Ability) *Ability {
+	if obj_ == nil {
+		obj_ = new(Ability)
 	}
-	obj.Init(rcv._tab.Bytes, rcv._tab.Pos+0)
-	return obj
+	obj_.Init(rcv_._tab.Bytes, rcv_._tab.Pos+0)
+	return obj_
 }
-func (rcv *StructOfStructs) B(obj *Test) *Test {
-	if obj == nil {
-		obj = new(Test)
+func (rcv_ *StructOfStructs) B(obj_ *Test) *Test {
+	if obj_ == nil {
+		obj_ = new(Test)
 	}
-	obj.Init(rcv._tab.Bytes, rcv._tab.Pos+8)
-	return obj
+	obj_.Init(rcv_._tab.Bytes, rcv_._tab.Pos+8)
+	return obj_
 }
-func (rcv *StructOfStructs) C(obj *Ability) *Ability {
-	if obj == nil {
-		obj = new(Ability)
+func (rcv_ *StructOfStructs) C(obj_ *Ability) *Ability {
+	if obj_ == nil {
+		obj_ = new(Ability)
 	}
-	obj.Init(rcv._tab.Bytes, rcv._tab.Pos+12)
-	return obj
+	obj_.Init(rcv_._tab.Bytes, rcv_._tab.Pos+12)
+	return obj_
 }
 
-func CreateStructOfStructs(builder *flatbuffers.Builder, a_id uint32, a_distance uint32, b_a int16, b_b int8, c_id uint32, c_distance uint32) flatbuffers.UOffsetT {
-	builder.Prep(4, 20)
-	builder.Prep(4, 8)
-	builder.PrependUint32(c_distance)
-	builder.PrependUint32(c_id)
-	builder.Prep(2, 4)
-	builder.Pad(1)
-	builder.PrependInt8(b_b)
-	builder.PrependInt16(b_a)
-	builder.Prep(4, 8)
-	builder.PrependUint32(a_distance)
-	builder.PrependUint32(a_id)
-	return builder.Offset()
+func CreateStructOfStructs(builder_ *flatbuffers.Builder, a_id_ uint32, a_distance_ uint32, b_a_ int16, b_b_ int8, c_id_ uint32, c_distance_ uint32) flatbuffers.UOffsetT {
+	builder_.Prep(4, 20)
+	builder_.Prep(4, 8)
+	builder_.PrependUint32(c_distance_)
+	builder_.PrependUint32(c_id_)
+	builder_.Prep(2, 4)
+	builder_.Pad(1)
+	builder_.PrependInt8(b_b_)
+	builder_.PrependInt16(b_a_)
+	builder_.Prep(4, 8)
+	builder_.PrependUint32(a_distance_)
+	builder_.PrependUint32(a_id_)
+	return builder_.Offset()
 }

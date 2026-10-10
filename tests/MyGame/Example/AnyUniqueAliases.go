@@ -32,11 +32,11 @@ var EnumValuesAnyUniqueAliases = map[string]AnyUniqueAliases{
 	"M2":   AnyUniqueAliasesM2,
 }
 
-func (v AnyUniqueAliases) String() string {
-	if s, ok := EnumNamesAnyUniqueAliases[v]; ok {
-		return s
+func (v_ AnyUniqueAliases) String() string {
+	if s_, ok_ := EnumNamesAnyUniqueAliases[v_]; ok_ {
+		return s_
 	}
-	return "AnyUniqueAliases(" + strconv.FormatInt(int64(v), 10) + ")"
+	return "AnyUniqueAliases(" + strconv.FormatInt(int64(v_), 10) + ")"
 }
 
 type AnyUniqueAliasesT struct {
@@ -44,35 +44,35 @@ type AnyUniqueAliasesT struct {
 	Value interface{}
 }
 
-func (t *AnyUniqueAliasesT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *AnyUniqueAliasesT) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	switch t.Type {
+	switch t_.Type {
 	case AnyUniqueAliasesM:
-		return t.Value.(*MonsterT).Pack(builder)
+		return t_.Value.(*MonsterT).Pack(builder_)
 	case AnyUniqueAliasesTS:
-		return t.Value.(*TestSimpleTableWithEnumT).Pack(builder)
+		return t_.Value.(*TestSimpleTableWithEnumT).Pack(builder_)
 	case AnyUniqueAliasesM2:
-		return t.Value.(*MyGame__Example2.MonsterT).Pack(builder)
+		return t_.Value.(*MyGame__Example2.MonsterT).Pack(builder_)
 	}
 	return 0
 }
 
-func (rcv AnyUniqueAliases) UnPack(table flatbuffers.Table) *AnyUniqueAliasesT {
-	switch rcv {
+func (rcv_ AnyUniqueAliases) UnPack(table_ flatbuffers.Table) *AnyUniqueAliasesT {
+	switch rcv_ {
 	case AnyUniqueAliasesM:
-		var x Monster
-		x.Init(table.Bytes, table.Pos)
-		return &AnyUniqueAliasesT{Type: AnyUniqueAliasesM, Value: x.UnPack()}
+		var x_ Monster
+		x_.Init(table_.Bytes, table_.Pos)
+		return &AnyUniqueAliasesT{Type: AnyUniqueAliasesM, Value: x_.UnPack()}
 	case AnyUniqueAliasesTS:
-		var x TestSimpleTableWithEnum
-		x.Init(table.Bytes, table.Pos)
-		return &AnyUniqueAliasesT{Type: AnyUniqueAliasesTS, Value: x.UnPack()}
+		var x_ TestSimpleTableWithEnum
+		x_.Init(table_.Bytes, table_.Pos)
+		return &AnyUniqueAliasesT{Type: AnyUniqueAliasesTS, Value: x_.UnPack()}
 	case AnyUniqueAliasesM2:
-		var x MyGame__Example2.Monster
-		x.Init(table.Bytes, table.Pos)
-		return &AnyUniqueAliasesT{Type: AnyUniqueAliasesM2, Value: x.UnPack()}
+		var x_ MyGame__Example2.Monster
+		x_.Init(table_.Bytes, table_.Pos)
+		return &AnyUniqueAliasesT{Type: AnyUniqueAliasesM2, Value: x_.UnPack()}
 	}
 	return nil
 }
@@ -80,26 +80,26 @@ func (rcv AnyUniqueAliases) UnPack(table flatbuffers.Table) *AnyUniqueAliasesT {
 // Match dispatches to the appropriate callback based on the union variant.
 // Each callback receives the correctly typed value. If the variant is NONE
 // or unrecognized, no callback is invoked.
-func (u *AnyUniqueAliasesT) Match(
-	onM func(*MonsterT),
-	onTS func(*TestSimpleTableWithEnumT),
-	onM2 func(*MyGame__Example2.MonsterT),
+func (t_ *AnyUniqueAliasesT) Match(
+	onM_ func(*MonsterT),
+	onTS_ func(*TestSimpleTableWithEnumT),
+	onM2_ func(*MyGame__Example2.MonsterT),
 ) {
-	if u == nil {
+	if t_ == nil {
 		return
 	}
-	switch u.Type {
+	switch t_.Type {
 	case AnyUniqueAliasesM:
-		if v, ok := u.Value.(*MonsterT); ok {
-			onM(v)
+		if v_, ok_ := t_.Value.(*MonsterT); ok_ {
+			onM_(v_)
 		}
 	case AnyUniqueAliasesTS:
-		if v, ok := u.Value.(*TestSimpleTableWithEnumT); ok {
-			onTS(v)
+		if v_, ok_ := t_.Value.(*TestSimpleTableWithEnumT); ok_ {
+			onTS_(v_)
 		}
 	case AnyUniqueAliasesM2:
-		if v, ok := u.Value.(*MyGame__Example2.MonsterT); ok {
-			onM2(v)
+		if v_, ok_ := t_.Value.(*MyGame__Example2.MonsterT); ok_ {
+			onM2_(v_)
 		}
 	}
 }

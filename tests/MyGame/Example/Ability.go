@@ -11,56 +11,56 @@ type AbilityT struct {
 	Distance uint32 `json:"distance,omitempty"`
 }
 
-func (t *AbilityT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *AbilityT) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	return CreateAbility(builder, t.Id, t.Distance)
+	return CreateAbility(builder_, t_.Id, t_.Distance)
 }
-func (rcv *Ability) UnPackTo(t *AbilityT) {
-	t.Id = rcv.Id()
-	t.Distance = rcv.Distance()
+func (rcv_ *Ability) UnPackTo(t_ *AbilityT) {
+	t_.Id = rcv_.Id()
+	t_.Distance = rcv_.Distance()
 }
 
-func (rcv *Ability) UnPack() *AbilityT {
-	if rcv == nil {
+func (rcv_ *Ability) UnPack() *AbilityT {
+	if rcv_ == nil {
 		return nil
 	}
-	t := &AbilityT{}
-	rcv.UnPackTo(t)
-	return t
+	t_ := &AbilityT{}
+	rcv_.UnPackTo(t_)
+	return t_
 }
 
 type Ability struct {
 	_tab flatbuffers.Struct
 }
 
-func (rcv *Ability) Init(buf []byte, i flatbuffers.UOffsetT) {
-	rcv._tab.Bytes = buf
-	rcv._tab.Pos = i
+func (rcv_ *Ability) Init(buf_ []byte, i_ flatbuffers.UOffsetT) {
+	rcv_._tab.Bytes = buf_
+	rcv_._tab.Pos = i_
 }
 
-func (rcv *Ability) Table() flatbuffers.Table {
-	return rcv._tab.Table
+func (rcv_ *Ability) Table() flatbuffers.Table {
+	return rcv_._tab.Table
 }
 
-func (rcv *Ability) Id() uint32 {
-	return rcv._tab.GetUint32(rcv._tab.Pos + flatbuffers.UOffsetT(0))
+func (rcv_ *Ability) Id() uint32 {
+	return rcv_._tab.GetUint32(rcv_._tab.Pos + flatbuffers.UOffsetT(0))
 }
-func (rcv *Ability) MutateId(n uint32) bool {
-	return rcv._tab.MutateUint32(rcv._tab.Pos+flatbuffers.UOffsetT(0), n)
-}
-
-func (rcv *Ability) Distance() uint32 {
-	return rcv._tab.GetUint32(rcv._tab.Pos + flatbuffers.UOffsetT(4))
-}
-func (rcv *Ability) MutateDistance(n uint32) bool {
-	return rcv._tab.MutateUint32(rcv._tab.Pos+flatbuffers.UOffsetT(4), n)
+func (rcv_ *Ability) MutateId(n_ uint32) bool {
+	return rcv_._tab.MutateUint32(rcv_._tab.Pos+flatbuffers.UOffsetT(0), n_)
 }
 
-func CreateAbility(builder *flatbuffers.Builder, id uint32, distance uint32) flatbuffers.UOffsetT {
-	builder.Prep(4, 8)
-	builder.PrependUint32(distance)
-	builder.PrependUint32(id)
-	return builder.Offset()
+func (rcv_ *Ability) Distance() uint32 {
+	return rcv_._tab.GetUint32(rcv_._tab.Pos + flatbuffers.UOffsetT(4))
+}
+func (rcv_ *Ability) MutateDistance(n_ uint32) bool {
+	return rcv_._tab.MutateUint32(rcv_._tab.Pos+flatbuffers.UOffsetT(4), n_)
+}
+
+func CreateAbility(builder_ *flatbuffers.Builder, id_ uint32, distance_ uint32) flatbuffers.UOffsetT {
+	builder_.Prep(4, 8)
+	builder_.PrependUint32(distance_)
+	builder_.PrependUint32(id_)
+	return builder_.Offset()
 }

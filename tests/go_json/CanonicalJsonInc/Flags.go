@@ -24,9 +24,9 @@ var EnumValuesFlags = map[string]Flags{
 	"C": FlagsC,
 }
 
-func (v Flags) String() string {
-	if s, ok := EnumNamesFlags[v]; ok {
-		return s
+func (v_ Flags) String() string {
+	if s_, ok_ := EnumNamesFlags[v_]; ok_ {
+		return s_
 	}
-	return "Flags(" + strconv.FormatInt(int64(v), 10) + ")"
+	return "Flags(" + strconv.FormatInt(int64(v_), 10) + ")"
 }

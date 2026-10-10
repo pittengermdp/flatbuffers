@@ -21,9 +21,9 @@ var EnumValuesMode = map[string]Mode{
 	"On":  ModeOn,
 }
 
-func (v Mode) String() string {
-	if s, ok := EnumNamesMode[v]; ok {
-		return s
+func (v_ Mode) String() string {
+	if s_, ok_ := EnumNamesMode[v_]; ok_ {
+		return s_
 	}
-	return "Mode(" + strconv.FormatInt(int64(v), 10) + ")"
+	return "Mode(" + strconv.FormatInt(int64(v_), 10) + ")"
 }

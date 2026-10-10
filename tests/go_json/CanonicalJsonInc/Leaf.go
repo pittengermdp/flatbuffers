@@ -11,32 +11,32 @@ type LeafT struct {
 	Note string `json:"note,omitempty"`
 }
 
-func (t *LeafT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *LeafT) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	noteOffset := flatbuffers.UOffsetT(0)
-	if t.Note != "" {
-		noteOffset = builder.CreateString(t.Note)
+	noteOffset_ := flatbuffers.UOffsetT(0)
+	if t_.Note != "" {
+		noteOffset_ = builder_.CreateString(t_.Note)
 	}
-	LeafStart(builder)
-	LeafAddId(builder, t.Id)
-	LeafAddNote(builder, noteOffset)
-	return LeafEnd(builder)
+	LeafStart(builder_)
+	LeafAddId(builder_, t_.Id)
+	LeafAddNote(builder_, noteOffset_)
+	return LeafEnd(builder_)
 }
 
-func (rcv *Leaf) UnPackTo(t *LeafT) {
-	t.Id = rcv.Id()
-	t.Note = string(rcv.Note())
+func (rcv_ *Leaf) UnPackTo(t_ *LeafT) {
+	t_.Id = rcv_.Id()
+	t_.Note = string(rcv_.Note())
 }
 
-func (rcv *Leaf) UnPack() *LeafT {
-	if rcv == nil {
+func (rcv_ *Leaf) UnPack() *LeafT {
+	if rcv_ == nil {
 		return nil
 	}
-	t := &LeafT{}
-	rcv.UnPackTo(t)
-	return t
+	t_ := &LeafT{}
+	rcv_.UnPackTo(t_)
+	return t_
 }
 
 const (
@@ -48,69 +48,69 @@ const (
 // Fields not in the list are left at their zero/default values.
 // This avoids materializing the entire table tree. Pass the
 // generated LeafField* constants rather than raw strings.
-func (rcv *Leaf) UnpackFields(fields ...string) *LeafT {
-	t := &LeafT{}
-	fieldSet := make(map[string]bool, len(fields))
-	for _, f := range fields {
-		fieldSet[f] = true
+func (rcv_ *Leaf) UnpackFields(fields_ ...string) *LeafT {
+	t_ := &LeafT{}
+	fieldSet_ := make(map[string]bool, len(fields_))
+	for _, f_ := range fields_ {
+		fieldSet_[f_] = true
 	}
-	if fieldSet["id"] {
-		t.Id = rcv.Id()
+	if fieldSet_["id"] {
+		t_.Id = rcv_.Id()
 	}
-	if fieldSet["note"] {
-		t.Note = string(rcv.Note())
+	if fieldSet_["note"] {
+		t_.Note = string(rcv_.Note())
 	}
-	return t
+	return t_
 }
 
 // FlatJSONSchema names the JSON Schema definition flatc --jsonschema
-// generates for Leaf.
-func (*LeafT) FlatJSONSchema() (file, definition string) {
+// generates for Leaf: its file, and its name there.
+func (*LeafT) FlatJSONSchema() (string, string) {
 	return "canonical_json_include.schema.json", "CanonicalJsonInc_Leaf"
 }
 
 // MarshalFlatJSON returns t as canonical FlatBuffers JSON.
-func (t *LeafT) MarshalFlatJSON() ([]byte, error) {
+func (t_ *LeafT) MarshalFlatJSON() ([]byte, error) {
 	w_ := flatbuffers.NewJSONWriter()
-	t.WriteFlatJSON(w_)
+	t_.WriteFlatJSON(w_)
 
 	return w_.Bytes()
 }
 
 // WriteFlatJSON writes t to w_ as canonical FlatBuffers JSON.
-func (t *LeafT) WriteFlatJSON(w_ *flatbuffers.JSONWriter) {
-	if t == nil {
+func (t_ *LeafT) WriteFlatJSON(w_ *flatbuffers.JSONWriter) {
+	if t_ == nil {
 		w_.Null()
 
 		return
 	}
 
 	w_.BeginObject()
-	if t.Id != 0 {
+	if t_.Id != 0 {
 		w_.Key("id")
-		w_.UintString(t.Id)
+		w_.UintString(t_.Id)
 	}
-	if t.Note != "" {
+	if t_.Note != "" {
 		w_.Key("note")
-		w_.String(t.Note)
+		w_.String(t_.Note)
 	}
 	w_.EndObject()
 }
 
 // UnmarshalFlatJSON replaces t with the value the canonical FlatBuffers
 // JSON in data_ describes; an absent scalar takes its schema default.
-func (t *LeafT) UnmarshalFlatJSON(data_ []byte) error {
+func (t_ *LeafT) UnmarshalFlatJSON(data_ []byte) error {
 	v_, err_ := flatbuffers.ParseJSON(data_)
 	if err_ != nil {
 		return err_
 	}
 
-	return t.UnmarshalFlatJSONValue(v_, "")
+	return t_.UnmarshalFlatJSONValue(v_, "")
 }
 
 // UnmarshalFlatJSONValue is UnmarshalFlatJSON for a value
 // flatbuffers.ParseJSON has already parsed; pointer_ locates it in errors.
-func (t *LeafT) UnmarshalFlatJSONValue(v_ any, pointer_ string) error {
+func (t_ *LeafT) UnmarshalFlatJSONValue(v_ any, pointer_ string) error {
 	m_, err_ := flatbuffers.JSONObject(v_, pointer_)
 	if err_ != nil {
 		return err_
@@ -121,15 +121,15 @@ func (t *LeafT) UnmarshalFlatJSONValue(v_ any, pointer_ string) error {
 		return err_
 	}
 
-	*t = LeafT{}
+	*t_ = LeafT{}
 
 	if x_, ok_ := flatbuffers.JSONMember(m_, "id"); ok_ {
-		if t.Id, err_ = flatbuffers.JSONInt[uint64](x_, flatbuffers.JSONPointer(pointer_, "id")); err_ != nil {
+		if t_.Id, err_ = flatbuffers.JSONInt[uint64](x_, flatbuffers.JSONPointer(pointer_, "id")); err_ != nil {
 			return err_
 		}
 	}
 	if x_, ok_ := flatbuffers.JSONMember(m_, "note"); ok_ {
-		if t.Note, err_ = flatbuffers.JSONString(x_, flatbuffers.JSONPointer(pointer_, "note")); err_ != nil {
+		if t_.Note, err_ = flatbuffers.JSONString(x_, flatbuffers.JSONPointer(pointer_, "note")); err_ != nil {
 			return err_
 		}
 	}
@@ -141,104 +141,104 @@ type Leaf struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsLeaf(buf []byte, offset flatbuffers.UOffsetT) *Leaf {
-	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &Leaf{}
-	x.Init(buf, n+offset)
-	return x
+func GetRootAsLeaf(buf_ []byte, offset_ flatbuffers.UOffsetT) *Leaf {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_:])
+	x_ := &Leaf{}
+	x_.Init(buf_, n_+offset_)
+	return x_
 }
 
-func FinishLeafBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.Finish(offset)
+func FinishLeafBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.Finish(offset_)
 }
 
-func GetSizePrefixedRootAsLeaf(buf []byte, offset flatbuffers.UOffsetT) *Leaf {
-	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &Leaf{}
-	x.Init(buf, n+offset+flatbuffers.SizeUint32)
-	return x
+func GetSizePrefixedRootAsLeaf(buf_ []byte, offset_ flatbuffers.UOffsetT) *Leaf {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_+flatbuffers.SizeUint32:])
+	x_ := &Leaf{}
+	x_.Init(buf_, n_+offset_+flatbuffers.SizeUint32)
+	return x_
 }
 
-func FinishSizePrefixedLeafBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.FinishSizePrefixed(offset)
+func FinishSizePrefixedLeafBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.FinishSizePrefixed(offset_)
 }
 
-func VerifyRootAsLeaf(buf []byte, opts *flatbuffers.VerifierOptions) error {
-	v := flatbuffers.NewVerifier(buf, opts)
-	tablePos, err := v.CheckUOffsetT(0)
-	if err != nil {
-		return err
+func VerifyRootAsLeaf(buf_ []byte, opts_ *flatbuffers.VerifierOptions) error {
+	v_ := flatbuffers.NewVerifier(buf_, opts_)
+	tablePos_, err_ := v_.CheckUOffsetT(0)
+	if err_ != nil {
+		return err_
 	}
-	return verifyLeaf(v, int(tablePos))
+	return verifyLeaf(v_, int(tablePos_))
 }
 
-func VerifyLeaf(v *flatbuffers.Verifier, tablePos int) error {
-	return verifyLeaf(v, tablePos)
+func VerifyLeaf(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	return verifyLeaf(v_, tablePos_)
 }
 
-func verifyLeaf(v *flatbuffers.Verifier, tablePos int) error {
-	if err := v.CheckTable(tablePos); err != nil {
-		return err
+func verifyLeaf(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	if err_ := v_.CheckTable(tablePos_); err_ != nil {
+		return err_
 	}
-	if err := v.CountTable(); err != nil {
-		return err
+	if err_ := v_.CountTable(); err_ != nil {
+		return err_
 	}
-	if err := v.PushDepth(); err != nil {
-		return err
+	if err_ := v_.PushDepth(); err_ != nil {
+		return err_
 	}
-	defer v.PopDepth()
+	defer v_.PopDepth()
 
-	if err := v.CheckScalarField(tablePos, 4, 8); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 4, 8); err_ != nil {
+		return err_
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 6); err != nil {
-		return err
-	} else if pos != 0 {
-		if err := v.CheckString(pos); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 6); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := v_.CheckString(pos_); err_ != nil {
+			return err_
 		}
 	}
 	return nil
 }
 
-func (rcv *Leaf) Init(buf []byte, i flatbuffers.UOffsetT) {
-	rcv._tab.Bytes = buf
-	rcv._tab.Pos = i
+func (rcv_ *Leaf) Init(buf_ []byte, i_ flatbuffers.UOffsetT) {
+	rcv_._tab.Bytes = buf_
+	rcv_._tab.Pos = i_
 }
 
-func (rcv *Leaf) Table() flatbuffers.Table {
-	return rcv._tab
+func (rcv_ *Leaf) Table() flatbuffers.Table {
+	return rcv_._tab
 }
 
-func (rcv *Leaf) Id() uint64 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
-	if o != 0 {
-		return rcv._tab.GetUint64(o + rcv._tab.Pos)
+func (rcv_ *Leaf) Id() uint64 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(4))
+	if o_ != 0 {
+		return rcv_._tab.GetUint64(o_ + rcv_._tab.Pos)
 	}
 	return 0
 }
 
-func (rcv *Leaf) MutateId(n uint64) bool {
-	return rcv._tab.MutateUint64Slot(4, n)
+func (rcv_ *Leaf) MutateId(n_ uint64) bool {
+	return rcv_._tab.MutateUint64Slot(4, n_)
 }
 
-func (rcv *Leaf) Note() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
-	if o != 0 {
-		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+func (rcv_ *Leaf) Note() []byte {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(6))
+	if o_ != 0 {
+		return rcv_._tab.ByteVector(o_ + rcv_._tab.Pos)
 	}
 	return nil
 }
 
-func LeafStart(builder *flatbuffers.Builder) {
-	builder.StartObject(2)
+func LeafStart(builder_ *flatbuffers.Builder) {
+	builder_.StartObject(2)
 }
-func LeafAddId(builder *flatbuffers.Builder, id uint64) {
-	builder.PrependUint64Slot(0, id, 0)
+func LeafAddId(builder_ *flatbuffers.Builder, id_ uint64) {
+	builder_.PrependUint64Slot(0, id_, 0)
 }
-func LeafAddNote(builder *flatbuffers.Builder, note flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(note), 0)
+func LeafAddNote(builder_ *flatbuffers.Builder, note_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(note_), 0)
 }
-func LeafEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	return builder.EndObject()
+func LeafEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder_.EndObject()
 }

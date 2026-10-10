@@ -29,234 +29,234 @@ type EdgeT struct {
 	Node    *NodeT                  `json:"node,omitempty"`
 }
 
-func (t *EdgeT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *EdgeT) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	mustOffset := t.Must.Pack(builder)
-	byBitsOffset := flatbuffers.UOffsetT(0)
-	if t.ByBits != nil {
-		type byBitsKV struct {
+	mustOffset_ := t_.Must.Pack(builder_)
+	byBitsOffset_ := flatbuffers.UOffsetT(0)
+	if t_.ByBits != nil {
+		type byBitsKV_ struct {
 			k Bits
 			v int32
 		}
-		byBitsEntries := make([]byBitsKV, 0, len(t.ByBits))
-		for k, v := range t.ByBits {
-			byBitsEntries = append(byBitsEntries, byBitsKV{k, v})
+		byBitsEntries_ := make([]byBitsKV_, 0, len(t_.ByBits))
+		for k_, v_ := range t_.ByBits {
+			byBitsEntries_ = append(byBitsEntries_, byBitsKV_{k_, v_})
 		}
-		sort.Slice(byBitsEntries, func(i, j int) bool { return byBitsEntries[i].k < byBitsEntries[j].k })
-		byBitsLength := len(byBitsEntries)
-		byBitsOffsets := make([]flatbuffers.UOffsetT, byBitsLength)
-		for i, e := range byBitsEntries {
-			__Map_Bits_int_EntryStart(builder)
-			__Map_Bits_int_EntryAddKey(builder, e.k)
-			__Map_Bits_int_EntryAddValue(builder, e.v)
-			byBitsOffsets[i] = __Map_Bits_int_EntryEnd(builder)
+		sort.Slice(byBitsEntries_, func(i_, j_ int) bool { return byBitsEntries_[i_].k < byBitsEntries_[j_].k })
+		byBitsLength_ := len(byBitsEntries_)
+		byBitsOffsets_ := make([]flatbuffers.UOffsetT, byBitsLength_)
+		for i_, e_ := range byBitsEntries_ {
+			__Map_Bits_int_EntryStart(builder_)
+			__Map_Bits_int_EntryAddKey(builder_, e_.k)
+			__Map_Bits_int_EntryAddValue(builder_, e_.v)
+			byBitsOffsets_[i_] = __Map_Bits_int_EntryEnd(builder_)
 		}
-		EdgeStartByBitsVector(builder, byBitsLength)
-		for i := byBitsLength - 1; i >= 0; i-- {
-			builder.PrependUOffsetT(byBitsOffsets[i])
+		EdgeStartByBitsVector(builder_, byBitsLength_)
+		for i_ := byBitsLength_ - 1; i_ >= 0; i_-- {
+			builder_.PrependUOffsetT(byBitsOffsets_[i_])
 		}
-		byBitsOffset = builder.EndVector(byBitsLength)
+		byBitsOffset_ = builder_.EndVector(byBitsLength_)
 	}
-	pairsOffset := flatbuffers.UOffsetT(0)
-	if t.Pairs != nil {
-		type pairsKV struct {
+	pairsOffset_ := flatbuffers.UOffsetT(0)
+	if t_.Pairs != nil {
+		type pairsKV_ struct {
 			k string
 			v *PairT
 		}
-		pairsEntries := make([]pairsKV, 0, len(t.Pairs))
-		for k, v := range t.Pairs {
-			pairsEntries = append(pairsEntries, pairsKV{k, v})
+		pairsEntries_ := make([]pairsKV_, 0, len(t_.Pairs))
+		for k_, v_ := range t_.Pairs {
+			pairsEntries_ = append(pairsEntries_, pairsKV_{k_, v_})
 		}
-		sort.Slice(pairsEntries, func(i, j int) bool { return pairsEntries[i].k < pairsEntries[j].k })
-		pairsLength := len(pairsEntries)
-		pairsOffsets := make([]flatbuffers.UOffsetT, pairsLength)
-		for i, e := range pairsEntries {
-			keyOffset := builder.CreateString(e.k)
-			__Map_string_Pair_EntryStart(builder)
-			__Map_string_Pair_EntryAddKey(builder, keyOffset)
-			__Map_string_Pair_EntryAddValue(builder, e.v.Pack(builder))
-			pairsOffsets[i] = __Map_string_Pair_EntryEnd(builder)
+		sort.Slice(pairsEntries_, func(i_, j_ int) bool { return pairsEntries_[i_].k < pairsEntries_[j_].k })
+		pairsLength_ := len(pairsEntries_)
+		pairsOffsets_ := make([]flatbuffers.UOffsetT, pairsLength_)
+		for i_, e_ := range pairsEntries_ {
+			keyOffset_ := builder_.CreateString(e_.k)
+			__Map_string_Pair_EntryStart(builder_)
+			__Map_string_Pair_EntryAddKey(builder_, keyOffset_)
+			__Map_string_Pair_EntryAddValue(builder_, e_.v.Pack(builder_))
+			pairsOffsets_[i_] = __Map_string_Pair_EntryEnd(builder_)
 		}
-		EdgeStartPairsVector(builder, pairsLength)
-		for i := pairsLength - 1; i >= 0; i-- {
-			builder.PrependUOffsetT(pairsOffsets[i])
+		EdgeStartPairsVector(builder_, pairsLength_)
+		for i_ := pairsLength_ - 1; i_ >= 0; i_-- {
+			builder_.PrependUOffsetT(pairsOffsets_[i_])
 		}
-		pairsOffset = builder.EndVector(pairsLength)
+		pairsOffset_ = builder_.EndVector(pairsLength_)
 	}
-	byBoolOffset := flatbuffers.UOffsetT(0)
-	if t.ByBool != nil {
-		type byBoolKV struct {
+	byBoolOffset_ := flatbuffers.UOffsetT(0)
+	if t_.ByBool != nil {
+		type byBoolKV_ struct {
 			k bool
 			v string
 		}
-		byBoolEntries := make([]byBoolKV, 0, len(t.ByBool))
-		for k, v := range t.ByBool {
-			byBoolEntries = append(byBoolEntries, byBoolKV{k, v})
+		byBoolEntries_ := make([]byBoolKV_, 0, len(t_.ByBool))
+		for k_, v_ := range t_.ByBool {
+			byBoolEntries_ = append(byBoolEntries_, byBoolKV_{k_, v_})
 		}
-		sort.Slice(byBoolEntries, func(i, j int) bool { return !byBoolEntries[i].k && byBoolEntries[j].k })
-		byBoolLength := len(byBoolEntries)
-		byBoolOffsets := make([]flatbuffers.UOffsetT, byBoolLength)
-		for i, e := range byBoolEntries {
-			valOffset := builder.CreateString(e.v)
-			__Map_bool_string_EntryStart(builder)
-			__Map_bool_string_EntryAddKey(builder, e.k)
-			__Map_bool_string_EntryAddValue(builder, valOffset)
-			byBoolOffsets[i] = __Map_bool_string_EntryEnd(builder)
+		sort.Slice(byBoolEntries_, func(i_, j_ int) bool { return !byBoolEntries_[i_].k && byBoolEntries_[j_].k })
+		byBoolLength_ := len(byBoolEntries_)
+		byBoolOffsets_ := make([]flatbuffers.UOffsetT, byBoolLength_)
+		for i_, e_ := range byBoolEntries_ {
+			valOffset_ := builder_.CreateString(e_.v)
+			__Map_bool_string_EntryStart(builder_)
+			__Map_bool_string_EntryAddKey(builder_, e_.k)
+			__Map_bool_string_EntryAddValue(builder_, valOffset_)
+			byBoolOffsets_[i_] = __Map_bool_string_EntryEnd(builder_)
 		}
-		EdgeStartByBoolVector(builder, byBoolLength)
-		for i := byBoolLength - 1; i >= 0; i-- {
-			builder.PrependUOffsetT(byBoolOffsets[i])
+		EdgeStartByBoolVector(builder_, byBoolLength_)
+		for i_ := byBoolLength_ - 1; i_ >= 0; i_-- {
+			builder_.PrependUOffsetT(byBoolOffsets_[i_])
 		}
-		byBoolOffset = builder.EndVector(byBoolLength)
+		byBoolOffset_ = builder_.EndVector(byBoolLength_)
 	}
-	boolsOffset := flatbuffers.UOffsetT(0)
-	if t.Bools != nil {
-		boolsKeys := make([]bool, 0, len(t.Bools))
-		for k := range t.Bools {
-			boolsKeys = append(boolsKeys, k)
+	boolsOffset_ := flatbuffers.UOffsetT(0)
+	if t_.Bools != nil {
+		boolsKeys_ := make([]bool, 0, len(t_.Bools))
+		for k_ := range t_.Bools {
+			boolsKeys_ = append(boolsKeys_, k_)
 		}
-		sort.Slice(boolsKeys, func(i, j int) bool { return !boolsKeys[i] && boolsKeys[j] })
-		boolsLength := len(boolsKeys)
-		boolsOffsets := make([]flatbuffers.UOffsetT, boolsLength)
-		for i, k := range boolsKeys {
-			__Set_bool_EntryStart(builder)
-			__Set_bool_EntryAddKey(builder, k)
-			boolsOffsets[i] = __Set_bool_EntryEnd(builder)
+		sort.Slice(boolsKeys_, func(i_, j_ int) bool { return !boolsKeys_[i_] && boolsKeys_[j_] })
+		boolsLength_ := len(boolsKeys_)
+		boolsOffsets_ := make([]flatbuffers.UOffsetT, boolsLength_)
+		for i_, k_ := range boolsKeys_ {
+			__Set_bool_EntryStart(builder_)
+			__Set_bool_EntryAddKey(builder_, k_)
+			boolsOffsets_[i_] = __Set_bool_EntryEnd(builder_)
 		}
-		EdgeStartBoolsVector(builder, boolsLength)
-		for i := boolsLength - 1; i >= 0; i-- {
-			builder.PrependUOffsetT(boolsOffsets[i])
+		EdgeStartBoolsVector(builder_, boolsLength_)
+		for i_ := boolsLength_ - 1; i_ >= 0; i_-- {
+			builder_.PrependUOffsetT(boolsOffsets_[i_])
 		}
-		boolsOffset = builder.EndVector(boolsLength)
+		boolsOffset_ = builder_.EndVector(boolsLength_)
 	}
-	leavesOffset := flatbuffers.UOffsetT(0)
-	if t.Leaves != nil {
-		type leavesKV struct {
+	leavesOffset_ := flatbuffers.UOffsetT(0)
+	if t_.Leaves != nil {
+		type leavesKV_ struct {
 			k string
 			v *value.LeafT
 		}
-		leavesEntries := make([]leavesKV, 0, len(t.Leaves))
-		for k, v := range t.Leaves {
-			leavesEntries = append(leavesEntries, leavesKV{k, v})
+		leavesEntries_ := make([]leavesKV_, 0, len(t_.Leaves))
+		for k_, v_ := range t_.Leaves {
+			leavesEntries_ = append(leavesEntries_, leavesKV_{k_, v_})
 		}
-		sort.Slice(leavesEntries, func(i, j int) bool { return leavesEntries[i].k < leavesEntries[j].k })
-		leavesLength := len(leavesEntries)
-		leavesOffsets := make([]flatbuffers.UOffsetT, leavesLength)
-		for i, e := range leavesEntries {
-			keyOffset := builder.CreateString(e.k)
-			valOffset := e.v.Pack(builder)
-			__Map_string_Leaf_EntryStart(builder)
-			__Map_string_Leaf_EntryAddKey(builder, keyOffset)
-			__Map_string_Leaf_EntryAddValue(builder, valOffset)
-			leavesOffsets[i] = __Map_string_Leaf_EntryEnd(builder)
+		sort.Slice(leavesEntries_, func(i_, j_ int) bool { return leavesEntries_[i_].k < leavesEntries_[j_].k })
+		leavesLength_ := len(leavesEntries_)
+		leavesOffsets_ := make([]flatbuffers.UOffsetT, leavesLength_)
+		for i_, e_ := range leavesEntries_ {
+			keyOffset_ := builder_.CreateString(e_.k)
+			valOffset_ := e_.v.Pack(builder_)
+			__Map_string_Leaf_EntryStart(builder_)
+			__Map_string_Leaf_EntryAddKey(builder_, keyOffset_)
+			__Map_string_Leaf_EntryAddValue(builder_, valOffset_)
+			leavesOffsets_[i_] = __Map_string_Leaf_EntryEnd(builder_)
 		}
-		EdgeStartLeavesVector(builder, leavesLength)
-		for i := leavesLength - 1; i >= 0; i-- {
-			builder.PrependUOffsetT(leavesOffsets[i])
+		EdgeStartLeavesVector(builder_, leavesLength_)
+		for i_ := leavesLength_ - 1; i_ >= 0; i_-- {
+			builder_.PrependUOffsetT(leavesOffsets_[i_])
 		}
-		leavesOffset = builder.EndVector(leavesLength)
+		leavesOffset_ = builder_.EndVector(leavesLength_)
 	}
-	reqOffset := flatbuffers.UOffsetT(0)
-	if t.Req != nil {
-		reqLength := len(t.Req)
-		EdgeStartReqVector(builder, reqLength)
-		for j := reqLength - 1; j >= 0; j-- {
-			builder.PrependInt32(t.Req[j])
+	reqOffset_ := flatbuffers.UOffsetT(0)
+	if t_.Req != nil {
+		reqLength_ := len(t_.Req)
+		EdgeStartReqVector(builder_, reqLength_)
+		for j_ := reqLength_ - 1; j_ >= 0; j_-- {
+			builder_.PrependInt32(t_.Req[j_])
 		}
-		reqOffset = builder.EndVector(reqLength)
+		reqOffset_ = builder_.EndVector(reqLength_)
 	}
-	nothingOffset := t.Nothing.Pack(builder)
+	nothingOffset_ := t_.Nothing.Pack(builder_)
 
-	nodeOffset := t.Node.Pack(builder)
-	EdgeStart(builder)
-	EdgeAddMust(builder, mustOffset)
-	EdgeAddNanF(builder, t.NanF)
-	EdgeAddNanD(builder, t.NanD)
-	EdgeAddZ(builder, t.Z)
-	EdgeAddTop(builder, t.Top)
-	EdgeAddFlag(builder, t.Flag)
-	EdgeAddWide(builder, t.Wide)
-	pairOffset := t.Pair.Pack(builder)
-	EdgeAddPair(builder, pairOffset)
-	EdgeAddByBits(builder, byBitsOffset)
-	EdgeAddPairs(builder, pairsOffset)
-	EdgeAddByBool(builder, byBoolOffset)
-	EdgeAddBools(builder, boolsOffset)
-	EdgeAddLeaves(builder, leavesOffset)
-	EdgeAddReq(builder, reqOffset)
-	if t.Nothing != nil {
-		EdgeAddNothingType(builder, t.Nothing.Type)
+	nodeOffset_ := t_.Node.Pack(builder_)
+	EdgeStart(builder_)
+	EdgeAddMust(builder_, mustOffset_)
+	EdgeAddNanF(builder_, t_.NanF)
+	EdgeAddNanD(builder_, t_.NanD)
+	EdgeAddZ(builder_, t_.Z)
+	EdgeAddTop(builder_, t_.Top)
+	EdgeAddFlag(builder_, t_.Flag)
+	EdgeAddWide(builder_, t_.Wide)
+	pairOffset_ := t_.Pair.Pack(builder_)
+	EdgeAddPair(builder_, pairOffset_)
+	EdgeAddByBits(builder_, byBitsOffset_)
+	EdgeAddPairs(builder_, pairsOffset_)
+	EdgeAddByBool(builder_, byBoolOffset_)
+	EdgeAddBools(builder_, boolsOffset_)
+	EdgeAddLeaves(builder_, leavesOffset_)
+	EdgeAddReq(builder_, reqOffset_)
+	if t_.Nothing != nil {
+		EdgeAddNothingType(builder_, t_.Nothing.Type)
 	}
-	EdgeAddNothing(builder, nothingOffset)
-	EdgeAddNode(builder, nodeOffset)
-	return EdgeEnd(builder)
+	EdgeAddNothing(builder_, nothingOffset_)
+	EdgeAddNode(builder_, nodeOffset_)
+	return EdgeEnd(builder_)
 }
 
-func (rcv *Edge) UnPackTo(t *EdgeT) {
-	t.Must = rcv.Must(nil).UnPack()
-	t.NanF = rcv.NanF()
-	t.NanD = rcv.NanD()
-	t.Z = rcv.Z()
-	t.Top = rcv.Top()
-	t.Flag = rcv.Flag()
-	t.Wide = rcv.Wide()
-	t.Pair = rcv.Pair(nil).UnPack()
-	byBitsLength := rcv.ByBitsLength()
-	t.ByBits = make(map[Bits]int32, byBitsLength)
-	for j := 0; j < byBitsLength; j++ {
-		x := __Map_Bits_int_Entry{}
-		rcv.ByBits(&x, j)
-		t.ByBits[x.Key()] = x.Value()
+func (rcv_ *Edge) UnPackTo(t_ *EdgeT) {
+	t_.Must = rcv_.Must(nil).UnPack()
+	t_.NanF = rcv_.NanF()
+	t_.NanD = rcv_.NanD()
+	t_.Z = rcv_.Z()
+	t_.Top = rcv_.Top()
+	t_.Flag = rcv_.Flag()
+	t_.Wide = rcv_.Wide()
+	t_.Pair = rcv_.Pair(nil).UnPack()
+	byBitsLength_ := rcv_.ByBitsLength()
+	t_.ByBits = make(map[Bits]int32, byBitsLength_)
+	for j_ := 0; j_ < byBitsLength_; j_++ {
+		x_ := __Map_Bits_int_Entry{}
+		rcv_.ByBits(&x_, j_)
+		t_.ByBits[x_.Key()] = x_.Value()
 	}
-	pairsLength := rcv.PairsLength()
-	t.Pairs = make(map[string]*PairT, pairsLength)
-	for j := 0; j < pairsLength; j++ {
-		x := __Map_string_Pair_Entry{}
-		rcv.Pairs(&x, j)
-		t.Pairs[string(x.Key())] = x.Value(nil).UnPack()
+	pairsLength_ := rcv_.PairsLength()
+	t_.Pairs = make(map[string]*PairT, pairsLength_)
+	for j_ := 0; j_ < pairsLength_; j_++ {
+		x_ := __Map_string_Pair_Entry{}
+		rcv_.Pairs(&x_, j_)
+		t_.Pairs[string(x_.Key())] = x_.Value(nil).UnPack()
 	}
-	byBoolLength := rcv.ByBoolLength()
-	t.ByBool = make(map[bool]string, byBoolLength)
-	for j := 0; j < byBoolLength; j++ {
-		x := __Map_bool_string_Entry{}
-		rcv.ByBool(&x, j)
-		t.ByBool[x.Key()] = string(x.Value())
+	byBoolLength_ := rcv_.ByBoolLength()
+	t_.ByBool = make(map[bool]string, byBoolLength_)
+	for j_ := 0; j_ < byBoolLength_; j_++ {
+		x_ := __Map_bool_string_Entry{}
+		rcv_.ByBool(&x_, j_)
+		t_.ByBool[x_.Key()] = string(x_.Value())
 	}
-	boolsLength := rcv.BoolsLength()
-	t.Bools = make(map[bool]struct{}, boolsLength)
-	for j := 0; j < boolsLength; j++ {
-		x := __Set_bool_Entry{}
-		rcv.Bools(&x, j)
-		t.Bools[x.Key()] = struct{}{}
+	boolsLength_ := rcv_.BoolsLength()
+	t_.Bools = make(map[bool]struct{}, boolsLength_)
+	for j_ := 0; j_ < boolsLength_; j_++ {
+		x_ := __Set_bool_Entry{}
+		rcv_.Bools(&x_, j_)
+		t_.Bools[x_.Key()] = struct{}{}
 	}
-	leavesLength := rcv.LeavesLength()
-	t.Leaves = make(map[string]*value.LeafT, leavesLength)
-	for j := 0; j < leavesLength; j++ {
-		x := __Map_string_Leaf_Entry{}
-		rcv.Leaves(&x, j)
-		t.Leaves[string(x.Key())] = x.Value(nil).UnPack()
+	leavesLength_ := rcv_.LeavesLength()
+	t_.Leaves = make(map[string]*value.LeafT, leavesLength_)
+	for j_ := 0; j_ < leavesLength_; j_++ {
+		x_ := __Map_string_Leaf_Entry{}
+		rcv_.Leaves(&x_, j_)
+		t_.Leaves[string(x_.Key())] = x_.Value(nil).UnPack()
 	}
-	reqLength := rcv.ReqLength()
-	t.Req = make([]int32, reqLength)
-	for j := 0; j < reqLength; j++ {
-		t.Req[j] = rcv.Req(j)
+	reqLength_ := rcv_.ReqLength()
+	t_.Req = make([]int32, reqLength_)
+	for j_ := 0; j_ < reqLength_; j_++ {
+		t_.Req[j_] = rcv_.Req(j_)
 	}
-	nothingTable := flatbuffers.Table{}
-	if rcv.Nothing(&nothingTable) {
-		t.Nothing = rcv.NothingType().UnPack(nothingTable)
+	nothingTable_ := flatbuffers.Table{}
+	if rcv_.Nothing(&nothingTable_) {
+		t_.Nothing = rcv_.NothingType().UnPack(nothingTable_)
 	}
-	t.Node = rcv.Node(nil).UnPack()
+	t_.Node = rcv_.Node(nil).UnPack()
 }
 
-func (rcv *Edge) UnPack() *EdgeT {
-	if rcv == nil {
+func (rcv_ *Edge) UnPack() *EdgeT {
+	if rcv_ == nil {
 		return nil
 	}
-	t := &EdgeT{}
-	rcv.UnPackTo(t)
-	return t
+	t_ := &EdgeT{}
+	rcv_.UnPackTo(t_)
+	return t_
 }
 
 const (
@@ -282,207 +282,207 @@ const (
 // Fields not in the list are left at their zero/default values.
 // This avoids materializing the entire table tree. Pass the
 // generated EdgeField* constants rather than raw strings.
-func (rcv *Edge) UnpackFields(fields ...string) *EdgeT {
-	t := &EdgeT{}
-	fieldSet := make(map[string]bool, len(fields))
-	for _, f := range fields {
-		fieldSet[f] = true
+func (rcv_ *Edge) UnpackFields(fields_ ...string) *EdgeT {
+	t_ := &EdgeT{}
+	fieldSet_ := make(map[string]bool, len(fields_))
+	for _, f_ := range fields_ {
+		fieldSet_[f_] = true
 	}
-	if fieldSet["must"] {
-		t.Must = rcv.Must(nil).UnPack()
+	if fieldSet_["must"] {
+		t_.Must = rcv_.Must(nil).UnPack()
 	}
-	if fieldSet["nan_f"] {
-		t.NanF = rcv.NanF()
+	if fieldSet_["nan_f"] {
+		t_.NanF = rcv_.NanF()
 	}
-	if fieldSet["nan_d"] {
-		t.NanD = rcv.NanD()
+	if fieldSet_["nan_d"] {
+		t_.NanD = rcv_.NanD()
 	}
-	if fieldSet["z"] {
-		t.Z = rcv.Z()
+	if fieldSet_["z"] {
+		t_.Z = rcv_.Z()
 	}
-	if fieldSet["top"] {
-		t.Top = rcv.Top()
+	if fieldSet_["top"] {
+		t_.Top = rcv_.Top()
 	}
-	if fieldSet["flag"] {
-		t.Flag = rcv.Flag()
+	if fieldSet_["flag"] {
+		t_.Flag = rcv_.Flag()
 	}
-	if fieldSet["wide"] {
-		t.Wide = rcv.Wide()
+	if fieldSet_["wide"] {
+		t_.Wide = rcv_.Wide()
 	}
-	if fieldSet["pair"] {
-		t.Pair = rcv.Pair(nil).UnPack()
+	if fieldSet_["pair"] {
+		t_.Pair = rcv_.Pair(nil).UnPack()
 	}
-	if fieldSet["by_bits"] {
-		byBitsLength := rcv.ByBitsLength()
-		t.ByBits = make(map[Bits]int32, byBitsLength)
-		for j := 0; j < byBitsLength; j++ {
-			x := __Map_Bits_int_Entry{}
-			rcv.ByBits(&x, j)
-			t.ByBits[x.Key()] = x.Value()
+	if fieldSet_["by_bits"] {
+		byBitsLength_ := rcv_.ByBitsLength()
+		t_.ByBits = make(map[Bits]int32, byBitsLength_)
+		for j_ := 0; j_ < byBitsLength_; j_++ {
+			x_ := __Map_Bits_int_Entry{}
+			rcv_.ByBits(&x_, j_)
+			t_.ByBits[x_.Key()] = x_.Value()
 		}
 	}
-	if fieldSet["pairs"] {
-		pairsLength := rcv.PairsLength()
-		t.Pairs = make(map[string]*PairT, pairsLength)
-		for j := 0; j < pairsLength; j++ {
-			x := __Map_string_Pair_Entry{}
-			rcv.Pairs(&x, j)
-			t.Pairs[string(x.Key())] = x.Value(nil).UnPack()
+	if fieldSet_["pairs"] {
+		pairsLength_ := rcv_.PairsLength()
+		t_.Pairs = make(map[string]*PairT, pairsLength_)
+		for j_ := 0; j_ < pairsLength_; j_++ {
+			x_ := __Map_string_Pair_Entry{}
+			rcv_.Pairs(&x_, j_)
+			t_.Pairs[string(x_.Key())] = x_.Value(nil).UnPack()
 		}
 	}
-	if fieldSet["by_bool"] {
-		byBoolLength := rcv.ByBoolLength()
-		t.ByBool = make(map[bool]string, byBoolLength)
-		for j := 0; j < byBoolLength; j++ {
-			x := __Map_bool_string_Entry{}
-			rcv.ByBool(&x, j)
-			t.ByBool[x.Key()] = string(x.Value())
+	if fieldSet_["by_bool"] {
+		byBoolLength_ := rcv_.ByBoolLength()
+		t_.ByBool = make(map[bool]string, byBoolLength_)
+		for j_ := 0; j_ < byBoolLength_; j_++ {
+			x_ := __Map_bool_string_Entry{}
+			rcv_.ByBool(&x_, j_)
+			t_.ByBool[x_.Key()] = string(x_.Value())
 		}
 	}
-	if fieldSet["bools"] {
-		boolsLength := rcv.BoolsLength()
-		t.Bools = make(map[bool]struct{}, boolsLength)
-		for j := 0; j < boolsLength; j++ {
-			x := __Set_bool_Entry{}
-			rcv.Bools(&x, j)
-			t.Bools[x.Key()] = struct{}{}
+	if fieldSet_["bools"] {
+		boolsLength_ := rcv_.BoolsLength()
+		t_.Bools = make(map[bool]struct{}, boolsLength_)
+		for j_ := 0; j_ < boolsLength_; j_++ {
+			x_ := __Set_bool_Entry{}
+			rcv_.Bools(&x_, j_)
+			t_.Bools[x_.Key()] = struct{}{}
 		}
 	}
-	if fieldSet["leaves"] {
-		leavesLength := rcv.LeavesLength()
-		t.Leaves = make(map[string]*value.LeafT, leavesLength)
-		for j := 0; j < leavesLength; j++ {
-			x := __Map_string_Leaf_Entry{}
-			rcv.Leaves(&x, j)
-			t.Leaves[string(x.Key())] = x.Value(nil).UnPack()
+	if fieldSet_["leaves"] {
+		leavesLength_ := rcv_.LeavesLength()
+		t_.Leaves = make(map[string]*value.LeafT, leavesLength_)
+		for j_ := 0; j_ < leavesLength_; j_++ {
+			x_ := __Map_string_Leaf_Entry{}
+			rcv_.Leaves(&x_, j_)
+			t_.Leaves[string(x_.Key())] = x_.Value(nil).UnPack()
 		}
 	}
-	if fieldSet["req"] {
-		reqLength := rcv.ReqLength()
-		t.Req = make([]int32, reqLength)
-		for j := 0; j < reqLength; j++ {
-			t.Req[j] = rcv.Req(j)
+	if fieldSet_["req"] {
+		reqLength_ := rcv_.ReqLength()
+		t_.Req = make([]int32, reqLength_)
+		for j_ := 0; j_ < reqLength_; j_++ {
+			t_.Req[j_] = rcv_.Req(j_)
 		}
 	}
-	if fieldSet["nothing"] {
-		nothingTable := flatbuffers.Table{}
-		if rcv.Nothing(&nothingTable) {
-			t.Nothing = rcv.NothingType().UnPack(nothingTable)
+	if fieldSet_["nothing"] {
+		nothingTable_ := flatbuffers.Table{}
+		if rcv_.Nothing(&nothingTable_) {
+			t_.Nothing = rcv_.NothingType().UnPack(nothingTable_)
 		}
 	}
-	if fieldSet["node"] {
-		t.Node = rcv.Node(nil).UnPack()
+	if fieldSet_["node"] {
+		t_.Node = rcv_.Node(nil).UnPack()
 	}
-	return t
+	return t_
 }
 
 // FlatJSONSchema names the JSON Schema definition flatc --jsonschema
-// generates for Edge.
-func (*EdgeT) FlatJSONSchema() (file, definition string) {
+// generates for Edge: its file, and its name there.
+func (*EdgeT) FlatJSONSchema() (string, string) {
 	return "canonical_json_edge.schema.json", "CanonicalJsonEdge_Edge"
 }
 
 // MarshalFlatJSON returns t as canonical FlatBuffers JSON.
-func (t *EdgeT) MarshalFlatJSON() ([]byte, error) {
+func (t_ *EdgeT) MarshalFlatJSON() ([]byte, error) {
 	w_ := flatbuffers.NewJSONWriter()
-	t.WriteFlatJSON(w_)
+	t_.WriteFlatJSON(w_)
 
 	return w_.Bytes()
 }
 
 // WriteFlatJSON writes t to w_ as canonical FlatBuffers JSON.
-func (t *EdgeT) WriteFlatJSON(w_ *flatbuffers.JSONWriter) {
-	if t == nil {
+func (t_ *EdgeT) WriteFlatJSON(w_ *flatbuffers.JSONWriter) {
+	if t_ == nil {
 		w_.Null()
 
 		return
 	}
 
 	w_.BeginObject()
-	if t.Must == nil {
+	if t_.Must == nil {
 		w_.Fail(flatbuffers.JSONErrorf("", "required member must is missing"))
 	} else {
 		w_.Key("must")
-		t.Must.WriteFlatJSON(w_)
+		t_.Must.WriteFlatJSON(w_)
 	}
-	if !math.IsNaN(float64(t.NanF)) {
+	if !math.IsNaN(float64(t_.NanF)) {
 		w_.Key("nan_f")
-		w_.Float32(t.NanF)
+		w_.Float32(t_.NanF)
 	}
-	if !math.IsNaN(float64(t.NanD)) {
+	if !math.IsNaN(float64(t_.NanD)) {
 		w_.Key("nan_d")
-		w_.Float64(t.NanD)
+		w_.Float64(t_.NanD)
 	}
-	if t.Z != 0.0 {
+	if t_.Z != 0.0 {
 		w_.Key("z")
-		w_.Float64(t.Z)
+		w_.Float64(t_.Z)
 	}
-	if t.Top != 18446744073709551615 {
+	if t_.Top != 18446744073709551615 {
 		w_.Key("top")
-		w_.UintString(t.Top)
+		w_.UintString(t_.Top)
 	}
-	if t.Flag != true {
+	if t_.Flag != true {
 		w_.Key("flag")
-		w_.Bool(t.Flag)
+		w_.Bool(t_.Flag)
 	}
-	if t.Wide != 0 {
+	if t_.Wide != 0 {
 		w_.Key("wide")
-		flatbuffers.WriteJSONEnumQuoted(w_, t.Wide, EnumNamesWide)
+		flatbuffers.WriteJSONEnumQuoted(w_, t_.Wide, EnumNamesWide)
 	}
-	if t.Pair != nil {
+	if t_.Pair != nil {
 		w_.Key("pair")
-		t.Pair.WriteFlatJSON(w_)
+		t_.Pair.WriteFlatJSON(w_)
 	}
-	if len(t.ByBits) > 0 {
+	if len(t_.ByBits) > 0 {
 		w_.Key("by_bits")
 		w_.BeginObject()
 
-		for _, k_ := range flatbuffers.JSONMapKeys(t.ByBits) {
+		for _, k_ := range flatbuffers.JSONMapKeys(t_.ByBits) {
 			w_.MapKey(flatbuffers.JSONBitFlagsKey(k_, EnumNamesBits))
-			w_.Int(int64(t.ByBits[k_]))
+			w_.Int(int64(t_.ByBits[k_]))
 		}
 
 		w_.EndObject()
 	}
-	if len(t.Pairs) > 0 {
+	if len(t_.Pairs) > 0 {
 		w_.Key("pairs")
 		w_.BeginObject()
 
-		for _, k_ := range flatbuffers.JSONMapKeys(t.Pairs) {
+		for _, k_ := range flatbuffers.JSONMapKeys(t_.Pairs) {
 			w_.MapKey(k_)
-			t.Pairs[k_].WriteFlatJSON(w_)
+			t_.Pairs[k_].WriteFlatJSON(w_)
 		}
 
 		w_.EndObject()
 	}
-	if len(t.ByBool) > 0 {
+	if len(t_.ByBool) > 0 {
 		w_.Key("by_bool")
 		w_.BeginObject()
 
-		for _, k_ := range flatbuffers.JSONBoolMapKeys(t.ByBool) {
+		for _, k_ := range flatbuffers.JSONBoolMapKeys(t_.ByBool) {
 			w_.MapKey(flatbuffers.JSONBoolKeyText(k_))
-			w_.String(t.ByBool[k_])
+			w_.String(t_.ByBool[k_])
 		}
 
 		w_.EndObject()
 	}
-	if len(t.Bools) > 0 {
+	if len(t_.Bools) > 0 {
 		w_.Key("bools")
 		w_.BeginArray()
 
-		for _, k_ := range flatbuffers.JSONBoolMapKeys(t.Bools) {
+		for _, k_ := range flatbuffers.JSONBoolMapKeys(t_.Bools) {
 			w_.Bool(k_)
 		}
 
 		w_.EndArray()
 	}
-	if len(t.Leaves) > 0 {
+	if len(t_.Leaves) > 0 {
 		w_.Key("leaves")
 		w_.BeginObject()
 
-		for _, k_ := range flatbuffers.JSONMapKeys(t.Leaves) {
+		for _, k_ := range flatbuffers.JSONMapKeys(t_.Leaves) {
 			w_.MapKey(k_)
-			t.Leaves[k_].WriteFlatJSON(w_)
+			t_.Leaves[k_].WriteFlatJSON(w_)
 		}
 
 		w_.EndObject()
@@ -491,39 +491,39 @@ func (t *EdgeT) WriteFlatJSON(w_ *flatbuffers.JSONWriter) {
 		w_.Key("req")
 		w_.BeginArray()
 
-		for _, e_ := range t.Req {
+		for _, e_ := range t_.Req {
 			w_.Int(int64(e_))
 		}
 
 		w_.EndArray()
 	}
-	if t.Nothing != nil && t.Nothing.Type != 0 && t.Nothing.Value != nil {
+	if t_.Nothing != nil && t_.Nothing.Type != 0 && t_.Nothing.Value != nil {
 		w_.Key("nothing_type")
-		t.Nothing.WriteFlatJSONType(w_)
+		t_.Nothing.WriteFlatJSONType(w_)
 		w_.Key("nothing")
-		t.Nothing.WriteFlatJSONValue(w_)
+		t_.Nothing.WriteFlatJSONValue(w_)
 	}
-	if t.Node != nil {
+	if t_.Node != nil {
 		w_.Key("node")
-		t.Node.WriteFlatJSON(w_)
+		t_.Node.WriteFlatJSON(w_)
 	}
 	w_.EndObject()
 }
 
 // UnmarshalFlatJSON replaces t with the value the canonical FlatBuffers
 // JSON in data_ describes; an absent scalar takes its schema default.
-func (t *EdgeT) UnmarshalFlatJSON(data_ []byte) error {
+func (t_ *EdgeT) UnmarshalFlatJSON(data_ []byte) error {
 	v_, err_ := flatbuffers.ParseJSON(data_)
 	if err_ != nil {
 		return err_
 	}
 
-	return t.UnmarshalFlatJSONValue(v_, "")
+	return t_.UnmarshalFlatJSONValue(v_, "")
 }
 
 // UnmarshalFlatJSONValue is UnmarshalFlatJSON for a value
 // flatbuffers.ParseJSON has already parsed; pointer_ locates it in errors.
-func (t *EdgeT) UnmarshalFlatJSONValue(v_ any, pointer_ string) error {
+func (t_ *EdgeT) UnmarshalFlatJSONValue(v_ any, pointer_ string) error {
 	m_, err_ := flatbuffers.JSONObject(v_, pointer_)
 	if err_ != nil {
 		return err_
@@ -534,53 +534,53 @@ func (t *EdgeT) UnmarshalFlatJSONValue(v_ any, pointer_ string) error {
 		return err_
 	}
 
-	*t = EdgeT{}
-	t.NanF = float32(math.NaN())
-	t.NanD = float64(math.NaN())
-	t.Top = 18446744073709551615
-	t.Flag = true
+	*t_ = EdgeT{}
+	t_.NanF = float32(math.NaN())
+	t_.NanD = float64(math.NaN())
+	t_.Top = 18446744073709551615
+	t_.Flag = true
 
 	if x_, ok_ := flatbuffers.JSONMember(m_, "must"); ok_ {
-		t.Must = &value.LeafT{}
-		if err_ := t.Must.UnmarshalFlatJSONValue(x_, flatbuffers.JSONPointer(pointer_, "must")); err_ != nil {
+		t_.Must = &value.LeafT{}
+		if err_ := t_.Must.UnmarshalFlatJSONValue(x_, flatbuffers.JSONPointer(pointer_, "must")); err_ != nil {
 			return err_
 		}
 	} else {
 		return flatbuffers.JSONRequired(pointer_, "must")
 	}
 	if x_, ok_ := flatbuffers.JSONMember(m_, "nan_f"); ok_ {
-		if t.NanF, err_ = flatbuffers.JSONFloat[float32](x_, flatbuffers.JSONPointer(pointer_, "nan_f")); err_ != nil {
+		if t_.NanF, err_ = flatbuffers.JSONFloat[float32](x_, flatbuffers.JSONPointer(pointer_, "nan_f")); err_ != nil {
 			return err_
 		}
 	}
 	if x_, ok_ := flatbuffers.JSONMember(m_, "nan_d"); ok_ {
-		if t.NanD, err_ = flatbuffers.JSONFloat[float64](x_, flatbuffers.JSONPointer(pointer_, "nan_d")); err_ != nil {
+		if t_.NanD, err_ = flatbuffers.JSONFloat[float64](x_, flatbuffers.JSONPointer(pointer_, "nan_d")); err_ != nil {
 			return err_
 		}
 	}
 	if x_, ok_ := flatbuffers.JSONMember(m_, "z"); ok_ {
-		if t.Z, err_ = flatbuffers.JSONFloat[float64](x_, flatbuffers.JSONPointer(pointer_, "z")); err_ != nil {
+		if t_.Z, err_ = flatbuffers.JSONFloat[float64](x_, flatbuffers.JSONPointer(pointer_, "z")); err_ != nil {
 			return err_
 		}
 	}
 	if x_, ok_ := flatbuffers.JSONMember(m_, "top"); ok_ {
-		if t.Top, err_ = flatbuffers.JSONInt[uint64](x_, flatbuffers.JSONPointer(pointer_, "top")); err_ != nil {
+		if t_.Top, err_ = flatbuffers.JSONInt[uint64](x_, flatbuffers.JSONPointer(pointer_, "top")); err_ != nil {
 			return err_
 		}
 	}
 	if x_, ok_ := flatbuffers.JSONMember(m_, "flag"); ok_ {
-		if t.Flag, err_ = flatbuffers.JSONBool(x_, flatbuffers.JSONPointer(pointer_, "flag")); err_ != nil {
+		if t_.Flag, err_ = flatbuffers.JSONBool(x_, flatbuffers.JSONPointer(pointer_, "flag")); err_ != nil {
 			return err_
 		}
 	}
 	if x_, ok_ := flatbuffers.JSONMember(m_, "wide"); ok_ {
-		if t.Wide, err_ = flatbuffers.JSONEnum(x_, flatbuffers.JSONPointer(pointer_, "wide"), EnumValuesWide); err_ != nil {
+		if t_.Wide, err_ = flatbuffers.JSONEnum(x_, flatbuffers.JSONPointer(pointer_, "wide"), EnumValuesWide); err_ != nil {
 			return err_
 		}
 	}
 	if x_, ok_ := flatbuffers.JSONMember(m_, "pair"); ok_ {
-		t.Pair = &PairT{}
-		if err_ := t.Pair.UnmarshalFlatJSONValue(x_, flatbuffers.JSONPointer(pointer_, "pair")); err_ != nil {
+		t_.Pair = &PairT{}
+		if err_ := t_.Pair.UnmarshalFlatJSONValue(x_, flatbuffers.JSONPointer(pointer_, "pair")); err_ != nil {
 			return err_
 		}
 	}
@@ -592,7 +592,7 @@ func (t *EdgeT) UnmarshalFlatJSONValue(v_ any, pointer_ string) error {
 			return err_
 		}
 
-		t.ByBits = make(map[Bits]int32, len(o_))
+		t_.ByBits = make(map[Bits]int32, len(o_))
 
 		for _, k_ := range flatbuffers.JSONSortedKeys(o_) {
 			p_ := flatbuffers.JSONPointer(fp_, k_)
@@ -608,7 +608,7 @@ func (t *EdgeT) UnmarshalFlatJSONValue(v_ any, pointer_ string) error {
 				}
 			}
 
-			t.ByBits[key_] = value_
+			t_.ByBits[key_] = value_
 		}
 	}
 	if x_, ok_ := flatbuffers.JSONMember(m_, "pairs"); ok_ {
@@ -619,7 +619,7 @@ func (t *EdgeT) UnmarshalFlatJSONValue(v_ any, pointer_ string) error {
 			return err_
 		}
 
-		t.Pairs = make(map[string]*PairT, len(o_))
+		t_.Pairs = make(map[string]*PairT, len(o_))
 
 		for _, k_ := range flatbuffers.JSONSortedKeys(o_) {
 			p_ := flatbuffers.JSONPointer(fp_, k_)
@@ -633,7 +633,7 @@ func (t *EdgeT) UnmarshalFlatJSONValue(v_ any, pointer_ string) error {
 				}
 			}
 
-			t.Pairs[key_] = value_
+			t_.Pairs[key_] = value_
 		}
 	}
 	if x_, ok_ := flatbuffers.JSONMember(m_, "by_bool"); ok_ {
@@ -644,7 +644,7 @@ func (t *EdgeT) UnmarshalFlatJSONValue(v_ any, pointer_ string) error {
 			return err_
 		}
 
-		t.ByBool = make(map[bool]string, len(o_))
+		t_.ByBool = make(map[bool]string, len(o_))
 
 		for _, k_ := range flatbuffers.JSONSortedKeys(o_) {
 			p_ := flatbuffers.JSONPointer(fp_, k_)
@@ -660,7 +660,7 @@ func (t *EdgeT) UnmarshalFlatJSONValue(v_ any, pointer_ string) error {
 				}
 			}
 
-			t.ByBool[key_] = value_
+			t_.ByBool[key_] = value_
 		}
 	}
 	if x_, ok_ := flatbuffers.JSONMember(m_, "bools"); ok_ {
@@ -671,14 +671,14 @@ func (t *EdgeT) UnmarshalFlatJSONValue(v_ any, pointer_ string) error {
 			return err_
 		}
 
-		t.Bools = make(map[bool]struct{}, len(a_))
+		t_.Bools = make(map[bool]struct{}, len(a_))
 
 		for i_, e_ := range a_ {
 			var key_ bool
 			if key_, err_ = flatbuffers.JSONBool(e_, flatbuffers.JSONIndexPointer(fp_, i_)); err_ != nil {
 				return err_
 			}
-			t.Bools[key_] = struct{}{}
+			t_.Bools[key_] = struct{}{}
 		}
 	}
 	if x_, ok_ := flatbuffers.JSONMember(m_, "leaves"); ok_ {
@@ -689,7 +689,7 @@ func (t *EdgeT) UnmarshalFlatJSONValue(v_ any, pointer_ string) error {
 			return err_
 		}
 
-		t.Leaves = make(map[string]*value.LeafT, len(o_))
+		t_.Leaves = make(map[string]*value.LeafT, len(o_))
 
 		for _, k_ := range flatbuffers.JSONSortedKeys(o_) {
 			p_ := flatbuffers.JSONPointer(fp_, k_)
@@ -703,7 +703,7 @@ func (t *EdgeT) UnmarshalFlatJSONValue(v_ any, pointer_ string) error {
 				}
 			}
 
-			t.Leaves[key_] = value_
+			t_.Leaves[key_] = value_
 		}
 	}
 	if x_, ok_ := flatbuffers.JSONMember(m_, "req"); ok_ {
@@ -714,22 +714,22 @@ func (t *EdgeT) UnmarshalFlatJSONValue(v_ any, pointer_ string) error {
 			return err_
 		}
 
-		t.Req = make([]int32, len(a_))
+		t_.Req = make([]int32, len(a_))
 
 		for i_, e_ := range a_ {
-			if t.Req[i_], err_ = flatbuffers.JSONInt[int32](e_, flatbuffers.JSONIndexPointer(fp_, i_)); err_ != nil {
+			if t_.Req[i_], err_ = flatbuffers.JSONInt[int32](e_, flatbuffers.JSONIndexPointer(fp_, i_)); err_ != nil {
 				return err_
 			}
 		}
 	} else {
 		return flatbuffers.JSONRequired(pointer_, "req")
 	}
-	if t.Nothing, err_ = UnmarshalEmptyFlatJSON(m_, pointer_, "nothing_type", "nothing"); err_ != nil {
+	if t_.Nothing, err_ = UnmarshalEmptyFlatJSON(m_, pointer_, "nothing_type", "nothing"); err_ != nil {
 		return err_
 	}
 	if x_, ok_ := flatbuffers.JSONMember(m_, "node"); ok_ {
-		t.Node = &NodeT{}
-		if err_ := t.Node.UnmarshalFlatJSONValue(x_, flatbuffers.JSONPointer(pointer_, "node")); err_ != nil {
+		t_.Node = &NodeT{}
+		if err_ := t_.Node.UnmarshalFlatJSONValue(x_, flatbuffers.JSONPointer(pointer_, "node")); err_ != nil {
 			return err_
 		}
 	}
@@ -741,539 +741,539 @@ type Edge struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsEdge(buf []byte, offset flatbuffers.UOffsetT) *Edge {
-	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &Edge{}
-	x.Init(buf, n+offset)
-	return x
+func GetRootAsEdge(buf_ []byte, offset_ flatbuffers.UOffsetT) *Edge {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_:])
+	x_ := &Edge{}
+	x_.Init(buf_, n_+offset_)
+	return x_
 }
 
-func FinishEdgeBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.Finish(offset)
+func FinishEdgeBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.Finish(offset_)
 }
 
-func GetSizePrefixedRootAsEdge(buf []byte, offset flatbuffers.UOffsetT) *Edge {
-	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &Edge{}
-	x.Init(buf, n+offset+flatbuffers.SizeUint32)
-	return x
+func GetSizePrefixedRootAsEdge(buf_ []byte, offset_ flatbuffers.UOffsetT) *Edge {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_+flatbuffers.SizeUint32:])
+	x_ := &Edge{}
+	x_.Init(buf_, n_+offset_+flatbuffers.SizeUint32)
+	return x_
 }
 
-func FinishSizePrefixedEdgeBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.FinishSizePrefixed(offset)
+func FinishSizePrefixedEdgeBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.FinishSizePrefixed(offset_)
 }
 
-func VerifyRootAsEdge(buf []byte, opts *flatbuffers.VerifierOptions) error {
-	v := flatbuffers.NewVerifier(buf, opts)
-	tablePos, err := v.CheckUOffsetT(0)
-	if err != nil {
-		return err
+func VerifyRootAsEdge(buf_ []byte, opts_ *flatbuffers.VerifierOptions) error {
+	v_ := flatbuffers.NewVerifier(buf_, opts_)
+	tablePos_, err_ := v_.CheckUOffsetT(0)
+	if err_ != nil {
+		return err_
 	}
-	return verifyEdge(v, int(tablePos))
+	return verifyEdge(v_, int(tablePos_))
 }
 
-func VerifyEdge(v *flatbuffers.Verifier, tablePos int) error {
-	return verifyEdge(v, tablePos)
+func VerifyEdge(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	return verifyEdge(v_, tablePos_)
 }
 
-func verifyEdge(v *flatbuffers.Verifier, tablePos int) error {
-	if err := v.CheckTable(tablePos); err != nil {
-		return err
+func verifyEdge(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	if err_ := v_.CheckTable(tablePos_); err_ != nil {
+		return err_
 	}
-	if err := v.CountTable(); err != nil {
-		return err
+	if err_ := v_.CountTable(); err_ != nil {
+		return err_
 	}
-	if err := v.PushDepth(); err != nil {
-		return err
+	if err_ := v_.PushDepth(); err_ != nil {
+		return err_
 	}
-	defer v.PopDepth()
+	defer v_.PopDepth()
 
-	if pos, err := v.CheckOffsetField(tablePos, 4); err != nil {
-		return err
-	} else if pos != 0 {
-		if err := value.VerifyLeaf(v, pos); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 4); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := value.VerifyLeaf(v_, pos_); err_ != nil {
+			return err_
 		}
 	}
-	if err := v.CheckRequiredField(tablePos, 4, "must"); err != nil {
-		return err
+	if err_ := v_.CheckRequiredField(tablePos_, 4, "must"); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 6, 4); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 6, 4); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 8, 8); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 8, 8); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 10, 8); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 10, 8); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 12, 8); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 12, 8); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 14, 1); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 14, 1); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 16, 8); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 16, 8); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 18, 8); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 18, 8); err_ != nil {
+		return err_
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 20); err != nil {
-		return err
-	} else if pos != 0 {
-		if err := v.CheckVectorOfTables(pos, verify__Map_Bits_int_Entry); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 20); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := v_.CheckVectorOfTables(pos_, verify__Map_Bits_int_Entry); err_ != nil {
+			return err_
 		}
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 22); err != nil {
-		return err
-	} else if pos != 0 {
-		if err := v.CheckVectorOfTables(pos, verify__Map_string_Pair_Entry); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 22); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := v_.CheckVectorOfTables(pos_, verify__Map_string_Pair_Entry); err_ != nil {
+			return err_
 		}
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 24); err != nil {
-		return err
-	} else if pos != 0 {
-		if err := v.CheckVectorOfTables(pos, verify__Map_bool_string_Entry); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 24); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := v_.CheckVectorOfTables(pos_, verify__Map_bool_string_Entry); err_ != nil {
+			return err_
 		}
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 26); err != nil {
-		return err
-	} else if pos != 0 {
-		if err := v.CheckVectorOfTables(pos, verify__Set_bool_Entry); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 26); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := v_.CheckVectorOfTables(pos_, verify__Set_bool_Entry); err_ != nil {
+			return err_
 		}
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 28); err != nil {
-		return err
-	} else if pos != 0 {
-		if err := v.CheckVectorOfTables(pos, verify__Map_string_Leaf_Entry); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 28); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := v_.CheckVectorOfTables(pos_, verify__Map_string_Leaf_Entry); err_ != nil {
+			return err_
 		}
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 30); err != nil {
-		return err
-	} else if pos != 0 {
-		if _, err := v.CheckVector(pos, 4); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 30); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if _, err_ := v_.CheckVector(pos_, 4); err_ != nil {
+			return err_
 		}
 	}
-	if err := v.CheckRequiredField(tablePos, 30, "req"); err != nil {
-		return err
+	if err_ := v_.CheckRequiredField(tablePos_, 30, "req"); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 32, 1); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 32, 1); err_ != nil {
+		return err_
 	}
-	if err := v.CheckUnionConsistency(tablePos, 32, 34, "nothing"); err != nil {
-		return err
+	if err_ := v_.CheckUnionConsistency(tablePos_, 32, 34, "nothing"); err_ != nil {
+		return err_
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 34); err != nil {
-		return err
-	} else if pos != 0 {
-		uType, err := v.ReadFieldByte(tablePos, 32)
-		if err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 34); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		uType_, err_ := v_.ReadFieldByte(tablePos_, 32)
+		if err_ != nil {
+			return err_
 		}
-		switch Empty(uType) {
+		switch Empty(uType_) {
 		}
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 36); err != nil {
-		return err
-	} else if pos != 0 {
-		if err := verifyNode(v, pos); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 36); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := verifyNode(v_, pos_); err_ != nil {
+			return err_
 		}
 	}
 	return nil
 }
 
-func (rcv *Edge) Init(buf []byte, i flatbuffers.UOffsetT) {
-	rcv._tab.Bytes = buf
-	rcv._tab.Pos = i
+func (rcv_ *Edge) Init(buf_ []byte, i_ flatbuffers.UOffsetT) {
+	rcv_._tab.Bytes = buf_
+	rcv_._tab.Pos = i_
 }
 
-func (rcv *Edge) Table() flatbuffers.Table {
-	return rcv._tab
+func (rcv_ *Edge) Table() flatbuffers.Table {
+	return rcv_._tab
 }
 
-func (rcv *Edge) Must(obj *value.Leaf) *value.Leaf {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
-	if o != 0 {
-		x := rcv._tab.Indirect(o + rcv._tab.Pos)
-		if obj == nil {
-			obj = new(value.Leaf)
+func (rcv_ *Edge) Must(obj_ *value.Leaf) *value.Leaf {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(4))
+	if o_ != 0 {
+		x_ := rcv_._tab.Indirect(o_ + rcv_._tab.Pos)
+		if obj_ == nil {
+			obj_ = new(value.Leaf)
 		}
-		obj.Init(rcv._tab.Bytes, x)
-		return obj
+		obj_.Init(rcv_._tab.Bytes, x_)
+		return obj_
 	}
 	return nil
 }
 
-func (rcv *Edge) NanF() float32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
-	if o != 0 {
-		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+func (rcv_ *Edge) NanF() float32 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(6))
+	if o_ != 0 {
+		return rcv_._tab.GetFloat32(o_ + rcv_._tab.Pos)
 	}
 	return float32(math.NaN())
 }
 
-func (rcv *Edge) MutateNanF(n float32) bool {
-	return rcv._tab.MutateFloat32Slot(6, n)
+func (rcv_ *Edge) MutateNanF(n_ float32) bool {
+	return rcv_._tab.MutateFloat32Slot(6, n_)
 }
 
-func (rcv *Edge) NanD() float64 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
-	if o != 0 {
-		return rcv._tab.GetFloat64(o + rcv._tab.Pos)
+func (rcv_ *Edge) NanD() float64 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(8))
+	if o_ != 0 {
+		return rcv_._tab.GetFloat64(o_ + rcv_._tab.Pos)
 	}
 	return float64(math.NaN())
 }
 
-func (rcv *Edge) MutateNanD(n float64) bool {
-	return rcv._tab.MutateFloat64Slot(8, n)
+func (rcv_ *Edge) MutateNanD(n_ float64) bool {
+	return rcv_._tab.MutateFloat64Slot(8, n_)
 }
 
-func (rcv *Edge) Z() float64 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
-	if o != 0 {
-		return rcv._tab.GetFloat64(o + rcv._tab.Pos)
+func (rcv_ *Edge) Z() float64 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(10))
+	if o_ != 0 {
+		return rcv_._tab.GetFloat64(o_ + rcv_._tab.Pos)
 	}
 	return 0.0
 }
 
-func (rcv *Edge) MutateZ(n float64) bool {
-	return rcv._tab.MutateFloat64Slot(10, n)
+func (rcv_ *Edge) MutateZ(n_ float64) bool {
+	return rcv_._tab.MutateFloat64Slot(10, n_)
 }
 
-func (rcv *Edge) Top() uint64 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
-	if o != 0 {
-		return rcv._tab.GetUint64(o + rcv._tab.Pos)
+func (rcv_ *Edge) Top() uint64 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(12))
+	if o_ != 0 {
+		return rcv_._tab.GetUint64(o_ + rcv_._tab.Pos)
 	}
 	return 18446744073709551615
 }
 
-func (rcv *Edge) MutateTop(n uint64) bool {
-	return rcv._tab.MutateUint64Slot(12, n)
+func (rcv_ *Edge) MutateTop(n_ uint64) bool {
+	return rcv_._tab.MutateUint64Slot(12, n_)
 }
 
-func (rcv *Edge) Flag() bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
-	if o != 0 {
-		return rcv._tab.GetBool(o + rcv._tab.Pos)
+func (rcv_ *Edge) Flag() bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(14))
+	if o_ != 0 {
+		return rcv_._tab.GetBool(o_ + rcv_._tab.Pos)
 	}
 	return true
 }
 
-func (rcv *Edge) MutateFlag(n bool) bool {
-	return rcv._tab.MutateBoolSlot(14, n)
+func (rcv_ *Edge) MutateFlag(n_ bool) bool {
+	return rcv_._tab.MutateBoolSlot(14, n_)
 }
 
-func (rcv *Edge) Wide() Wide {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
-	if o != 0 {
-		return Wide(rcv._tab.GetUint64(o + rcv._tab.Pos))
+func (rcv_ *Edge) Wide() Wide {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(16))
+	if o_ != 0 {
+		return Wide(rcv_._tab.GetUint64(o_ + rcv_._tab.Pos))
 	}
 	return 0
 }
 
-func (rcv *Edge) MutateWide(n Wide) bool {
-	return rcv._tab.MutateUint64Slot(16, uint64(n))
+func (rcv_ *Edge) MutateWide(n_ Wide) bool {
+	return rcv_._tab.MutateUint64Slot(16, uint64(n_))
 }
 
-func (rcv *Edge) Pair(obj *Pair) *Pair {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
-	if o != 0 {
-		x := o + rcv._tab.Pos
-		if obj == nil {
-			obj = new(Pair)
+func (rcv_ *Edge) Pair(obj_ *Pair) *Pair {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(18))
+	if o_ != 0 {
+		x_ := o_ + rcv_._tab.Pos
+		if obj_ == nil {
+			obj_ = new(Pair)
 		}
-		obj.Init(rcv._tab.Bytes, x)
-		return obj
+		obj_.Init(rcv_._tab.Bytes, x_)
+		return obj_
 	}
 	return nil
 }
 
-func (rcv *Edge) ByBits(obj *__Map_Bits_int_Entry, j int) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
-	if o != 0 {
-		x := rcv._tab.Vector(o)
-		x += flatbuffers.UOffsetT(j) * 4
-		x = rcv._tab.Indirect(x)
-		obj.Init(rcv._tab.Bytes, x)
+func (rcv_ *Edge) ByBits(obj_ *__Map_Bits_int_Entry, j_ int) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(20))
+	if o_ != 0 {
+		x_ := rcv_._tab.Vector(o_)
+		x_ += flatbuffers.UOffsetT(j_) * 4
+		x_ = rcv_._tab.Indirect(x_)
+		obj_.Init(rcv_._tab.Bytes, x_)
 		return true
 	}
 	return false
 }
 
-func (rcv *Edge) ByBitsByKey(obj *__Map_Bits_int_Entry, key Bits) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
-	if o != 0 {
-		x := rcv._tab.Vector(o)
-		return obj.LookupByKey(key, x, rcv._tab.Bytes)
+func (rcv_ *Edge) ByBitsByKey(obj_ *__Map_Bits_int_Entry, key_ Bits) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(20))
+	if o_ != 0 {
+		x_ := rcv_._tab.Vector(o_)
+		return obj_.LookupByKey(key_, x_, rcv_._tab.Bytes)
 	}
 	return false
 }
 
-func (rcv *Edge) ByBitsLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
+func (rcv_ *Edge) ByBitsLength() int {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(20))
+	if o_ != 0 {
+		return rcv_._tab.VectorLen(o_)
 	}
 	return 0
 }
 
-func (rcv *Edge) Pairs(obj *__Map_string_Pair_Entry, j int) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
-	if o != 0 {
-		x := rcv._tab.Vector(o)
-		x += flatbuffers.UOffsetT(j) * 4
-		x = rcv._tab.Indirect(x)
-		obj.Init(rcv._tab.Bytes, x)
+func (rcv_ *Edge) Pairs(obj_ *__Map_string_Pair_Entry, j_ int) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(22))
+	if o_ != 0 {
+		x_ := rcv_._tab.Vector(o_)
+		x_ += flatbuffers.UOffsetT(j_) * 4
+		x_ = rcv_._tab.Indirect(x_)
+		obj_.Init(rcv_._tab.Bytes, x_)
 		return true
 	}
 	return false
 }
 
-func (rcv *Edge) PairsByKey(obj *__Map_string_Pair_Entry, key string) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
-	if o != 0 {
-		x := rcv._tab.Vector(o)
-		return obj.LookupByKey(key, x, rcv._tab.Bytes)
+func (rcv_ *Edge) PairsByKey(obj_ *__Map_string_Pair_Entry, key_ string) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(22))
+	if o_ != 0 {
+		x_ := rcv_._tab.Vector(o_)
+		return obj_.LookupByKey(key_, x_, rcv_._tab.Bytes)
 	}
 	return false
 }
 
-func (rcv *Edge) PairsLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
+func (rcv_ *Edge) PairsLength() int {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(22))
+	if o_ != 0 {
+		return rcv_._tab.VectorLen(o_)
 	}
 	return 0
 }
 
-func (rcv *Edge) ByBool(obj *__Map_bool_string_Entry, j int) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
-	if o != 0 {
-		x := rcv._tab.Vector(o)
-		x += flatbuffers.UOffsetT(j) * 4
-		x = rcv._tab.Indirect(x)
-		obj.Init(rcv._tab.Bytes, x)
+func (rcv_ *Edge) ByBool(obj_ *__Map_bool_string_Entry, j_ int) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(24))
+	if o_ != 0 {
+		x_ := rcv_._tab.Vector(o_)
+		x_ += flatbuffers.UOffsetT(j_) * 4
+		x_ = rcv_._tab.Indirect(x_)
+		obj_.Init(rcv_._tab.Bytes, x_)
 		return true
 	}
 	return false
 }
 
-func (rcv *Edge) ByBoolByKey(obj *__Map_bool_string_Entry, key bool) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
-	if o != 0 {
-		x := rcv._tab.Vector(o)
-		return obj.LookupByKey(key, x, rcv._tab.Bytes)
+func (rcv_ *Edge) ByBoolByKey(obj_ *__Map_bool_string_Entry, key_ bool) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(24))
+	if o_ != 0 {
+		x_ := rcv_._tab.Vector(o_)
+		return obj_.LookupByKey(key_, x_, rcv_._tab.Bytes)
 	}
 	return false
 }
 
-func (rcv *Edge) ByBoolLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
+func (rcv_ *Edge) ByBoolLength() int {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(24))
+	if o_ != 0 {
+		return rcv_._tab.VectorLen(o_)
 	}
 	return 0
 }
 
-func (rcv *Edge) Bools(obj *__Set_bool_Entry, j int) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
-	if o != 0 {
-		x := rcv._tab.Vector(o)
-		x += flatbuffers.UOffsetT(j) * 4
-		x = rcv._tab.Indirect(x)
-		obj.Init(rcv._tab.Bytes, x)
+func (rcv_ *Edge) Bools(obj_ *__Set_bool_Entry, j_ int) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(26))
+	if o_ != 0 {
+		x_ := rcv_._tab.Vector(o_)
+		x_ += flatbuffers.UOffsetT(j_) * 4
+		x_ = rcv_._tab.Indirect(x_)
+		obj_.Init(rcv_._tab.Bytes, x_)
 		return true
 	}
 	return false
 }
 
-func (rcv *Edge) BoolsByKey(obj *__Set_bool_Entry, key bool) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
-	if o != 0 {
-		x := rcv._tab.Vector(o)
-		return obj.LookupByKey(key, x, rcv._tab.Bytes)
+func (rcv_ *Edge) BoolsByKey(obj_ *__Set_bool_Entry, key_ bool) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(26))
+	if o_ != 0 {
+		x_ := rcv_._tab.Vector(o_)
+		return obj_.LookupByKey(key_, x_, rcv_._tab.Bytes)
 	}
 	return false
 }
 
-func (rcv *Edge) BoolsLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
+func (rcv_ *Edge) BoolsLength() int {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(26))
+	if o_ != 0 {
+		return rcv_._tab.VectorLen(o_)
 	}
 	return 0
 }
 
-func (rcv *Edge) Leaves(obj *__Map_string_Leaf_Entry, j int) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(28))
-	if o != 0 {
-		x := rcv._tab.Vector(o)
-		x += flatbuffers.UOffsetT(j) * 4
-		x = rcv._tab.Indirect(x)
-		obj.Init(rcv._tab.Bytes, x)
+func (rcv_ *Edge) Leaves(obj_ *__Map_string_Leaf_Entry, j_ int) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(28))
+	if o_ != 0 {
+		x_ := rcv_._tab.Vector(o_)
+		x_ += flatbuffers.UOffsetT(j_) * 4
+		x_ = rcv_._tab.Indirect(x_)
+		obj_.Init(rcv_._tab.Bytes, x_)
 		return true
 	}
 	return false
 }
 
-func (rcv *Edge) LeavesByKey(obj *__Map_string_Leaf_Entry, key string) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(28))
-	if o != 0 {
-		x := rcv._tab.Vector(o)
-		return obj.LookupByKey(key, x, rcv._tab.Bytes)
+func (rcv_ *Edge) LeavesByKey(obj_ *__Map_string_Leaf_Entry, key_ string) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(28))
+	if o_ != 0 {
+		x_ := rcv_._tab.Vector(o_)
+		return obj_.LookupByKey(key_, x_, rcv_._tab.Bytes)
 	}
 	return false
 }
 
-func (rcv *Edge) LeavesLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(28))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
+func (rcv_ *Edge) LeavesLength() int {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(28))
+	if o_ != 0 {
+		return rcv_._tab.VectorLen(o_)
 	}
 	return 0
 }
 
-func (rcv *Edge) Req(j int) int32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(30))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return rcv._tab.GetInt32(a + flatbuffers.UOffsetT(j*4))
+func (rcv_ *Edge) Req(j_ int) int32 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(30))
+	if o_ != 0 {
+		a_ := rcv_._tab.Vector(o_)
+		return rcv_._tab.GetInt32(a_ + flatbuffers.UOffsetT(j_*4))
 	}
 	return 0
 }
 
-func (rcv *Edge) ReqLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(30))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
+func (rcv_ *Edge) ReqLength() int {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(30))
+	if o_ != 0 {
+		return rcv_._tab.VectorLen(o_)
 	}
 	return 0
 }
 
-func (rcv *Edge) MutateReq(j int, n int32) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(30))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return rcv._tab.MutateInt32(a+flatbuffers.UOffsetT(j*4), n)
+func (rcv_ *Edge) MutateReq(j_ int, n_ int32) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(30))
+	if o_ != 0 {
+		a_ := rcv_._tab.Vector(o_)
+		return rcv_._tab.MutateInt32(a_+flatbuffers.UOffsetT(j_*4), n_)
 	}
 	return false
 }
 
-func (rcv *Edge) NothingType() Empty {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(32))
-	if o != 0 {
-		return Empty(rcv._tab.GetByte(o + rcv._tab.Pos))
+func (rcv_ *Edge) NothingType() Empty {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(32))
+	if o_ != 0 {
+		return Empty(rcv_._tab.GetByte(o_ + rcv_._tab.Pos))
 	}
 	return 0
 }
 
-func (rcv *Edge) MutateNothingType(n Empty) bool {
-	return rcv._tab.MutateByteSlot(32, byte(n))
+func (rcv_ *Edge) MutateNothingType(n_ Empty) bool {
+	return rcv_._tab.MutateByteSlot(32, byte(n_))
 }
 
-func (rcv *Edge) Nothing(obj *flatbuffers.Table) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(34))
-	if o != 0 {
-		rcv._tab.Union(obj, o)
+func (rcv_ *Edge) Nothing(obj_ *flatbuffers.Table) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(34))
+	if o_ != 0 {
+		rcv_._tab.Union(obj_, o_)
 		return true
 	}
 	return false
 }
 
-func (rcv *Edge) Node(obj *Node) *Node {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(36))
-	if o != 0 {
-		x := rcv._tab.Indirect(o + rcv._tab.Pos)
-		if obj == nil {
-			obj = new(Node)
+func (rcv_ *Edge) Node(obj_ *Node) *Node {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(36))
+	if o_ != 0 {
+		x_ := rcv_._tab.Indirect(o_ + rcv_._tab.Pos)
+		if obj_ == nil {
+			obj_ = new(Node)
 		}
-		obj.Init(rcv._tab.Bytes, x)
-		return obj
+		obj_.Init(rcv_._tab.Bytes, x_)
+		return obj_
 	}
 	return nil
 }
 
-func EdgeStart(builder *flatbuffers.Builder) {
-	builder.StartObject(17)
+func EdgeStart(builder_ *flatbuffers.Builder) {
+	builder_.StartObject(17)
 }
-func EdgeAddMust(builder *flatbuffers.Builder, must flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(must), 0)
+func EdgeAddMust(builder_ *flatbuffers.Builder, must_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(must_), 0)
 }
-func EdgeAddNanF(builder *flatbuffers.Builder, nanF float32) {
-	builder.PrependFloat32Slot(1, nanF, float32(math.NaN()))
+func EdgeAddNanF(builder_ *flatbuffers.Builder, nanF_ float32) {
+	builder_.PrependFloat32Slot(1, nanF_, float32(math.NaN()))
 }
-func EdgeAddNanD(builder *flatbuffers.Builder, nanD float64) {
-	builder.PrependFloat64Slot(2, nanD, float64(math.NaN()))
+func EdgeAddNanD(builder_ *flatbuffers.Builder, nanD_ float64) {
+	builder_.PrependFloat64Slot(2, nanD_, float64(math.NaN()))
 }
-func EdgeAddZ(builder *flatbuffers.Builder, z float64) {
-	builder.PrependFloat64Slot(3, z, 0.0)
+func EdgeAddZ(builder_ *flatbuffers.Builder, z_ float64) {
+	builder_.PrependFloat64Slot(3, z_, 0.0)
 }
-func EdgeAddTop(builder *flatbuffers.Builder, top uint64) {
-	builder.PrependUint64Slot(4, top, 18446744073709551615)
+func EdgeAddTop(builder_ *flatbuffers.Builder, top_ uint64) {
+	builder_.PrependUint64Slot(4, top_, 18446744073709551615)
 }
-func EdgeAddFlag(builder *flatbuffers.Builder, flag bool) {
-	builder.PrependBoolSlot(5, flag, true)
+func EdgeAddFlag(builder_ *flatbuffers.Builder, flag_ bool) {
+	builder_.PrependBoolSlot(5, flag_, true)
 }
-func EdgeAddWide(builder *flatbuffers.Builder, wide Wide) {
-	builder.PrependUint64Slot(6, uint64(wide), 0)
+func EdgeAddWide(builder_ *flatbuffers.Builder, wide_ Wide) {
+	builder_.PrependUint64Slot(6, uint64(wide_), 0)
 }
-func EdgeAddPair(builder *flatbuffers.Builder, pair flatbuffers.UOffsetT) {
-	builder.PrependStructSlot(7, flatbuffers.UOffsetT(pair), 0)
+func EdgeAddPair(builder_ *flatbuffers.Builder, pair_ flatbuffers.UOffsetT) {
+	builder_.PrependStructSlot(7, flatbuffers.UOffsetT(pair_), 0)
 }
-func EdgeAddByBits(builder *flatbuffers.Builder, byBits flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(8, flatbuffers.UOffsetT(byBits), 0)
+func EdgeAddByBits(builder_ *flatbuffers.Builder, byBits_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(8, flatbuffers.UOffsetT(byBits_), 0)
 }
-func EdgeStartByBitsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(4, numElems, 4)
+func EdgeStartByBitsVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
+	return builder_.StartVector(4, numElems_, 4)
 }
-func EdgeAddPairs(builder *flatbuffers.Builder, pairs flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(9, flatbuffers.UOffsetT(pairs), 0)
+func EdgeAddPairs(builder_ *flatbuffers.Builder, pairs_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(9, flatbuffers.UOffsetT(pairs_), 0)
 }
-func EdgeStartPairsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(4, numElems, 4)
+func EdgeStartPairsVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
+	return builder_.StartVector(4, numElems_, 4)
 }
-func EdgeAddByBool(builder *flatbuffers.Builder, byBool flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(10, flatbuffers.UOffsetT(byBool), 0)
+func EdgeAddByBool(builder_ *flatbuffers.Builder, byBool_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(10, flatbuffers.UOffsetT(byBool_), 0)
 }
-func EdgeStartByBoolVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(4, numElems, 4)
+func EdgeStartByBoolVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
+	return builder_.StartVector(4, numElems_, 4)
 }
-func EdgeAddBools(builder *flatbuffers.Builder, bools flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(11, flatbuffers.UOffsetT(bools), 0)
+func EdgeAddBools(builder_ *flatbuffers.Builder, bools_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(11, flatbuffers.UOffsetT(bools_), 0)
 }
-func EdgeStartBoolsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(4, numElems, 4)
+func EdgeStartBoolsVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
+	return builder_.StartVector(4, numElems_, 4)
 }
-func EdgeAddLeaves(builder *flatbuffers.Builder, leaves flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(12, flatbuffers.UOffsetT(leaves), 0)
+func EdgeAddLeaves(builder_ *flatbuffers.Builder, leaves_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(12, flatbuffers.UOffsetT(leaves_), 0)
 }
-func EdgeStartLeavesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(4, numElems, 4)
+func EdgeStartLeavesVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
+	return builder_.StartVector(4, numElems_, 4)
 }
-func EdgeAddReq(builder *flatbuffers.Builder, req flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(13, flatbuffers.UOffsetT(req), 0)
+func EdgeAddReq(builder_ *flatbuffers.Builder, req_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(13, flatbuffers.UOffsetT(req_), 0)
 }
-func EdgeStartReqVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(4, numElems, 4)
+func EdgeStartReqVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
+	return builder_.StartVector(4, numElems_, 4)
 }
-func EdgeAddNothingType(builder *flatbuffers.Builder, nothingType Empty) {
-	builder.PrependByteSlot(14, byte(nothingType), 0)
+func EdgeAddNothingType(builder_ *flatbuffers.Builder, nothingType_ Empty) {
+	builder_.PrependByteSlot(14, byte(nothingType_), 0)
 }
-func EdgeAddNothing(builder *flatbuffers.Builder, nothing flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(15, flatbuffers.UOffsetT(nothing), 0)
+func EdgeAddNothing(builder_ *flatbuffers.Builder, nothing_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(15, flatbuffers.UOffsetT(nothing_), 0)
 }
-func EdgeAddNode(builder *flatbuffers.Builder, node flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(16, flatbuffers.UOffsetT(node), 0)
+func EdgeAddNode(builder_ *flatbuffers.Builder, node_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(16, flatbuffers.UOffsetT(node_), 0)
 }
-func EdgeEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	return builder.EndObject()
+func EdgeEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder_.EndObject()
 }
