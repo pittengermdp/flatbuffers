@@ -14,6 +14,7 @@ void Offset64VectorOfStructsMisaligned();
 void Offset64SizePrefix();
 void Offset64ManyVectors();
 void Offset64ForceAlign();
+void Offset64ObjectApiRoundTrip();
 
 }  // namespace tests
 }  // namespace flatbuffers

@@ -2,10 +2,14 @@
 
 #include <stdint.h>
 
+#include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <fstream>
 #include <limits>
+#include <memory>
 #include <ostream>
+#include <vector>
 
 #include "flatbuffers/base.h"
 #include "flatbuffers/buffer.h"
@@ -518,6 +522,87 @@ void Offset64ForceAlign() {
 
   // Finish the buffer.
   FinishRootTableBuffer(builder, root_table_offset);
+}
+
+void Offset64ObjectApiRoundTrip() {
+  // First pack a RootTable buffer to carry in the nested_root field.
+  std::vector<uint8_t> nested_data;
+  {
+    RootTableT nested;
+    nested.near_string = "nested: some near string";
+
+    FlatBufferBuilder64 nested_builder;
+    FinishRootTableBuffer(nested_builder,
+                          RootTable::Pack(nested_builder, &nested));
+    nested_data.assign(
+        nested_builder.GetBufferPointer(),
+        nested_builder.GetBufferPointer() + nested_builder.GetSize());
+  }
+
+  // Populate every field, so Pack() has to interleave the 64-bit fields with
+  // the 32-bit near_string and many_vectors in declaration order.
+  RootTableT original;
+  original.far_vector = {4, 0, 0, 2};
+  original.a = 42;
+  original.far_string = "some far string";
+  original.big_bool_vector = {1, 0, 1, 1, 0, 0, 1};
+  original.big_vector = {8, 0, 0, 3};
+  original.near_string = "some near string";
+  original.nested_root = nested_data;
+  original.far_struct_vector = {LeafStruct(1, 1.5), LeafStruct(2, 2.5)};
+  original.big_struct_vector = {LeafStruct(3, 3.5), LeafStruct(4, 4.5)};
+  // WrapperTableT::vector stays empty: a child table is packed in the parent's
+  // 32-bit phase, after which no 64-bit object can be added. See
+  // Offset64ManyVectors for building that shape with the builder API.
+  for (int i = 0; i < 3; ++i) {
+    original.many_vectors.push_back(
+        std::unique_ptr<WrapperTableT>(new WrapperTableT()));
+  }
+  original.forced_aligned_vector = {1, 2, 3};
+
+  FlatBufferBuilder64 builder;
+  FinishRootTableBuffer(builder, RootTable::Pack(builder, &original));
+
+  Verifier::Options options;
+  // Allow the verifier to verify 64-bit buffers.
+  options.max_size = FLATBUFFERS_MAX_64_BUFFER_SIZE;
+  options.assert = true;
+
+  Verifier verifier(builder.GetBufferPointer(), builder.GetSize(), options);
+
+  TEST_EQ(VerifyRootTableBuffer(verifier), true);
+
+  const uint8_t* const buf = builder.GetBufferPointer();
+  const RootTable* root_table = GetRootTable(buf);
+
+  // The builder writes back to front, so whatever is serialized first sits at
+  // the highest address. Every 64-bit object must lie above every 32-bit one.
+  // Checking the layout directly keeps this test meaningful in Release, where
+  // the builder's own ordering assertion is compiled out.
+  const auto addr = [](const void* p) {
+    return reinterpret_cast<const uint8_t*>(p);
+  };
+  const uint8_t* const lowest_64_bit = std::min(
+      {addr(root_table->far_vector()), addr(root_table->far_string()),
+       addr(root_table->big_bool_vector()), addr(root_table->big_vector()),
+       addr(root_table->nested_root()), addr(root_table->far_struct_vector()),
+       addr(root_table->big_struct_vector()),
+       addr(root_table->forced_aligned_vector())});
+  const uint8_t* highest_32_bit = std::max(addr(root_table->near_string()),
+                                           addr(root_table->many_vectors()));
+  for (const WrapperTable* wrapper : *root_table->many_vectors()) {
+    highest_32_bit = std::max(highest_32_bit, addr(wrapper));
+  }
+  TEST_ASSERT(highest_32_bit < lowest_64_bit);
+
+  // force_align:32 holds relative to the start of the finished buffer.
+  const ptrdiff_t forced_aligned_offset =
+      root_table->forced_aligned_vector()->data() - buf;
+  TEST_EQ(forced_aligned_offset % 32, static_cast<ptrdiff_t>(0));
+
+  const std::unique_ptr<RootTableT> unpacked = UnPackRootTable(buf);
+  TEST_NOTNULL(unpacked.get());
+  TEST_ASSERT(*unpacked == original);
 }
 
 }  // namespace tests
