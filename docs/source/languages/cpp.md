@@ -359,6 +359,31 @@ schema, as well as a lot of helper functions.
 And example of usage, for the time being, can be found in
 `test.cpp/ReflectionTest()`.
 
+### Verifying with reflection
+
+`flatbuffers::Verify()` checks an untrusted buffer against a binary schema the
+way the generated `Verify<Root>Buffer()` checks it against generated code
+(except for the file identifier), and `flatbuffers::VerifySizePrefixed()` does
+the same for a size-prefixed buffer. Both have overloads that take a
+`Verifier::Options`.
+
+A buffer finished with `FlatBufferBuilder64` needs both of these, as generated
+code does for any schema with an `offset64` or `vector64` field:
+
+- Its size prefix is 64 bits wide, so name that width in the template argument.
+  Read the root back with the same width.
+- It can be larger than the default `max_size`, so raise it. A length at or
+  above `max_size` fails verification.
+
+```cpp
+flatbuffers::Verifier::Options opts;
+opts.max_size = FLATBUFFERS_MAX_64_BUFFER_SIZE;
+if (flatbuffers::VerifySizePrefixed<flatbuffers::uoffset64_t>(
+        *schema, *schema->root_table(), buf, size, opts)) {
+  auto root = flatbuffers::GetAnySizePrefixedRoot<flatbuffers::uoffset64_t>(buf);
+}
+```
+
 ## Mini Reflection
 
 A more limited form of reflection is available for direct inclusion in

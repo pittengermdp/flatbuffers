@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <fstream>
 #include <limits>
@@ -525,7 +526,10 @@ void Offset64ForceAlign() {
 // Packs a RootTable with every 64-bit offset field set. near_string and
 // many_vectors stay empty: Pack() serializes them ahead of the 64-bit
 // nested_root and forced_aligned_vector, which the builder does not allow.
-static std::vector<uint8_t> PackRootTableWith64BitFields() {
+// With size_prefixed, the buffer starts with FlatBufferBuilder64's 64-bit size
+// prefix.
+static std::vector<uint8_t> PackRootTableWith64BitFields(
+    const bool size_prefixed = false) {
   RootTableT nested;
   nested.a = 7;
   FlatBufferBuilder64 nested_fbb;
@@ -544,28 +548,63 @@ static std::vector<uint8_t> PackRootTableWith64BitFields() {
   root.forced_aligned_vector = {8, 9};
 
   FlatBufferBuilder64 fbb;
-  FinishRootTableBuffer(fbb, RootTable::Pack(fbb, &root));
+  const Offset<RootTable> root_offset = RootTable::Pack(fbb, &root);
+  if (size_prefixed) {
+    FinishSizePrefixedRootTableBuffer(fbb, root_offset);
+  } else {
+    FinishRootTableBuffer(fbb, root_offset);
+  }
   std::vector<uint8_t> buf(fbb.GetBufferPointer(),
                            fbb.GetBufferPointer() + fbb.GetSize());
 
-  const std::unique_ptr<RootTableT> unpacked(
-      GetRootTable(buf.data())->UnPack());
+  const RootTable* const table = size_prefixed
+                                     ? GetSizePrefixedRootTable(buf.data())
+                                     : GetRootTable(buf.data());
+  const std::unique_ptr<RootTableT> unpacked(table->UnPack());
   TEST_ASSERT(*unpacked == root);
   return buf;
 }
 
-static bool GeneratedVerify(const std::vector<uint8_t>& buf) {
+static Verifier::Options OptionsWithMaxSize(const size_t max_size) {
   Verifier::Options options;
-  // Allow the verifier to verify 64-bit buffers.
-  options.max_size = FLATBUFFERS_MAX_64_BUFFER_SIZE;
-  Verifier verifier(buf.data(), buf.size(), options);
+  options.max_size = max_size;
+  return options;
+}
+
+// The verifier options a FlatBufferBuilder64 buffer needs: one may be larger
+// than the default max_size, FLATBUFFERS_MAX_BUFFER_SIZE.
+static Verifier::Options Options64() {
+  return OptionsWithMaxSize(FLATBUFFERS_MAX_64_BUFFER_SIZE);
+}
+
+static bool GeneratedVerify(const std::vector<uint8_t>& buf) {
+  Verifier verifier(buf.data(), buf.size(), Options64());
   return VerifyRootTableBuffer(verifier);
+}
+
+static bool GeneratedVerifySizePrefixed(const std::vector<uint8_t>& buf) {
+  Verifier verifier(buf.data(), buf.size(), Options64());
+  return VerifySizePrefixedRootTableBuffer(verifier);
+}
+
+// The RootTable schema embedded by --bfbs-gen-embed, verified before use.
+static const reflection::Schema& RootTableSchema() {
+  Verifier schema_verifier(RootTable::BinarySchema::data(),
+                           RootTable::BinarySchema::size());
+  TEST_EQ(reflection::VerifySchemaBuffer(schema_verifier), true);
+  return *reflection::GetSchema(RootTable::BinarySchema::data());
 }
 
 static bool ReflectionVerify(const reflection::Schema& schema,
                              const std::vector<uint8_t>& buf) {
   return flatbuffers::Verify(schema, *schema.root_table(), buf.data(),
                              buf.size());
+}
+
+static bool ReflectionVerifySizePrefixed(const reflection::Schema& schema,
+                                         const std::vector<uint8_t>& buf) {
+  return flatbuffers::VerifySizePrefixed<uoffset64_t>(
+      schema, *schema.root_table(), buf.data(), buf.size(), Options64());
 }
 
 // Adds 2^32 to the 64-bit value at `p`. A verifier that reads only the low 32
@@ -575,11 +614,7 @@ static void SetHighWord(uint8_t* const p) {
 }
 
 void Offset64ReflectionVerify() {
-  Verifier schema_verifier(RootTable::BinarySchema::data(),
-                           RootTable::BinarySchema::size());
-  TEST_EQ(reflection::VerifySchemaBuffer(schema_verifier), true);
-  const reflection::Schema& schema =
-      *reflection::GetSchema(RootTable::BinarySchema::data());
+  const reflection::Schema& schema = RootTableSchema();
   const auto* const fields = schema.root_table()->fields();
 
   // The two shapes a 64-bit offset takes in a schema: a Vector64 base type,
@@ -662,6 +697,111 @@ void Offset64ReflectionVerifyRequired() {
                                 fbb.GetSize()),
             !has_required);
   }
+}
+
+void Offset64ReflectionVerifySizePrefixed() {
+  const reflection::Schema& schema = RootTableSchema();
+  const reflection::Object& root = *schema.root_table();
+  const std::vector<uint8_t> buf =
+      PackRootTableWith64BitFields(/*size_prefixed=*/true);
+  // FlatBufferBuilder64 writes a 64-bit size prefix.
+  TEST_EQ(GetPrefixedSize<uoffset64_t>(buf.data()),
+          buf.size() - sizeof(uoffset64_t));
+  TEST_EQ(GeneratedVerifySizePrefixed(buf), true);
+  TEST_EQ(ReflectionVerifySizePrefixed(schema, buf), true);
+  // The root it verified is the one the generated accessor reads.
+  TEST_EQ(GetAnySizePrefixedRoot<uoffset64_t>(buf.data()),
+          reinterpret_cast<const Table*>(GetSizePrefixedRootTable(buf.data())));
+
+  // Read with a 32-bit prefix, the root offset is the prefix's high word: 0.
+  TEST_EQ(flatbuffers::VerifySizePrefixed(schema, root, buf.data(), buf.size()),
+          false);
+  TEST_EQ(flatbuffers::VerifySizePrefixed<uoffset_t>(schema, root, buf.data(),
+                                                     buf.size(), Options64()),
+          false);
+
+  // Everything after the prefix overwritten.
+  std::vector<uint8_t> garbage = buf;
+  std::fill(garbage.begin() + sizeof(uoffset64_t), garbage.end(), 0xAB);
+  TEST_EQ(GeneratedVerifySizePrefixed(garbage), false);
+  TEST_EQ(ReflectionVerifySizePrefixed(schema, garbage), false);
+  TEST_EQ(flatbuffers::VerifySizePrefixed(schema, root, garbage.data(),
+                                          garbage.size()),
+          false);
+
+  // A prefix that claims one byte more than follows it.
+  std::vector<uint8_t> long_prefix = buf;
+  WriteScalar<uoffset64_t>(long_prefix.data(),
+                           buf.size() - sizeof(uoffset64_t) + 1);
+  TEST_EQ(GeneratedVerifySizePrefixed(long_prefix), false);
+  TEST_EQ(ReflectionVerifySizePrefixed(schema, long_prefix), false);
+
+  // A prefix past the end of any buffer, which wraps to 0 when its own width
+  // is added to it.
+  std::vector<uint8_t> wrapping_prefix = buf;
+  WriteScalar<uoffset64_t>(
+      wrapping_prefix.data(),
+      std::numeric_limits<uoffset64_t>::max() - sizeof(uoffset64_t) + 1);
+  TEST_EQ(GeneratedVerifySizePrefixed(wrapping_prefix), false);
+  TEST_EQ(ReflectionVerifySizePrefixed(schema, wrapping_prefix), false);
+}
+
+void Offset64ReflectionVerifyRoot() {
+  const reflection::Schema& schema = RootTableSchema();
+  const std::vector<uint8_t> buf = PackRootTableWith64BitFields();
+
+  // A root offset of 0, which puts the root table on the offset itself.
+  std::vector<uint8_t> zero_root = buf;
+  WriteScalar<uoffset_t>(zero_root.data(), 0);
+  TEST_EQ(GeneratedVerify(zero_root), false);
+  TEST_EQ(ReflectionVerify(schema, zero_root), false);
+
+  // Shorter than the smallest flatbuffer, with an in-bounds root offset.
+  // Written as bytes because no builder produces it.
+  const std::vector<uint8_t> too_short = {4, 0, 0, 0, 0, 0, 0, 0};
+  TEST_EQ(too_short.size() < FLATBUFFERS_MIN_BUFFER_SIZE, true);
+  TEST_EQ(GeneratedVerify(too_short), false);
+  TEST_EQ(ReflectionVerify(schema, too_short), false);
+}
+
+void Offset64ReflectionVerifyMaxSize() {
+  const reflection::Schema& schema = RootTableSchema();
+  const reflection::Object& root = *schema.root_table();
+  const std::vector<uint8_t> buf = PackRootTableWith64BitFields();
+  const std::vector<uint8_t> prefixed =
+      PackRootTableWith64BitFields(/*size_prefixed=*/true);
+
+  // max_size bounds the length exclusively, as the Verifier constructor
+  // asserts; reflection rejects a length at the bound instead of asserting.
+  TEST_EQ(flatbuffers::Verify(schema, root, buf.data(), buf.size(),
+                              OptionsWithMaxSize(buf.size())),
+          false);
+  TEST_EQ(flatbuffers::Verify(schema, root, buf.data(), buf.size(),
+                              OptionsWithMaxSize(buf.size() + 1)),
+          true);
+  TEST_EQ(flatbuffers::VerifySizePrefixed<uoffset64_t>(
+              schema, root, prefixed.data(), prefixed.size(),
+              OptionsWithMaxSize(prefixed.size())),
+          false);
+  TEST_EQ(flatbuffers::VerifySizePrefixed<uoffset64_t>(
+              schema, root, prefixed.data(), prefixed.size(),
+              OptionsWithMaxSize(prefixed.size() + 1)),
+          true);
+
+  // A FlatBufferBuilder64 buffer may be larger than the default max_size,
+  // FLATBUFFERS_MAX_BUFFER_SIZE. Allocating one is too slow for a unit test,
+  // so claim that length for a valid buffer instead. Nothing past its real end
+  // is read: the default options reject the length before reading anything,
+  // and otherwise the verifier reads only where the buffer's offsets lead.
+  const size_t big = static_cast<size_t>(FLATBUFFERS_MAX_BUFFER_SIZE) + 1;
+  TEST_EQ(flatbuffers::Verify(schema, root, buf.data(), big), false);
+  TEST_EQ(flatbuffers::VerifySizePrefixed(schema, root, prefixed.data(), big),
+          false);
+  TEST_EQ(flatbuffers::Verify(schema, root, buf.data(), big, Options64()),
+          true);
+  TEST_EQ(flatbuffers::VerifySizePrefixed<uoffset64_t>(
+              schema, root, prefixed.data(), big, Options64()),
+          true);
 }
 
 }  // namespace tests

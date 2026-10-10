@@ -208,23 +208,33 @@ class VerifierTemplate FLATBUFFERS_FINAL_CLASS {
     return Check((vsize & 1) == 0) && Verify(vtableo, vsize);
   }
 
-  template <typename T>
-  bool VerifyBufferFromStart(const char* const identifier, const size_t start) {
+  // Verifies everything ahead of the root table of the buffer that starts
+  // `start` bytes in: its size, its identifier if one is given, and its root
+  // offset. Returns the root table's position, or 0 on failure.
+  size_t VerifyBufferStart(const char* const identifier,
+                           const size_t start) const {
     // Buffers have to be of some size to be valid. The reason it is a runtime
     // check instead of static_assert, is that nested flatbuffers go through
     // this call and their size is determined at runtime.
-    if (!Check(size_ >= FLATBUFFERS_MIN_BUFFER_SIZE)) return false;
+    if (!Check(size_ >= FLATBUFFERS_MIN_BUFFER_SIZE)) return 0;
 
     // If an identifier is provided, check that we have a buffer
     if (identifier && !Check((size_ >= 2 * sizeof(flatbuffers::uoffset_t) &&
                               BufferHasIdentifier(buf_ + start, identifier)))) {
-      return false;
+      return 0;
     }
 
-    // Call T::Verify, which must be in the generated code for this type.
     const auto o = VerifyOffset<uoffset_t>(start);
-    if (!Check(o != 0)) return false;
-    if (!(reinterpret_cast<const T*>(buf_ + start + o)->Verify(*this))) {
+    if (!Check(o != 0)) return 0;
+    return start + o;
+  }
+
+  template <typename T>
+  bool VerifyBufferFromStart(const char* const identifier, const size_t start) {
+    const size_t root = VerifyBufferStart(identifier, start);
+    if (root == 0) return false;
+    // Call T::Verify, which must be in the generated code for this type.
+    if (!(reinterpret_cast<const T*>(buf_ + root)->Verify(*this))) {
       return false;
     }
     if (TrackVerifierBufferSize) {
@@ -261,12 +271,19 @@ class VerifierTemplate FLATBUFFERS_FINAL_CLASS {
     return VerifyBufferFromStart<T>(identifier, 0);
   }
 
-  template <typename T, typename SizeT = uoffset_t>
-  bool VerifySizePrefixedBuffer(const char* const identifier) {
+  // Verifies the SizeT size prefix at the start of the buffer.
+  template <typename SizeT = uoffset_t>
+  bool VerifySizePrefix() const {
     return Verify<SizeT>(0U) &&
            // Ensure the prefixed size is within the bounds of the provided
-           // length.
-           Check(ReadScalar<SizeT>(buf_) + sizeof(SizeT) <= size_) &&
+           // length. Verify<SizeT>() leaves more than sizeof(SizeT) bytes, so
+           // the subtraction cannot wrap, where adding to a 64-bit prefix can.
+           Check(ReadScalar<SizeT>(buf_) <= size_ - sizeof(SizeT));
+  }
+
+  template <typename T, typename SizeT = uoffset_t>
+  bool VerifySizePrefixedBuffer(const char* const identifier) {
+    return VerifySizePrefix<SizeT>() &&
            VerifyBufferFromStart<T>(identifier, sizeof(SizeT));
   }
 
