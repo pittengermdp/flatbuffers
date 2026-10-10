@@ -350,8 +350,14 @@ static size_t BuildFarStructVector(FlatBufferBuilder64& builder,
   const std::vector<LeafStruct> leaves{LeafStruct{123, 4.567},
                                        LeafStruct{987, 6.543}};
 
-  // Start 4 bytes past an 8-byte boundary.
-  builder.Pad(sizeof(uint32_t));
+  // Start 4 bytes past an 8-byte boundary. Everything before a 64-bit-offset
+  // object must be in the 64-bit region too: Pad() would put the 4 bytes in
+  // the 32-bit region, which the builder asserts against (in a build with
+  // assertions on). An unreferenced 64-bit vector -- 8 bytes of data and a
+  // 4-byte length -- leaves the builder 12 bytes in, inside that region.
+  const std::vector<uint8_t> filler(8, 0);
+  builder.CreateVector64<Vector>(filler);
+  TEST_EQ(builder.GetSize() % AlignOf<LeafStruct>(), sizeof(uint32_t));
 
   // CreateVectorOfStructs64<Vector>() with a caller-chosen element alignment.
   builder.StartVector<Offset64, uint32_t>(leaves.size(), sizeof(LeafStruct),
