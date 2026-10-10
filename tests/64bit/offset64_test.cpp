@@ -343,6 +343,60 @@ void Offset64VectorOfStructs() {
   TEST_EQ(root_table->big_struct_vector()->Get(2)->b(), 92.8);
 }
 
+// Serializes a RootTable whose far_struct_vector elements are aligned to
+// `elem_align`, and returns the offset of the element data in the buffer.
+static size_t BuildFarStructVector(FlatBufferBuilder64& builder,
+                                   const size_t elem_align) {
+  const std::vector<LeafStruct> leaves{LeafStruct{123, 4.567},
+                                       LeafStruct{987, 6.543}};
+
+  // Start 4 bytes past an 8-byte boundary.
+  builder.Pad(sizeof(uint32_t));
+
+  // CreateVectorOfStructs64<Vector>() with a caller-chosen element alignment.
+  builder.StartVector<Offset64, uint32_t>(leaves.size(), sizeof(LeafStruct),
+                                          elem_align);
+  builder.PushBytes(reinterpret_cast<const uint8_t*>(leaves.data()),
+                    sizeof(LeafStruct) * leaves.size());
+  const Offset64<Vector<const LeafStruct*>> far_struct_vector(
+      builder.EndVector<uint32_t, uoffset64_t>(leaves.size()));
+
+  RootTableBuilder root_table_builder(builder);
+  root_table_builder.add_far_struct_vector(far_struct_vector);
+  builder.Finish(root_table_builder.Finish());
+
+  const uint8_t* const buf = builder.GetBufferPointer();
+  return static_cast<size_t>(GetRootTable(buf)->far_struct_vector()->Data() -
+                             buf);
+}
+
+void Offset64VectorOfStructsMisaligned() {
+  Verifier::Options options;
+  // Allow the verifier to verify 64-bit buffers.
+  options.max_size = FLATBUFFERS_MAX_64_BUFFER_SIZE;
+  const auto verifies = [](const FlatBufferBuilder64& builder,
+                           const Verifier::Options& opts) {
+    Verifier verifier(builder.GetBufferPointer(), builder.GetSize(), opts);
+    return VerifyRootTableBuffer(verifier);
+  };
+
+  FlatBufferBuilder64 aligned;
+  const size_t aligned_offset =
+      BuildFarStructVector(aligned, AlignOf<LeafStruct>());
+  TEST_EQ(aligned_offset % AlignOf<LeafStruct>(), 0u);
+  TEST_EQ(verifies(aligned, options), true);
+
+  // Elements at 4 mod 8: the length prefix is aligned, the element data is not.
+  FlatBufferBuilder64 misaligned;
+  const size_t misaligned_offset =
+      BuildFarStructVector(misaligned, sizeof(uint32_t));
+  TEST_EQ(misaligned_offset % AlignOf<LeafStruct>(), sizeof(uint32_t));
+  TEST_EQ(verifies(misaligned, options), false);
+
+  options.check_alignment = false;
+  TEST_EQ(verifies(misaligned, options), true);
+}
+
 void Offset64SizePrefix() {
   FlatBufferBuilder64 builder;
 
