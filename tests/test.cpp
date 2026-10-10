@@ -2171,6 +2171,7 @@ int FlatBufferTests(const std::string& tests_data_path) {
   ReflectionTest(tests_data_path, flatbuf.data(), flatbuf.size());
   ForAllFieldsReverseTest(tests_data_path);
   CopyTableUnionTest(tests_data_path);
+  ResizeContextUnionTest(tests_data_path);
   ParseProtoTest(tests_data_path);
   EvolutionTest(tests_data_path);
   UnionDeprecationTest(tests_data_path);
