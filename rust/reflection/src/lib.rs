@@ -754,10 +754,6 @@ pub unsafe fn set_string(
     v: &str,
     schema: &Schema,
 ) -> FlatbufferResult<()> {
-    if v.is_empty() {
-        return Ok(());
-    }
-
     let field_type = field.type_().base_type();
     if field_type != BaseType::String {
         return Err(FlatbufferError::FieldTypeMismatch(

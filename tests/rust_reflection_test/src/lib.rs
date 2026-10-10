@@ -1534,6 +1534,33 @@ fn test_buffer_set_string_shrink_by_less_than_eight_succeeds() {
 }
 
 #[test]
+fn test_buffer_set_string_to_empty_succeeds() {
+    // Clearing a string is a size change like any other: "Fred" shrinks within
+    // its padding, and "MyMonster" shrinks the buffer by 8 bytes.
+    let schema_buffer = load_file_as_buffer("../monster_test.bfbs");
+    let schema = root_as_schema(schema_buffer.as_slice()).unwrap();
+    let string_field = get_schema_field(&schema_buffer, "name");
+
+    for name in ["Fred", "MyMonster"] {
+        let original = my_game::example::MonsterT {
+            name: String::from(name),
+            ..Default::default()
+        };
+        let original_bytes = pack_monster(&original);
+        let mut buffer = original_bytes.clone();
+        let table_loc = unsafe { get_any_root(&buffer) }.loc();
+
+        let res = unsafe { set_string(&mut buffer, table_loc, &string_field, "", &schema) };
+
+        assert_eq!(res, Ok(()));
+        assert_unpacks_to_original(&buffer, &original_bytes, |monster| {
+            assert_eq!(monster.name, "");
+            monster.name = original.name.clone();
+        });
+    }
+}
+
+#[test]
 fn test_create_safe_buffer_default_options_succeeds() {
     let buffer = create_test_buffer();
     let schema_buffer = load_file_as_buffer("../monster_test.bfbs");
