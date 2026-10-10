@@ -390,165 +390,162 @@ func (*RootT) FlatJSONSchema() (file, definition string) {
 
 // MarshalFlatJSON returns t as canonical FlatBuffers JSON.
 func (t *RootT) MarshalFlatJSON() ([]byte, error) {
-	w := flatbuffers.NewJSONWriter()
-	t.WriteFlatJSON(w)
+	w_ := flatbuffers.NewJSONWriter()
+	t.WriteFlatJSON(w_)
 
-	return w.Bytes()
+	return w_.Bytes()
 }
 
-// WriteFlatJSON writes t to w as canonical FlatBuffers JSON.
-func (t *RootT) WriteFlatJSON(w *flatbuffers.JSONWriter) {
+// WriteFlatJSON writes t to w_ as canonical FlatBuffers JSON.
+func (t *RootT) WriteFlatJSON(w_ *flatbuffers.JSONWriter) {
 	if t == nil {
-		w.Null()
+		w_.Null()
 
 		return
 	}
 
-	w.BeginObject()
-	w.Key("name")
-	w.String(t.Name)
+	w_.BeginObject()
+	w_.Key("name")
+	w_.String(t.Name)
 	if t.Flags != 5 {
-		w.Key("flags")
-		flatbuffers.WriteJSONBitFlags(w, t.Flags, CanonicalJsonInc.EnumNamesFlags)
+		w_.Key("flags")
+		flatbuffers.WriteJSONBitFlags(w_, t.Flags, CanonicalJsonInc.EnumNamesFlags)
 	}
 	if t.Mode != 7 {
-		w.Key("mode")
-		flatbuffers.WriteJSONEnum(w, t.Mode, CanonicalJsonInc.EnumNamesMode)
+		w_.Key("mode")
+		flatbuffers.WriteJSONEnum(w_, t.Mode, CanonicalJsonInc.EnumNamesMode)
 	}
 	if t.Cars != 3 {
-		w.Key("cars")
-		w.Uint(uint64(t.Cars))
+		w_.Key("cars")
+		w_.Uint(uint64(t.Cars))
 	}
 	if t.Ratio != 0.5 {
-		w.Key("ratio")
-		w.Float64(t.Ratio)
+		w_.Key("ratio")
+		w_.Float64(t.Ratio)
 	}
 	if t.Big != 7 {
-		w.Key("big")
-		w.UintString(t.Big)
+		w_.Key("big")
+		w_.UintString(t.Big)
 	}
 	if t.Neg != 0 {
-		w.Key("neg")
-		w.IntString(t.Neg)
+		w_.Key("neg")
+		w_.IntString(t.Neg)
 	}
 	if t.MaybeBig != nil {
-		w.Key("maybe_big")
-		w.IntString(*t.MaybeBig)
+		w_.Key("maybe_big")
+		w_.IntString(*t.MaybeBig)
 	}
 	if len(t.Bigs) > 0 {
-		w.Key("bigs")
-		w.BeginArray()
+		w_.Key("bigs")
+		w_.BeginArray()
 
-		for _, e := range t.Bigs {
-			w.IntString(e)
+		for _, e_ := range t.Bigs {
+			w_.IntString(e_)
 		}
 
-		w.EndArray()
+		w_.EndArray()
 	}
 	if len(t.Tags) > 0 {
-		w.Key("tags")
-		w.BeginArray()
+		w_.Key("tags")
+		w_.BeginArray()
 
-		for _, e := range t.Tags {
-			w.String(e)
+		for _, e_ := range t.Tags {
+			w_.String(e_)
 		}
 
-		w.EndArray()
+		w_.EndArray()
 	}
 	if len(t.Scores) > 0 {
-		w.Key("scores")
-		w.BeginObject()
+		w_.Key("scores")
+		w_.BeginObject()
 
-		for _, k := range flatbuffers.JSONMapKeys(t.Scores) {
-			w.Key(k)
-			w.IntString(t.Scores[k])
+		for _, k_ := range flatbuffers.JSONMapKeys(t.Scores) {
+			w_.MapKey(k_)
+			w_.IntString(t.Scores[k_])
 		}
 
-		w.EndObject()
+		w_.EndObject()
 	}
 	if len(t.ByMode) > 0 {
-		w.Key("by_mode")
-		w.BeginObject()
+		w_.Key("by_mode")
+		w_.BeginObject()
 
-		for _, k := range flatbuffers.JSONMapKeys(t.ByMode) {
-			w.Key(flatbuffers.JSONEnumKey(k, CanonicalJsonInc.EnumNamesMode))
-			w.String(t.ByMode[k])
+		for _, k_ := range flatbuffers.JSONMapKeys(t.ByMode) {
+			w_.MapKey(flatbuffers.JSONEnumKey(k_, CanonicalJsonInc.EnumNamesMode))
+			w_.String(t.ByMode[k_])
 		}
 
-		w.EndObject()
+		w_.EndObject()
 	}
 	if len(t.Seen) > 0 {
-		w.Key("seen")
-		w.BeginArray()
+		w_.Key("seen")
+		w_.BeginArray()
 
-		for _, k := range flatbuffers.JSONMapKeys(t.Seen) {
-			w.UintString(k)
+		for _, k_ := range flatbuffers.JSONMapKeys(t.Seen) {
+			w_.UintString(k_)
 		}
 
-		w.EndArray()
+		w_.EndArray()
 	}
 	if t.Pt != nil {
-		w.Key("pt")
-		t.Pt.WriteFlatJSON(w)
+		w_.Key("pt")
+		t.Pt.WriteFlatJSON(w_)
 	}
-	if t.Payload != nil && t.Payload.Type != 0 {
-		w.Key("payload_type")
-		t.Payload.WriteFlatJSONType(w)
-
-		if t.Payload.Value != nil {
-			w.Key("payload")
-			t.Payload.WriteFlatJSONValue(w)
-		}
+	if t.Payload != nil && t.Payload.Type != 0 && t.Payload.Value != nil {
+		w_.Key("payload_type")
+		t.Payload.WriteFlatJSONType(w_)
+		w_.Key("payload")
+		t.Payload.WriteFlatJSONValue(w_)
 	}
 	if t.Leaf != nil {
-		w.Key("leaf")
-		t.Leaf.WriteFlatJSON(w)
+		w_.Key("leaf")
+		t.Leaf.WriteFlatJSON(w_)
 	}
 	if len(t.Leaves) > 0 {
-		w.Key("leaves")
-		w.BeginArray()
+		w_.Key("leaves")
+		w_.BeginArray()
 
-		for _, e := range t.Leaves {
-			e.WriteFlatJSON(w)
+		for _, e_ := range t.Leaves {
+			e_.WriteFlatJSON(w_)
 		}
 
-		w.EndArray()
+		w_.EndArray()
 	}
 	if len(t.Pts) > 0 {
-		w.Key("pts")
-		w.BeginArray()
+		w_.Key("pts")
+		w_.BeginArray()
 
-		for _, e := range t.Pts {
-			e.WriteFlatJSON(w)
+		for _, e_ := range t.Pts {
+			e_.WriteFlatJSON(w_)
 		}
 
-		w.EndArray()
+		w_.EndArray()
 	}
-	w.EndObject()
+	w_.EndObject()
 }
 
 // UnmarshalFlatJSON replaces t with the value the canonical FlatBuffers
-// JSON in data describes; an absent scalar takes its schema default.
-func (t *RootT) UnmarshalFlatJSON(data []byte) error {
-	v, err := flatbuffers.ParseJSON(data)
-	if err != nil {
-		return err
+// JSON in data_ describes; an absent scalar takes its schema default.
+func (t *RootT) UnmarshalFlatJSON(data_ []byte) error {
+	v_, err_ := flatbuffers.ParseJSON(data_)
+	if err_ != nil {
+		return err_
 	}
 
-	return t.UnmarshalFlatJSONValue(v, "")
+	return t.UnmarshalFlatJSONValue(v_, "")
 }
 
 // UnmarshalFlatJSONValue is UnmarshalFlatJSON for a value
-// flatbuffers.ParseJSON has already parsed; pointer locates it in errors.
-func (t *RootT) UnmarshalFlatJSONValue(v any, pointer string) error {
-	m, err := flatbuffers.JSONObject(v, pointer)
-	if err != nil {
-		return err
+// flatbuffers.ParseJSON has already parsed; pointer_ locates it in errors.
+func (t *RootT) UnmarshalFlatJSONValue(v_ any, pointer_ string) error {
+	m_, err_ := flatbuffers.JSONObject(v_, pointer_)
+	if err_ != nil {
+		return err_
 	}
 
-	err = flatbuffers.JSONCheckMembers(m, pointer, "name", "flags", "mode", "cars", "ratio", "big", "neg", "maybe_big", "bigs", "tags", "scores", "by_mode", "seen", "pt", "payload_type", "payload", "leaf", "leaves", "pts")
-	if err != nil {
-		return err
+	err_ = flatbuffers.JSONCheckMembers(m_, pointer_, "name", "flags", "mode", "cars", "ratio", "big", "neg", "maybe_big", "bigs", "tags", "scores", "by_mode", "seen", "pt", "payload_type", "payload", "leaf", "leaves", "pts")
+	if err_ != nil {
+		return err_
 	}
 
 	*t = RootT{}
@@ -558,197 +555,197 @@ func (t *RootT) UnmarshalFlatJSONValue(v any, pointer string) error {
 	t.Ratio = 0.5
 	t.Big = 7
 
-	if x, ok := flatbuffers.JSONMember(m, "name"); ok {
-		if t.Name, err = flatbuffers.JSONString(x, flatbuffers.JSONPointer(pointer, "name")); err != nil {
-			return err
+	if x_, ok_ := flatbuffers.JSONMember(m_, "name"); ok_ {
+		if t.Name, err_ = flatbuffers.JSONString(x_, flatbuffers.JSONPointer(pointer_, "name")); err_ != nil {
+			return err_
 		}
 	} else {
-		return flatbuffers.JSONRequired(pointer, "name")
+		return flatbuffers.JSONRequired(pointer_, "name")
 	}
-	if x, ok := flatbuffers.JSONMember(m, "flags"); ok {
-		if t.Flags, err = flatbuffers.JSONBitFlags(x, flatbuffers.JSONPointer(pointer, "flags"), CanonicalJsonInc.EnumValuesFlags); err != nil {
-			return err
+	if x_, ok_ := flatbuffers.JSONMember(m_, "flags"); ok_ {
+		if t.Flags, err_ = flatbuffers.JSONBitFlags(x_, flatbuffers.JSONPointer(pointer_, "flags"), CanonicalJsonInc.EnumValuesFlags); err_ != nil {
+			return err_
 		}
 	}
-	if x, ok := flatbuffers.JSONMember(m, "mode"); ok {
-		if t.Mode, err = flatbuffers.JSONEnum(x, flatbuffers.JSONPointer(pointer, "mode"), CanonicalJsonInc.EnumValuesMode); err != nil {
-			return err
+	if x_, ok_ := flatbuffers.JSONMember(m_, "mode"); ok_ {
+		if t.Mode, err_ = flatbuffers.JSONEnum(x_, flatbuffers.JSONPointer(pointer_, "mode"), CanonicalJsonInc.EnumValuesMode); err_ != nil {
+			return err_
 		}
 	}
-	if x, ok := flatbuffers.JSONMember(m, "cars"); ok {
-		if t.Cars, err = flatbuffers.JSONInt[byte](x, flatbuffers.JSONPointer(pointer, "cars")); err != nil {
-			return err
+	if x_, ok_ := flatbuffers.JSONMember(m_, "cars"); ok_ {
+		if t.Cars, err_ = flatbuffers.JSONInt[byte](x_, flatbuffers.JSONPointer(pointer_, "cars")); err_ != nil {
+			return err_
 		}
 	}
-	if x, ok := flatbuffers.JSONMember(m, "ratio"); ok {
-		if t.Ratio, err = flatbuffers.JSONFloat[float64](x, flatbuffers.JSONPointer(pointer, "ratio")); err != nil {
-			return err
+	if x_, ok_ := flatbuffers.JSONMember(m_, "ratio"); ok_ {
+		if t.Ratio, err_ = flatbuffers.JSONFloat[float64](x_, flatbuffers.JSONPointer(pointer_, "ratio")); err_ != nil {
+			return err_
 		}
 	}
-	if x, ok := flatbuffers.JSONMember(m, "big"); ok {
-		if t.Big, err = flatbuffers.JSONInt[uint64](x, flatbuffers.JSONPointer(pointer, "big")); err != nil {
-			return err
+	if x_, ok_ := flatbuffers.JSONMember(m_, "big"); ok_ {
+		if t.Big, err_ = flatbuffers.JSONInt[uint64](x_, flatbuffers.JSONPointer(pointer_, "big")); err_ != nil {
+			return err_
 		}
 	}
-	if x, ok := flatbuffers.JSONMember(m, "neg"); ok {
-		if t.Neg, err = flatbuffers.JSONInt[int64](x, flatbuffers.JSONPointer(pointer, "neg")); err != nil {
-			return err
+	if x_, ok_ := flatbuffers.JSONMember(m_, "neg"); ok_ {
+		if t.Neg, err_ = flatbuffers.JSONInt[int64](x_, flatbuffers.JSONPointer(pointer_, "neg")); err_ != nil {
+			return err_
 		}
 	}
-	if x, ok := flatbuffers.JSONMember(m, "maybe_big"); ok {
-		var value int64
-		if value, err = flatbuffers.JSONInt[int64](x, flatbuffers.JSONPointer(pointer, "maybe_big")); err != nil {
-			return err
+	if x_, ok_ := flatbuffers.JSONMember(m_, "maybe_big"); ok_ {
+		var value_ int64
+		if value_, err_ = flatbuffers.JSONInt[int64](x_, flatbuffers.JSONPointer(pointer_, "maybe_big")); err_ != nil {
+			return err_
 		}
-		t.MaybeBig = &value
+		t.MaybeBig = &value_
 	}
-	if x, ok := flatbuffers.JSONMember(m, "bigs"); ok {
-		fp := flatbuffers.JSONPointer(pointer, "bigs")
+	if x_, ok_ := flatbuffers.JSONMember(m_, "bigs"); ok_ {
+		fp_ := flatbuffers.JSONPointer(pointer_, "bigs")
 
-		a, err := flatbuffers.JSONArray(x, fp)
-		if err != nil {
-			return err
+		a_, err_ := flatbuffers.JSONArray(x_, fp_)
+		if err_ != nil {
+			return err_
 		}
 
-		t.Bigs = make([]int64, len(a))
+		t.Bigs = make([]int64, len(a_))
 
-		for i, e := range a {
-			if t.Bigs[i], err = flatbuffers.JSONInt[int64](e, flatbuffers.JSONIndexPointer(fp, i)); err != nil {
-				return err
+		for i_, e_ := range a_ {
+			if t.Bigs[i_], err_ = flatbuffers.JSONInt[int64](e_, flatbuffers.JSONIndexPointer(fp_, i_)); err_ != nil {
+				return err_
 			}
 		}
 	}
-	if x, ok := flatbuffers.JSONMember(m, "tags"); ok {
-		fp := flatbuffers.JSONPointer(pointer, "tags")
+	if x_, ok_ := flatbuffers.JSONMember(m_, "tags"); ok_ {
+		fp_ := flatbuffers.JSONPointer(pointer_, "tags")
 
-		a, err := flatbuffers.JSONArray(x, fp)
-		if err != nil {
-			return err
+		a_, err_ := flatbuffers.JSONArray(x_, fp_)
+		if err_ != nil {
+			return err_
 		}
 
-		t.Tags = make([]string, len(a))
+		t.Tags = make([]string, len(a_))
 
-		for i, e := range a {
-			if t.Tags[i], err = flatbuffers.JSONString(e, flatbuffers.JSONIndexPointer(fp, i)); err != nil {
-				return err
+		for i_, e_ := range a_ {
+			if t.Tags[i_], err_ = flatbuffers.JSONString(e_, flatbuffers.JSONIndexPointer(fp_, i_)); err_ != nil {
+				return err_
 			}
 		}
 	}
-	if x, ok := flatbuffers.JSONMember(m, "scores"); ok {
-		fp := flatbuffers.JSONPointer(pointer, "scores")
+	if x_, ok_ := flatbuffers.JSONMember(m_, "scores"); ok_ {
+		fp_ := flatbuffers.JSONPointer(pointer_, "scores")
 
-		o, err := flatbuffers.JSONObject(x, fp)
-		if err != nil {
-			return err
+		o_, err_ := flatbuffers.JSONObject(x_, fp_)
+		if err_ != nil {
+			return err_
 		}
 
-		t.Scores = make(map[string]int64, len(o))
+		t.Scores = make(map[string]int64, len(o_))
 
-		for _, k := range flatbuffers.JSONSortedKeys(o) {
-			p := flatbuffers.JSONPointer(fp, k)
-			key := k
+		for _, k_ := range flatbuffers.JSONSortedKeys(o_) {
+			p_ := flatbuffers.JSONPointer(fp_, k_)
+			key_ := k_
 
-			var value int64
-			if e, ok := flatbuffers.JSONMember(o, k); ok {
-				if value, err = flatbuffers.JSONInt[int64](e, p); err != nil {
-					return err
+			var value_ int64
+			if e_, ok_ := flatbuffers.JSONMember(o_, k_); ok_ {
+				if value_, err_ = flatbuffers.JSONInt[int64](e_, p_); err_ != nil {
+					return err_
 				}
 			}
 
-			t.Scores[key] = value
+			t.Scores[key_] = value_
 		}
 	}
-	if x, ok := flatbuffers.JSONMember(m, "by_mode"); ok {
-		fp := flatbuffers.JSONPointer(pointer, "by_mode")
+	if x_, ok_ := flatbuffers.JSONMember(m_, "by_mode"); ok_ {
+		fp_ := flatbuffers.JSONPointer(pointer_, "by_mode")
 
-		o, err := flatbuffers.JSONObject(x, fp)
-		if err != nil {
-			return err
+		o_, err_ := flatbuffers.JSONObject(x_, fp_)
+		if err_ != nil {
+			return err_
 		}
 
-		t.ByMode = make(map[CanonicalJsonInc.Mode]string, len(o))
+		t.ByMode = make(map[CanonicalJsonInc.Mode]string, len(o_))
 
-		for _, k := range flatbuffers.JSONSortedKeys(o) {
-			p := flatbuffers.JSONPointer(fp, k)
-			key, err := flatbuffers.JSONEnum(k, p, CanonicalJsonInc.EnumValuesMode)
-			if err != nil {
-				return err
+		for _, k_ := range flatbuffers.JSONSortedKeys(o_) {
+			p_ := flatbuffers.JSONPointer(fp_, k_)
+			key_, err_ := flatbuffers.JSONEnum(k_, p_, CanonicalJsonInc.EnumValuesMode)
+			if err_ != nil {
+				return err_
 			}
 
-			var value string
-			if e, ok := flatbuffers.JSONMember(o, k); ok {
-				if value, err = flatbuffers.JSONString(e, p); err != nil {
-					return err
+			var value_ string
+			if e_, ok_ := flatbuffers.JSONMember(o_, k_); ok_ {
+				if value_, err_ = flatbuffers.JSONString(e_, p_); err_ != nil {
+					return err_
 				}
 			}
 
-			t.ByMode[key] = value
+			t.ByMode[key_] = value_
 		}
 	}
-	if x, ok := flatbuffers.JSONMember(m, "seen"); ok {
-		fp := flatbuffers.JSONPointer(pointer, "seen")
+	if x_, ok_ := flatbuffers.JSONMember(m_, "seen"); ok_ {
+		fp_ := flatbuffers.JSONPointer(pointer_, "seen")
 
-		a, err := flatbuffers.JSONArray(x, fp)
-		if err != nil {
-			return err
+		a_, err_ := flatbuffers.JSONArray(x_, fp_)
+		if err_ != nil {
+			return err_
 		}
 
-		t.Seen = make(map[uint64]struct{}, len(a))
+		t.Seen = make(map[uint64]struct{}, len(a_))
 
-		for i, e := range a {
-			var key uint64
-			if key, err = flatbuffers.JSONInt[uint64](e, flatbuffers.JSONIndexPointer(fp, i)); err != nil {
-				return err
+		for i_, e_ := range a_ {
+			var key_ uint64
+			if key_, err_ = flatbuffers.JSONInt[uint64](e_, flatbuffers.JSONIndexPointer(fp_, i_)); err_ != nil {
+				return err_
 			}
-			t.Seen[key] = struct{}{}
+			t.Seen[key_] = struct{}{}
 		}
 	}
-	if x, ok := flatbuffers.JSONMember(m, "pt"); ok {
+	if x_, ok_ := flatbuffers.JSONMember(m_, "pt"); ok_ {
 		t.Pt = &CanonicalJsonInc.PtT{}
-		if err := t.Pt.UnmarshalFlatJSONValue(x, flatbuffers.JSONPointer(pointer, "pt")); err != nil {
-			return err
+		if err_ := t.Pt.UnmarshalFlatJSONValue(x_, flatbuffers.JSONPointer(pointer_, "pt")); err_ != nil {
+			return err_
 		}
 	}
-	if t.Payload, err = UnmarshalPayloadFlatJSON(m, pointer, "payload_type", "payload"); err != nil {
-		return err
+	if t.Payload, err_ = UnmarshalPayloadFlatJSON(m_, pointer_, "payload_type", "payload"); err_ != nil {
+		return err_
 	}
-	if x, ok := flatbuffers.JSONMember(m, "leaf"); ok {
+	if x_, ok_ := flatbuffers.JSONMember(m_, "leaf"); ok_ {
 		t.Leaf = &CanonicalJsonInc.LeafT{}
-		if err := t.Leaf.UnmarshalFlatJSONValue(x, flatbuffers.JSONPointer(pointer, "leaf")); err != nil {
-			return err
+		if err_ := t.Leaf.UnmarshalFlatJSONValue(x_, flatbuffers.JSONPointer(pointer_, "leaf")); err_ != nil {
+			return err_
 		}
 	}
-	if x, ok := flatbuffers.JSONMember(m, "leaves"); ok {
-		fp := flatbuffers.JSONPointer(pointer, "leaves")
+	if x_, ok_ := flatbuffers.JSONMember(m_, "leaves"); ok_ {
+		fp_ := flatbuffers.JSONPointer(pointer_, "leaves")
 
-		a, err := flatbuffers.JSONArray(x, fp)
-		if err != nil {
-			return err
+		a_, err_ := flatbuffers.JSONArray(x_, fp_)
+		if err_ != nil {
+			return err_
 		}
 
-		t.Leaves = make([]*CanonicalJsonInc.LeafT, len(a))
+		t.Leaves = make([]*CanonicalJsonInc.LeafT, len(a_))
 
-		for i, e := range a {
-			t.Leaves[i] = &CanonicalJsonInc.LeafT{}
-			if err := t.Leaves[i].UnmarshalFlatJSONValue(e, flatbuffers.JSONIndexPointer(fp, i)); err != nil {
-				return err
+		for i_, e_ := range a_ {
+			t.Leaves[i_] = &CanonicalJsonInc.LeafT{}
+			if err_ := t.Leaves[i_].UnmarshalFlatJSONValue(e_, flatbuffers.JSONIndexPointer(fp_, i_)); err_ != nil {
+				return err_
 			}
 		}
 	}
-	if x, ok := flatbuffers.JSONMember(m, "pts"); ok {
-		fp := flatbuffers.JSONPointer(pointer, "pts")
+	if x_, ok_ := flatbuffers.JSONMember(m_, "pts"); ok_ {
+		fp_ := flatbuffers.JSONPointer(pointer_, "pts")
 
-		a, err := flatbuffers.JSONArray(x, fp)
-		if err != nil {
-			return err
+		a_, err_ := flatbuffers.JSONArray(x_, fp_)
+		if err_ != nil {
+			return err_
 		}
 
-		t.Pts = make([]*CanonicalJsonInc.PtT, len(a))
+		t.Pts = make([]*CanonicalJsonInc.PtT, len(a_))
 
-		for i, e := range a {
-			t.Pts[i] = &CanonicalJsonInc.PtT{}
-			if err := t.Pts[i].UnmarshalFlatJSONValue(e, flatbuffers.JSONIndexPointer(fp, i)); err != nil {
-				return err
+		for i_, e_ := range a_ {
+			t.Pts[i_] = &CanonicalJsonInc.PtT{}
+			if err_ := t.Pts[i_].UnmarshalFlatJSONValue(e_, flatbuffers.JSONIndexPointer(fp_, i_)); err_ != nil {
+				return err_
 			}
 		}
 	}

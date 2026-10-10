@@ -100,8 +100,9 @@ struct JsonPrinter {
 
     // A 64-bit integer can exceed what a double holds exactly, so a reader
     // that keeps JSON numbers as doubles would round it. Quoted, it survives;
-    // the parser reads the quoted form back as the same integer.
-    if (opts.json_int64_as_string && type.enum_def == nullptr &&
+    // the parser reads the quoted form back as the same integer. That holds
+    // for a 64-bit enum value no variant names, which prints as its number.
+    if (opts.json_int64_as_string &&
         (type.base_type == BASE_TYPE_LONG ||
          type.base_type == BASE_TYPE_ULONG)) {
       text += '\"';

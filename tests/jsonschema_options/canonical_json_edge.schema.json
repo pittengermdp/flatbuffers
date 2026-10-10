@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "canonical_json_edge.schema.json",
+  "$defs": {
+    "CanonicalJsonEdge_Wide" : {
+      "type" : "string",
+      "enum": ["Zero", "One"]
+    },
+    "CanonicalJsonEdge_Bits" : {
+      "anyOf" : [{ "type" : "string", "pattern" : "^(P|Q)( (P|Q))*$" }, { "type" : "integer", "minimum" : 0, "maximum" : 255 }]
+    },
+    "CanonicalJsonEdge_Empty" : {
+      "type" : "string",
+      "enum": ["NONE"]
+    },
+    "CanonicalJsonEdge_Pair" : {
+      "type" : "object",
+      "properties" : {
+        "a" : {
+                "type" : "integer", "minimum" : 0, "maximum" : 255
+              },
+        "b" : {
+                "type" : "integer", "minimum" : -2147483648, "maximum" : 2147483647
+              }
+      },
+      "required" : ["a", "b"],
+      "additionalProperties" : false
+    },
+    "CanonicalJsonEdge_Node" : {
+      "type" : "object",
+      "properties" : {
+        "left" : {
+                "$ref" : "#/$defs/CanonicalJsonEdge_Node"
+              },
+        "right" : {
+                "$ref" : "#/$defs/CanonicalJsonEdge_Node"
+              }
+      },
+      "additionalProperties" : false
+    },
+    "CanonicalJsonEdge_Edge" : {
+      "type" : "object",
+      "properties" : {
+        "must" : {
+                "$ref" : "canonical_json_edge_value.schema.json#/$defs/value_Leaf"
+              },
+        "nan_f" : {
+                "type" : "number", "minimum" : -3.4028235e+38, "maximum" : 3.4028235e+38
+              },
+        "nan_d" : {
+                "type" : "number", "minimum" : -1.7976931348623157e+308, "maximum" : 1.7976931348623157e+308
+              },
+        "z" : {
+                "type" : "number", "minimum" : -1.7976931348623157e+308, "maximum" : 1.7976931348623157e+308,
+                "default" : 0
+              },
+        "top" : {
+                "anyOf" : [{ "type" : "integer", "minimum" : 0, "maximum" : 9007199254740991 }, { "type" : "string", "pattern" : "^(0|[1-9][0-9]{0,18}|1[0-7][0-9]{18}|18[0-3][0-9]{17}|184[0-3][0-9]{16}|1844[0-5][0-9]{15}|18446[0-6][0-9]{14}|184467[0-3][0-9]{13}|1844674[0-3][0-9]{12}|184467440[0-6][0-9]{10}|1844674407[0-2][0-9]{9}|18446744073[0-6][0-9]{8}|1844674407370[0-8][0-9]{6}|18446744073709[0-4][0-9]{5}|184467440737095[0-4][0-9]{4}|18446744073709550[0-9]{3}|18446744073709551[0-5][0-9]{2}|1844674407370955160[0-9]{1}|1844674407370955161[0-4]|18446744073709551615)$" }],
+                "default" : "18446744073709551615"
+              },
+        "flag" : {
+                "type" : "boolean",
+                "default" : true
+              },
+        "wide" : {
+                "$ref" : "#/$defs/CanonicalJsonEdge_Wide",
+                "default" : "Zero"
+              },
+        "pair" : {
+                "$ref" : "#/$defs/CanonicalJsonEdge_Pair"
+              },
+        "by_bits" : {
+                "type" : "object", "propertyNames" : {"anyOf" : [{ "type" : "string", "pattern" : "^(P|Q)( (P|Q))*$" }, { "type" : "string", "pattern" : "^(0|[1-9][0-9]{0,1}|1[0-9]{2}|2[0-4][0-9]{1}|25[0-4]|255)$" }]}, "additionalProperties" : {"type" : "integer", "minimum" : -2147483648, "maximum" : 2147483647}
+              },
+        "pairs" : {
+                "type" : "object", "propertyNames" : {"type" : "string"}, "additionalProperties" : {"$ref" : "#/$defs/CanonicalJsonEdge_Pair"}
+              },
+        "by_bool" : {
+                "type" : "object", "propertyNames" : {"enum" : ["false", "true"]}, "additionalProperties" : {"type" : ["string", "null"]}
+              },
+        "bools" : {
+                "type" : "array", "items" : {"type" : "boolean"}, "uniqueItems" : true
+              },
+        "leaves" : {
+                "type" : "object", "propertyNames" : {"type" : "string"}, "additionalProperties" : {"if" : { "type" : "object" }, "then" : { "$ref" : "canonical_json_edge_value.schema.json#/$defs/value_Leaf" }, "else" : { "type" : "null" }}
+              },
+        "req" : {
+                "type" : "array", "items" : {"type" : "integer", "minimum" : -2147483648, "maximum" : 2147483647}
+              },
+        "nothing_type" : {
+                "$ref" : "#/$defs/CanonicalJsonEdge_Empty"
+              },
+        "nothing" : {
+                "type" : "object"
+              },
+        "node" : {
+                "$ref" : "#/$defs/CanonicalJsonEdge_Node"
+              }
+      },
+      "required" : ["must", "req"],
+      "dependentRequired" : { "nothing" : ["nothing_type"] },
+      "allOf" : [
+        { "if" : { "properties" : { "nothing_type" : { "const" : "NONE" } }, "required" : ["nothing_type"] }, "then" : { "not" : { "required" : ["nothing"] } } }
+      ],
+      "additionalProperties" : false
+    },
+    "CanonicalJsonEdge___Map_Bits_int_Entry" : {
+      "type" : "object",
+      "properties" : {
+        "key" : {
+                "$ref" : "#/$defs/CanonicalJsonEdge_Bits",
+                "default" : 0
+              },
+        "value" : {
+                "type" : "integer", "minimum" : -2147483648, "maximum" : 2147483647,
+                "default" : 0
+              }
+      },
+      "additionalProperties" : false
+    },
+    "CanonicalJsonEdge___Map_string_Pair_Entry" : {
+      "type" : "object",
+      "properties" : {
+        "key" : {
+                "type" : "string"
+              },
+        "value" : {
+                "$ref" : "#/$defs/CanonicalJsonEdge_Pair"
+              }
+      },
+      "required" : ["key"],
+      "additionalProperties" : false
+    },
+    "CanonicalJsonEdge___Map_bool_string_Entry" : {
+      "type" : "object",
+      "properties" : {
+        "key" : {
+                "type" : "boolean",
+                "default" : false
+              },
+        "value" : {
+                "type" : "string"
+              }
+      },
+      "additionalProperties" : false
+    },
+    "CanonicalJsonEdge___Set_bool_Entry" : {
+      "type" : "object",
+      "properties" : {
+        "key" : {
+                "type" : "boolean",
+                "default" : false
+              }
+      },
+      "additionalProperties" : false
+    },
+    "CanonicalJsonEdge___Map_string_Leaf_Entry" : {
+      "type" : "object",
+      "properties" : {
+        "key" : {
+                "type" : "string"
+              },
+        "value" : {
+                "$ref" : "canonical_json_edge_value.schema.json#/$defs/value_Leaf"
+              }
+      },
+      "required" : ["key"],
+      "additionalProperties" : false
+    }
+  },
+  "$ref" : "#/$defs/CanonicalJsonEdge_Edge"
+}

@@ -18,13 +18,13 @@
                 "type" : "integer", "minimum" : -128, "maximum" : 127
               },
         "just_u8" : {
-                "type" : "integer", "minimum" : 0, "maximum" :255
+                "type" : "integer", "minimum" : 0, "maximum" : 255
               },
         "maybe_u8" : {
-                "type" : ["integer", "null"], "minimum" : 0, "maximum" :255
+                "type" : ["integer", "null"], "minimum" : 0, "maximum" : 255
               },
         "default_u8" : {
-                "type" : "integer", "minimum" : 0, "maximum" :255
+                "type" : "integer", "minimum" : 0, "maximum" : 255
               },
         "just_i16" : {
                 "type" : "integer", "minimum" : -32768, "maximum" : 32767
@@ -81,22 +81,22 @@
                 "type" : "integer", "minimum" : 0, "maximum" : 18446744073709551615
               },
         "just_f32" : {
-                "type" : "number"
+                "type" : "number", "minimum" : -3.4028235e+38, "maximum" : 3.4028235e+38
               },
         "maybe_f32" : {
-                "type" : ["number", "null"]
+                "type" : ["number", "null"], "minimum" : -3.4028235e+38, "maximum" : 3.4028235e+38
               },
         "default_f32" : {
-                "type" : "number"
+                "type" : "number", "minimum" : -3.4028235e+38, "maximum" : 3.4028235e+38
               },
         "just_f64" : {
-                "type" : "number"
+                "type" : "number", "minimum" : -1.7976931348623157e+308, "maximum" : 1.7976931348623157e+308
               },
         "maybe_f64" : {
-                "type" : ["number", "null"]
+                "type" : ["number", "null"], "minimum" : -1.7976931348623157e+308, "maximum" : 1.7976931348623157e+308
               },
         "default_f64" : {
-                "type" : "number"
+                "type" : "number", "minimum" : -1.7976931348623157e+308, "maximum" : 1.7976931348623157e+308
               },
         "just_bool" : {
                 "type" : "boolean"

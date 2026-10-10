@@ -38,7 +38,7 @@
                 "$ref" : "#/definitions/KeywordTest_KeywordsInUnion"
               },
         "type" : {
-                "anyOf": [{ "$ref" : "#/definitions/KeywordTest_KeywordsInTable" },{ "$ref" : "#/definitions/KeywordTest_KeywordsInTable" }]
+                "type" : "object"
               }
       },
       "dependentRequired" : { "type" : ["type_type"] },

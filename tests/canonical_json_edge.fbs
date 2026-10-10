@@ -1,0 +1,39 @@
+// Edge cases of canonical JSON, each checked three ways by
+// go_canonical_json_test: the Go methods flatc --go-json generates, schema
+// reflection, and flatc's own JSON parser and printer.
+include "canonical_json_edge_value.fbs";
+
+namespace CanonicalJsonEdge;
+
+enum Wide : ulong { Zero = 0, One = 1 }
+
+enum Bits : ubyte (bit_flags) { P, Q }
+
+union Empty {}
+
+struct Pair { a: ubyte; b: int; }
+
+// Self-referential, so a buffer can share and loop its children.
+table Node { left: Node; right: Node; }
+
+table Edge {
+  // Required, from a namespace whose alias was a generated local name.
+  must: value.Leaf (required);
+  nan_f: float = nan;
+  nan_d: double = nan;
+  z: double;
+  top: ulong = 18446744073709551615;
+  flag: bool = true;
+  wide: Wide;
+  pair: Pair;
+  by_bits: map<Bits, int>;
+  pairs: map<string, Pair>;
+  by_bool: map<bool, string>;
+  bools: set<bool>;
+  leaves: map<string, value.Leaf>;
+  req: [int] (required);
+  nothing: Empty;
+  node: Node;
+}
+
+root_type Edge;

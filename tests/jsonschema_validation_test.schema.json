@@ -17,7 +17,7 @@
                 "type" : ["integer", "null"], "minimum" : -2147483648, "maximum" : 10
               },
         "ratio" : {
-                "type" : "number", "minimum" : -0.5, "exclusiveMaximum" : 1
+                "type" : "number", "exclusiveMaximum" : 1, "minimum" : -0.5, "maximum" : 3.4028235e+38
               },
         "name" : {
                 "type" : "string", "minLength" : 1, "maxLength" : 8, "pattern" : "^[a-z]+$"
@@ -47,7 +47,7 @@
                 "type" : "string"
               },
         "value" : {
-                "type" : "integer", "minimum" : 0, "maximum" :255
+                "type" : "integer", "minimum" : 0, "maximum" : 255
               }
       },
       "required" : ["key"],

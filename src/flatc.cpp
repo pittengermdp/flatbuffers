@@ -255,8 +255,8 @@ const static FlatCOption flatc_options[] = {
      "--gen-object-api)."},
     {"", "json-int64-as-string", "",
      "Write 64-bit integers in JSON as quoted decimal strings (both forms are "
-     "read), and let JSON Schema accept either, so a reader that holds "
-     "numbers as doubles cannot round them."},
+     "read), and let JSON Schema accept either, a number only up to 2^53-1, "
+     "so a reader that holds numbers as doubles cannot round them."},
     {"", "jsonschema-2020-12", "",
      "Generate JSON Schema draft 2020-12 ($defs) instead of 2019-09."},
     {"", "jsonschema-cross-file-refs", "",
@@ -264,7 +264,7 @@ const static FlatCOption flatc_options[] = {
      "to an included file's types in that file's schema."},
     {"", "jsonschema-defaults", "",
      "Add a \"default\" keyword to every defaulted table scalar in JSON "
-     "Schema."},
+     "Schema, unless the default is outside the field's json_* bounds."},
     {"", "go-json", "",
      "Generate canonical JSON methods (MarshalFlatJSON, UnmarshalFlatJSON) on "
      "every Go Object API type. (requires --gen-object-api)."},

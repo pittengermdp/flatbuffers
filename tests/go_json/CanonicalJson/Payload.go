@@ -77,58 +77,58 @@ func (u *PayloadT) Match(
 }
 
 // WriteFlatJSONType writes the union's type as its variant name.
-func (t *PayloadT) WriteFlatJSONType(w *flatbuffers.JSONWriter) {
-	flatbuffers.WriteJSONEnum(w, t.Type, EnumNamesPayload)
+func (t *PayloadT) WriteFlatJSONType(w_ *flatbuffers.JSONWriter) {
+	flatbuffers.WriteJSONEnum(w_, t.Type, EnumNamesPayload)
 }
 
 // WriteFlatJSONValue writes the union's value; the enclosing table
 // writes its type.
-func (t *PayloadT) WriteFlatJSONValue(w *flatbuffers.JSONWriter) {
-	switch v := t.Value.(type) {
+func (t *PayloadT) WriteFlatJSONValue(w_ *flatbuffers.JSONWriter) {
+	switch v_ := t.Value.(type) {
 	case *CanonicalJsonInc.LeafT:
-		v.WriteFlatJSON(w)
+		v_.WriteFlatJSON(w_)
 	default:
-		w.Fail(flatbuffers.JSONErrorf("", "union Payload holds %T", t.Value))
+		w_.Fail(flatbuffers.JSONErrorf("", "union Payload holds %T", t.Value))
 	}
 }
 
-// UnmarshalPayloadFlatJSON reads the union held by the members typeKey
-// (the variant name) and valueKey (its value) of the object m. A type
-// with no value, or no type at all, reads as no union.
-func UnmarshalPayloadFlatJSON(m map[string]any, pointer, typeKey, valueKey string) (*PayloadT, error) {
-	tv, hasType := flatbuffers.JSONMember(m, typeKey)
-	value, hasValue := flatbuffers.JSONMember(m, valueKey)
+// UnmarshalPayloadFlatJSON reads the union held by the members typeKey_
+// (the variant name) and valueKey_ (its value) of the object m_. A
+// type with no value, or no type at all, reads as no union.
+func UnmarshalPayloadFlatJSON(m_ map[string]any, pointer_, typeKey_, valueKey_ string) (*PayloadT, error) {
+	tv_, hasType_ := flatbuffers.JSONMember(m_, typeKey_)
+	value_, hasValue_ := flatbuffers.JSONMember(m_, valueKey_)
 
-	if !hasType {
-		if hasValue {
-			return nil, flatbuffers.JSONErrorf(flatbuffers.JSONPointer(pointer, valueKey), "union value without %s", typeKey)
+	if !hasType_ {
+		if hasValue_ {
+			return nil, flatbuffers.JSONErrorf(flatbuffers.JSONPointer(pointer_, valueKey_), "union value without %s", typeKey_)
 		}
 
 		return nil, nil
 	}
 
-	typ, err := flatbuffers.JSONEnum(tv, flatbuffers.JSONPointer(pointer, typeKey), EnumValuesPayload)
-	if err != nil {
-		return nil, err
+	typ_, err_ := flatbuffers.JSONEnum(tv_, flatbuffers.JSONPointer(pointer_, typeKey_), EnumValuesPayload)
+	if err_ != nil {
+		return nil, err_
 	}
 
-	if !hasValue {
+	if !hasValue_ {
 		return nil, nil
 	}
 
-	vp := flatbuffers.JSONPointer(pointer, valueKey)
+	vp_ := flatbuffers.JSONPointer(pointer_, valueKey_)
 
-	switch typ {
+	switch typ_ {
 	case PayloadNONE:
-		return nil, flatbuffers.JSONErrorf(vp, "union value under NONE")
+		return nil, flatbuffers.JSONErrorf(vp_, "union value under NONE")
 	case PayloadCanonicalJsonInc_Leaf:
-		x := &CanonicalJsonInc.LeafT{}
-		if err := x.UnmarshalFlatJSONValue(value, vp); err != nil {
-			return nil, err
+		x_ := &CanonicalJsonInc.LeafT{}
+		if err_ := x_.UnmarshalFlatJSONValue(value_, vp_); err_ != nil {
+			return nil, err_
 		}
 
-		return &PayloadT{Type: typ, Value: x}, nil
+		return &PayloadT{Type: typ_, Value: x_}, nil
 	}
 
-	return nil, flatbuffers.JSONErrorf(flatbuffers.JSONPointer(pointer, typeKey), "%d is not a variant of Payload", typ)
+	return nil, flatbuffers.JSONErrorf(flatbuffers.JSONPointer(pointer_, typeKey_), "%d is not a variant of Payload", typ_)
 }

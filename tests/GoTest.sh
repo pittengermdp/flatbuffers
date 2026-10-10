@@ -33,9 +33,11 @@ go_src=${go_path}/src
 # go_canonical_json_test compares the generated methods against.
 ../flatc -g --gen-object-api --go-json -o "${go_src}" optional_scalars.fbs
 ../flatc -g --gen-object-api --go-json --json-int64-as-string -o "${go_src}" \
-    canonical_json_test.fbs canonical_json_include.fbs
+    canonical_json_test.fbs canonical_json_include.fbs \
+    canonical_json_edge.fbs canonical_json_edge_value.fbs
 ../flatc --binary --schema --bfbs-builtins -o "${go_src}/go_canonical_json_test" \
-    canonical_json_test.fbs map_set_test.fbs optional_scalars.fbs
+    canonical_json_test.fbs canonical_json_edge.fbs canonical_json_v64.fbs \
+    map_set_test.fbs optional_scalars.fbs
 
 # Go requires a particular layout of files in order to link multiple packages.
 # Copy flatbuffer Go files to their own package directories to compile the

@@ -252,8 +252,9 @@ list of `FILES...`.
 -   `--cs-global-alias` : Prepend `global::` to all user generated csharp classes and structs.
 
 -   `--json-int64-as-string` : Write 64-bit integers in JSON as quoted decimal
-    strings, and let JSON Schema accept them as number or string. Both forms
-    are always read. See [JSON and JSON Schema](json_schema.md).
+    strings, and let JSON Schema accept them as a string or as a number up to
+    ±(2^53 − 1). Both forms are always read. See
+    [JSON and JSON Schema](json_schema.md).
 
 -   `--jsonschema-2020-12` : Generate JSON Schema draft 2020-12 (`$defs`)
     instead of 2019-09 (`definitions`).
@@ -263,7 +264,8 @@ list of `FILES...`.
     schema instead of copying them.
 
 -   `--jsonschema-defaults` : Add a `default` keyword to every defaulted table
-    scalar in JSON Schema.
+    scalar in JSON Schema, unless the default is outside the field's own
+    `json_*` bounds.
 
 -   `--go-json` : Generate canonical JSON methods (`MarshalFlatJSON`,
     `UnmarshalFlatJSON`) on every Go Object API type. Requires

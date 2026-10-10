@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "canonical_json_edge_value.schema.json",
+  "$defs": {
+    "value_Leaf" : {
+      "type" : "object",
+      "properties" : {
+        "id" : {
+                "type" : "integer", "minimum" : -2147483648, "maximum" : 2147483647,
+                "default" : 0
+              }
+      },
+      "additionalProperties" : false
+    }
+  }
+}

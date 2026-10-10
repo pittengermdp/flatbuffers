@@ -71,66 +71,66 @@ func (*LeafT) FlatJSONSchema() (file, definition string) {
 
 // MarshalFlatJSON returns t as canonical FlatBuffers JSON.
 func (t *LeafT) MarshalFlatJSON() ([]byte, error) {
-	w := flatbuffers.NewJSONWriter()
-	t.WriteFlatJSON(w)
+	w_ := flatbuffers.NewJSONWriter()
+	t.WriteFlatJSON(w_)
 
-	return w.Bytes()
+	return w_.Bytes()
 }
 
-// WriteFlatJSON writes t to w as canonical FlatBuffers JSON.
-func (t *LeafT) WriteFlatJSON(w *flatbuffers.JSONWriter) {
+// WriteFlatJSON writes t to w_ as canonical FlatBuffers JSON.
+func (t *LeafT) WriteFlatJSON(w_ *flatbuffers.JSONWriter) {
 	if t == nil {
-		w.Null()
+		w_.Null()
 
 		return
 	}
 
-	w.BeginObject()
+	w_.BeginObject()
 	if t.Id != 0 {
-		w.Key("id")
-		w.UintString(t.Id)
+		w_.Key("id")
+		w_.UintString(t.Id)
 	}
 	if t.Note != "" {
-		w.Key("note")
-		w.String(t.Note)
+		w_.Key("note")
+		w_.String(t.Note)
 	}
-	w.EndObject()
+	w_.EndObject()
 }
 
 // UnmarshalFlatJSON replaces t with the value the canonical FlatBuffers
-// JSON in data describes; an absent scalar takes its schema default.
-func (t *LeafT) UnmarshalFlatJSON(data []byte) error {
-	v, err := flatbuffers.ParseJSON(data)
-	if err != nil {
-		return err
+// JSON in data_ describes; an absent scalar takes its schema default.
+func (t *LeafT) UnmarshalFlatJSON(data_ []byte) error {
+	v_, err_ := flatbuffers.ParseJSON(data_)
+	if err_ != nil {
+		return err_
 	}
 
-	return t.UnmarshalFlatJSONValue(v, "")
+	return t.UnmarshalFlatJSONValue(v_, "")
 }
 
 // UnmarshalFlatJSONValue is UnmarshalFlatJSON for a value
-// flatbuffers.ParseJSON has already parsed; pointer locates it in errors.
-func (t *LeafT) UnmarshalFlatJSONValue(v any, pointer string) error {
-	m, err := flatbuffers.JSONObject(v, pointer)
-	if err != nil {
-		return err
+// flatbuffers.ParseJSON has already parsed; pointer_ locates it in errors.
+func (t *LeafT) UnmarshalFlatJSONValue(v_ any, pointer_ string) error {
+	m_, err_ := flatbuffers.JSONObject(v_, pointer_)
+	if err_ != nil {
+		return err_
 	}
 
-	err = flatbuffers.JSONCheckMembers(m, pointer, "id", "note")
-	if err != nil {
-		return err
+	err_ = flatbuffers.JSONCheckMembers(m_, pointer_, "id", "note")
+	if err_ != nil {
+		return err_
 	}
 
 	*t = LeafT{}
 
-	if x, ok := flatbuffers.JSONMember(m, "id"); ok {
-		if t.Id, err = flatbuffers.JSONInt[uint64](x, flatbuffers.JSONPointer(pointer, "id")); err != nil {
-			return err
+	if x_, ok_ := flatbuffers.JSONMember(m_, "id"); ok_ {
+		if t.Id, err_ = flatbuffers.JSONInt[uint64](x_, flatbuffers.JSONPointer(pointer_, "id")); err_ != nil {
+			return err_
 		}
 	}
-	if x, ok := flatbuffers.JSONMember(m, "note"); ok {
-		if t.Note, err = flatbuffers.JSONString(x, flatbuffers.JSONPointer(pointer, "note")); err != nil {
-			return err
+	if x_, ok_ := flatbuffers.JSONMember(m_, "note"); ok_ {
+		if t.Note, err_ = flatbuffers.JSONString(x_, flatbuffers.JSONPointer(pointer_, "note")); err_ != nil {
+			return err_
 		}
 	}
 

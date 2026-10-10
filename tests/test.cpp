@@ -1994,21 +1994,67 @@ void MapSetJsonAllKindsTest() {
   TEST_EQ(bad.Parse("{ color_scores: { \"Purple\": 1.0 } }"), false);
 }
 
+// A struct map value is stored inline in its entry table. Its parsed constant
+// is the struct's bytes, which were once read as an offset: an all-zero struct
+// failed to parse and any other came back as different numbers.
+void MapStructValueJsonTest() {
+  flatbuffers::IDLOptions opts;
+  opts.strict_json = true;
+  opts.indent_step = -1;
+  flatbuffers::Parser parser(opts);
+  TEST_EQ(parser.Parse("struct P { x:ubyte; y:int; }"
+                       "table T { m:map<string, P>; }"
+                       "root_type T;"),
+          true);
+  const char* json =
+      "{\"m\":{\"a\":{\"x\":0,\"y\":0},\"b\":{\"x\":49,\"y\":-7}}}";
+  if (!parser.Parse(json)) {
+    TEST_OUTPUT_LINE("JSON parse error: %s", parser.error_.c_str());
+  }
+  TEST_EQ(parser.Parse(json), true);
+
+  std::string text;
+  TEST_NULL(flatbuffers::GenText(parser, parser.builder_.GetBufferPointer(),
+                                 &text));
+  TEST_EQ_STR(text.c_str(),
+              "{\"m\": {\"a\": {\"x\": 0,\"y\": 0},"
+              "\"b\": {\"x\": 49,\"y\": -7}}}");
+
+  // A missing string or table map value prints as null; it reads back as a
+  // value-less entry, so flatc reads what it writes.
+  flatbuffers::Parser nulls(opts);
+  TEST_EQ(nulls.Parse("table V { n:int; }"
+                      "table T { s:map<string, string>; t:map<string, V>; }"
+                      "root_type T;"),
+          true);
+  TEST_EQ(nulls.Parse("{\"s\":{\"a\":null},\"t\":{\"b\":null,\"c\":{}}}"),
+          true);
+  std::string printed;
+  TEST_NULL(flatbuffers::GenText(nulls, nulls.builder_.GetBufferPointer(),
+                                 &printed));
+  TEST_EQ_STR(printed.c_str(),
+              "{\"s\": {\"a\": null},\"t\": {\"b\": null,\"c\": {}}}");
+  TEST_EQ(nulls.Parse(printed.c_str()), true);
+}
+
 // --json-int64-as-string: 64-bit integers print as quoted decimal strings (a
-// double cannot hold every one exactly) and parse back to the same value;
-// narrower integers and 64-bit enums keep their usual spelling.
+// double cannot hold every one exactly) and parse back to the same value, as
+// does a 64-bit enum value no variant names; named enum values and narrower
+// integers keep their usual spelling.
 void JsonInt64AsStringTest() {
   flatbuffers::IDLOptions opts;
   opts.json_int64_as_string = true;
   opts.strict_json = true;
   opts.indent_step = -1;
   flatbuffers::Parser parser(opts);
-  TEST_EQ(parser.Parse("table T { u:ulong; i:long; v:[long]; n:int; }"
+  TEST_EQ(parser.Parse("enum E : ulong { Z, A }"
+                       "table T { u:ulong; i:long; v:[long]; n:int; e:E; k:E; }"
                        "root_type T;"),
           true);
   TEST_EQ(parser.Parse("{ \"u\": 18446744073709551615, "
                        "\"i\": \"-9223372036854775808\", "
-                       "\"v\": [1, \"-2\"], \"n\": 7 }"),
+                       "\"v\": [1, \"-2\"], \"n\": 7, "
+                       "\"e\": 9223372036854775810, \"k\": \"A\" }"),
           true);
   std::string text;
   TEST_NULL(flatbuffers::GenText(parser, parser.builder_.GetBufferPointer(),
@@ -2017,11 +2063,15 @@ void JsonInt64AsStringTest() {
               "{\"u\": \"18446744073709551615\","
               "\"i\": \"-9223372036854775808\","
               "\"v\": [\"1\",\"-2\"],"
-              "\"n\": 7}");
+              "\"n\": 7,"
+              "\"e\": \"9223372036854775810\","
+              "\"k\": \"A\"}");
 
   flatbuffers::Parser reparser(opts);
-  TEST_EQ(reparser.Parse("table T { u:ulong; i:long; v:[long]; n:int; }"
-                         "root_type T;"),
+  TEST_EQ(reparser.Parse(
+              "enum E : ulong { Z, A }"
+              "table T { u:ulong; i:long; v:[long]; n:int; e:E; k:E; }"
+              "root_type T;"),
           true);
   TEST_EQ(reparser.Parse(text.c_str()), true);
   std::string again;
@@ -2162,6 +2212,7 @@ int FlatBufferTests(const std::string& tests_data_path) {
   MapSetRoundTripTest();
   MapSetJsonRoundTripTest();
   MapSetJsonAllKindsTest();
+  MapStructValueJsonTest();
   JsonInt64AsStringTest();
   FbsReEmitTest();
   StringVectorDefaultsTest();

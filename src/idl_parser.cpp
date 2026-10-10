@@ -1939,10 +1939,18 @@ CheckedError Parser::ParseMapObject(const Type& vector_type, uoffset_t* ovalue,
       key_constant = NumToString(key_offset.o);
     }
 
-    // Parse the map value.
+    // Parse the map value. A string or table value may be null, as it prints
+    // when the entry lacks one: the entry is then written without it.
     Offset<void> val_offset{0};
     std::string val_constant;
-    if (value_field) {
+    bool has_value = value_field != nullptr;
+    if (value_field && IsIdent("null") &&
+        (IsString(value_field->value.type) ||
+         (value_field->value.type.base_type == BASE_TYPE_STRUCT &&
+          !value_field->value.type.struct_def->fixed))) {
+      NEXT();
+      has_value = false;
+    } else if (value_field) {
       Value vv;
       vv.type = value_field->value.type;
       ECHECK(ParseAnyValue(vv, value_field, 0, &entry_def, 0, false));
@@ -1961,10 +1969,16 @@ CheckedError Parser::ParseMapObject(const Type& vector_type, uoffset_t* ovalue,
       ECHECK(AddEntryScalar(*key_field, key_constant));
     }
 
-    // Add value field.
-    if (value_field) {
+    // Add value field. A struct value is stored inline in the entry table,
+    // as a struct field of any table is; its parsed constant is the struct's
+    // bytes, not an offset.
+    if (has_value) {
       if (IsScalar(value_field->value.type.base_type)) {
         ECHECK(AddEntryScalar(*value_field, val_constant));
+      } else if (IsStruct(value_field->value.type)) {
+        Value struct_val = value_field->value;
+        struct_val.constant = val_constant;
+        SerializeStruct(*value_field->value.type.struct_def, struct_val);
       } else {
         uoffset_t voff;
         ECHECK(atot(val_constant.c_str(), *this, &voff));
@@ -4597,13 +4611,32 @@ Offset<reflection::Field> FieldDef::Serialize(FlatBufferBuilder* builder,
   auto docs__ = parser.opts.binary_schema_comments && !doc_comment.empty()
                     ? builder->CreateVectorOfStrings(doc_comment)
                     : 0;
-  double d;
+  double d = 0;
   StringToNumber(value.constant.c_str(), &d);
+  // A float default read straight to float can differ from the same literal
+  // read to double and then narrowed -- double rounding, for a literal right
+  // at a midpoint between two floats. Readers narrow default_real to float,
+  // so store the double that narrows to the float the field really holds.
+  if (value.type.base_type == BASE_TYPE_FLOAT) {
+    float f = 0;
+    if (StringToNumber(value.constant.c_str(), &f) &&
+        static_cast<float>(d) != f) {
+      d = f;
+    }
+  }
+  // default_integer is an int64: a ulong default past INT64_MAX is stored as
+  // its two's-complement bits (StringToInt would overflow it to 0), and
+  // Deserialize reads it back the same way.
+  int64_t i = 0;
+  if (value.type.base_type == BASE_TYPE_ULONG) {
+    uint64_t u = 0;
+    StringToNumber(value.constant.c_str(), &u);
+    i = static_cast<int64_t>(u);
+  } else if (IsInteger(value.type.base_type)) {
+    i = StringToInt(value.constant.c_str());
+  }
   return reflection::CreateField(
-      *builder, name__, type__, id, value.offset,
-      // Is uint64>max(int64) tested?
-      IsInteger(value.type.base_type) ? StringToInt(value.constant.c_str()) : 0,
-      // result may be platform-dependent if underlying is float (not double)
+      *builder, name__, type__, id, value.offset, i,
       IsFloat(value.type.base_type) ? d : 0.0, deprecated, IsRequired(), key,
       attr__, docs__, IsOptional(), static_cast<uint16_t>(padding), offset64);
   // TODO: value.constant is almost always "0", we could save quite a bit of
@@ -4615,7 +4648,10 @@ bool FieldDef::Deserialize(Parser& parser, const reflection::Field* field) {
   defined_namespace = parser.current_namespace_;
   if (!value.type.Deserialize(parser, field->type())) return false;
   value.offset = field->offset();
-  if (IsInteger(value.type.base_type)) {
+  if (value.type.base_type == BASE_TYPE_ULONG) {
+    value.constant =
+        NumToString(static_cast<uint64_t>(field->default_integer()));
+  } else if (IsInteger(value.type.base_type)) {
     value.constant = NumToString(field->default_integer());
   } else if (IsFloat(value.type.base_type)) {
     value.constant = FloatToString(field->default_real(), 17);

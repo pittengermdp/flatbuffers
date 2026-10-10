@@ -73,66 +73,66 @@ func (*__Map_Mode_string_EntryT) FlatJSONSchema() (file, definition string) {
 
 // MarshalFlatJSON returns t as canonical FlatBuffers JSON.
 func (t *__Map_Mode_string_EntryT) MarshalFlatJSON() ([]byte, error) {
-	w := flatbuffers.NewJSONWriter()
-	t.WriteFlatJSON(w)
+	w_ := flatbuffers.NewJSONWriter()
+	t.WriteFlatJSON(w_)
 
-	return w.Bytes()
+	return w_.Bytes()
 }
 
-// WriteFlatJSON writes t to w as canonical FlatBuffers JSON.
-func (t *__Map_Mode_string_EntryT) WriteFlatJSON(w *flatbuffers.JSONWriter) {
+// WriteFlatJSON writes t to w_ as canonical FlatBuffers JSON.
+func (t *__Map_Mode_string_EntryT) WriteFlatJSON(w_ *flatbuffers.JSONWriter) {
 	if t == nil {
-		w.Null()
+		w_.Null()
 
 		return
 	}
 
-	w.BeginObject()
+	w_.BeginObject()
 	if t.Key != 0 {
-		w.Key("key")
-		flatbuffers.WriteJSONEnum(w, t.Key, CanonicalJsonInc.EnumNamesMode)
+		w_.Key("key")
+		flatbuffers.WriteJSONEnum(w_, t.Key, CanonicalJsonInc.EnumNamesMode)
 	}
 	if t.Value != "" {
-		w.Key("value")
-		w.String(t.Value)
+		w_.Key("value")
+		w_.String(t.Value)
 	}
-	w.EndObject()
+	w_.EndObject()
 }
 
 // UnmarshalFlatJSON replaces t with the value the canonical FlatBuffers
-// JSON in data describes; an absent scalar takes its schema default.
-func (t *__Map_Mode_string_EntryT) UnmarshalFlatJSON(data []byte) error {
-	v, err := flatbuffers.ParseJSON(data)
-	if err != nil {
-		return err
+// JSON in data_ describes; an absent scalar takes its schema default.
+func (t *__Map_Mode_string_EntryT) UnmarshalFlatJSON(data_ []byte) error {
+	v_, err_ := flatbuffers.ParseJSON(data_)
+	if err_ != nil {
+		return err_
 	}
 
-	return t.UnmarshalFlatJSONValue(v, "")
+	return t.UnmarshalFlatJSONValue(v_, "")
 }
 
 // UnmarshalFlatJSONValue is UnmarshalFlatJSON for a value
-// flatbuffers.ParseJSON has already parsed; pointer locates it in errors.
-func (t *__Map_Mode_string_EntryT) UnmarshalFlatJSONValue(v any, pointer string) error {
-	m, err := flatbuffers.JSONObject(v, pointer)
-	if err != nil {
-		return err
+// flatbuffers.ParseJSON has already parsed; pointer_ locates it in errors.
+func (t *__Map_Mode_string_EntryT) UnmarshalFlatJSONValue(v_ any, pointer_ string) error {
+	m_, err_ := flatbuffers.JSONObject(v_, pointer_)
+	if err_ != nil {
+		return err_
 	}
 
-	err = flatbuffers.JSONCheckMembers(m, pointer, "key", "value")
-	if err != nil {
-		return err
+	err_ = flatbuffers.JSONCheckMembers(m_, pointer_, "key", "value")
+	if err_ != nil {
+		return err_
 	}
 
 	*t = __Map_Mode_string_EntryT{}
 
-	if x, ok := flatbuffers.JSONMember(m, "key"); ok {
-		if t.Key, err = flatbuffers.JSONEnum(x, flatbuffers.JSONPointer(pointer, "key"), CanonicalJsonInc.EnumValuesMode); err != nil {
-			return err
+	if x_, ok_ := flatbuffers.JSONMember(m_, "key"); ok_ {
+		if t.Key, err_ = flatbuffers.JSONEnum(x_, flatbuffers.JSONPointer(pointer_, "key"), CanonicalJsonInc.EnumValuesMode); err_ != nil {
+			return err_
 		}
 	}
-	if x, ok := flatbuffers.JSONMember(m, "value"); ok {
-		if t.Value, err = flatbuffers.JSONString(x, flatbuffers.JSONPointer(pointer, "value")); err != nil {
-			return err
+	if x_, ok_ := flatbuffers.JSONMember(m_, "value"); ok_ {
+		if t.Value, err_ = flatbuffers.JSONString(x_, flatbuffers.JSONPointer(pointer_, "value")); err_ != nil {
+			return err_
 		}
 	}
 

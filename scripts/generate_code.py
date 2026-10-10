@@ -516,6 +516,18 @@ flatc(
     schema=["canonical_json_test.fbs", "canonical_json_include.fbs"],
     prefix="jsonschema_options",
 )
+# Its edge cases too: empty union, bit_flags map keys, null map values,
+# struct map values, 64-bit enums and the float ranges.
+flatc(
+    ["--go", "--gen-object-api", "--go-json", "--json-int64-as-string"],
+    schema=["canonical_json_edge.fbs", "canonical_json_edge_value.fbs"],
+    prefix="go_json",
+)
+flatc(
+    JSONSCHEMA_ALL_OPTS,
+    schema=["canonical_json_edge.fbs", "canonical_json_edge_value.fbs"],
+    prefix="jsonschema_options",
+)
 
 # Type / field collsion
 type_field_collsion_schema = "type_field_collsion.fbs"

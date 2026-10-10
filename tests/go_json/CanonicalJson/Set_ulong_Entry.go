@@ -60,57 +60,57 @@ func (*__Set_ulong_EntryT) FlatJSONSchema() (file, definition string) {
 
 // MarshalFlatJSON returns t as canonical FlatBuffers JSON.
 func (t *__Set_ulong_EntryT) MarshalFlatJSON() ([]byte, error) {
-	w := flatbuffers.NewJSONWriter()
-	t.WriteFlatJSON(w)
+	w_ := flatbuffers.NewJSONWriter()
+	t.WriteFlatJSON(w_)
 
-	return w.Bytes()
+	return w_.Bytes()
 }
 
-// WriteFlatJSON writes t to w as canonical FlatBuffers JSON.
-func (t *__Set_ulong_EntryT) WriteFlatJSON(w *flatbuffers.JSONWriter) {
+// WriteFlatJSON writes t to w_ as canonical FlatBuffers JSON.
+func (t *__Set_ulong_EntryT) WriteFlatJSON(w_ *flatbuffers.JSONWriter) {
 	if t == nil {
-		w.Null()
+		w_.Null()
 
 		return
 	}
 
-	w.BeginObject()
+	w_.BeginObject()
 	if t.Key != 0 {
-		w.Key("key")
-		w.UintString(t.Key)
+		w_.Key("key")
+		w_.UintString(t.Key)
 	}
-	w.EndObject()
+	w_.EndObject()
 }
 
 // UnmarshalFlatJSON replaces t with the value the canonical FlatBuffers
-// JSON in data describes; an absent scalar takes its schema default.
-func (t *__Set_ulong_EntryT) UnmarshalFlatJSON(data []byte) error {
-	v, err := flatbuffers.ParseJSON(data)
-	if err != nil {
-		return err
+// JSON in data_ describes; an absent scalar takes its schema default.
+func (t *__Set_ulong_EntryT) UnmarshalFlatJSON(data_ []byte) error {
+	v_, err_ := flatbuffers.ParseJSON(data_)
+	if err_ != nil {
+		return err_
 	}
 
-	return t.UnmarshalFlatJSONValue(v, "")
+	return t.UnmarshalFlatJSONValue(v_, "")
 }
 
 // UnmarshalFlatJSONValue is UnmarshalFlatJSON for a value
-// flatbuffers.ParseJSON has already parsed; pointer locates it in errors.
-func (t *__Set_ulong_EntryT) UnmarshalFlatJSONValue(v any, pointer string) error {
-	m, err := flatbuffers.JSONObject(v, pointer)
-	if err != nil {
-		return err
+// flatbuffers.ParseJSON has already parsed; pointer_ locates it in errors.
+func (t *__Set_ulong_EntryT) UnmarshalFlatJSONValue(v_ any, pointer_ string) error {
+	m_, err_ := flatbuffers.JSONObject(v_, pointer_)
+	if err_ != nil {
+		return err_
 	}
 
-	err = flatbuffers.JSONCheckMembers(m, pointer, "key")
-	if err != nil {
-		return err
+	err_ = flatbuffers.JSONCheckMembers(m_, pointer_, "key")
+	if err_ != nil {
+		return err_
 	}
 
 	*t = __Set_ulong_EntryT{}
 
-	if x, ok := flatbuffers.JSONMember(m, "key"); ok {
-		if t.Key, err = flatbuffers.JSONInt[uint64](x, flatbuffers.JSONPointer(pointer, "key")); err != nil {
-			return err
+	if x_, ok_ := flatbuffers.JSONMember(m_, "key"); ok_ {
+		if t.Key, err_ = flatbuffers.JSONInt[uint64](x_, flatbuffers.JSONPointer(pointer_, "key")); err_ != nil {
+			return err_
 		}
 	}
 

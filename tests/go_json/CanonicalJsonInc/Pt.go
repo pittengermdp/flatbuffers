@@ -39,67 +39,67 @@ func (*PtT) FlatJSONSchema() (file, definition string) {
 
 // MarshalFlatJSON returns t as canonical FlatBuffers JSON.
 func (t *PtT) MarshalFlatJSON() ([]byte, error) {
-	w := flatbuffers.NewJSONWriter()
-	t.WriteFlatJSON(w)
+	w_ := flatbuffers.NewJSONWriter()
+	t.WriteFlatJSON(w_)
 
-	return w.Bytes()
+	return w_.Bytes()
 }
 
-// WriteFlatJSON writes t to w as canonical FlatBuffers JSON.
-func (t *PtT) WriteFlatJSON(w *flatbuffers.JSONWriter) {
+// WriteFlatJSON writes t to w_ as canonical FlatBuffers JSON.
+func (t *PtT) WriteFlatJSON(w_ *flatbuffers.JSONWriter) {
 	if t == nil {
-		w.Null()
+		w_.Null()
 
 		return
 	}
 
-	w.BeginObject()
-	w.Key("x")
-	w.Int(int64(t.X))
-	w.Key("y")
-	w.Int(int64(t.Y))
-	w.EndObject()
+	w_.BeginObject()
+	w_.Key("x")
+	w_.Int(int64(t.X))
+	w_.Key("y")
+	w_.Int(int64(t.Y))
+	w_.EndObject()
 }
 
 // UnmarshalFlatJSON replaces t with the value the canonical FlatBuffers
-// JSON in data describes; an absent scalar takes its schema default.
-func (t *PtT) UnmarshalFlatJSON(data []byte) error {
-	v, err := flatbuffers.ParseJSON(data)
-	if err != nil {
-		return err
+// JSON in data_ describes; an absent scalar takes its schema default.
+func (t *PtT) UnmarshalFlatJSON(data_ []byte) error {
+	v_, err_ := flatbuffers.ParseJSON(data_)
+	if err_ != nil {
+		return err_
 	}
 
-	return t.UnmarshalFlatJSONValue(v, "")
+	return t.UnmarshalFlatJSONValue(v_, "")
 }
 
 // UnmarshalFlatJSONValue is UnmarshalFlatJSON for a value
-// flatbuffers.ParseJSON has already parsed; pointer locates it in errors.
-func (t *PtT) UnmarshalFlatJSONValue(v any, pointer string) error {
-	m, err := flatbuffers.JSONObject(v, pointer)
-	if err != nil {
-		return err
+// flatbuffers.ParseJSON has already parsed; pointer_ locates it in errors.
+func (t *PtT) UnmarshalFlatJSONValue(v_ any, pointer_ string) error {
+	m_, err_ := flatbuffers.JSONObject(v_, pointer_)
+	if err_ != nil {
+		return err_
 	}
 
-	err = flatbuffers.JSONCheckMembers(m, pointer, "x", "y")
-	if err != nil {
-		return err
+	err_ = flatbuffers.JSONCheckMembers(m_, pointer_, "x", "y")
+	if err_ != nil {
+		return err_
 	}
 
 	*t = PtT{}
 
-	if x, ok := flatbuffers.JSONMember(m, "x"); ok {
-		if t.X, err = flatbuffers.JSONInt[int32](x, flatbuffers.JSONPointer(pointer, "x")); err != nil {
-			return err
+	if x_, ok_ := flatbuffers.JSONMember(m_, "x"); ok_ {
+		if t.X, err_ = flatbuffers.JSONInt[int32](x_, flatbuffers.JSONPointer(pointer_, "x")); err_ != nil {
+			return err_
 		}
 	} else {
-		return flatbuffers.JSONRequired(pointer, "x")
+		return flatbuffers.JSONRequired(pointer_, "x")
 	}
-	if x, ok := flatbuffers.JSONMember(m, "y"); ok {
-		if t.Y, err = flatbuffers.JSONInt[int32](x, flatbuffers.JSONPointer(pointer, "y")); err != nil {
-			return err
+	if x_, ok_ := flatbuffers.JSONMember(m_, "y"); ok_ {
+		if t.Y, err_ = flatbuffers.JSONInt[int32](x_, flatbuffers.JSONPointer(pointer_, "y")); err_ != nil {
+			return err_
 		}
 	} else {
-		return flatbuffers.JSONRequired(pointer, "y")
+		return flatbuffers.JSONRequired(pointer_, "y")
 	}
 
 	return nil

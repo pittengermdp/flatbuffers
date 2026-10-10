@@ -18,8 +18,12 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iomanip>
 #include <iostream>
 #include <limits>
+#include <locale>
+#include <map>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -73,53 +77,96 @@ static const char* JsonTypeName(BaseType type) {
   }
 }
 
-// The minimum/maximum keywords bounding an integer base type to its width,
-// each preceded by ", ". Empty for every non-integer base type.
-static std::string GenIntegerRange(BaseType type) {
+// The shortest decimal spelling of a finite float or double that reads back
+// as exactly the same value. NumToString keeps a fixed 12 decimals, which
+// turns 1e-20 into 0.0 and rounds the last digits of most doubles.
+template <typename T>
+static std::string ShortestNumber(T value) {
+  std::string text;
+  for (int digits = 1; digits <= std::numeric_limits<T>::max_digits10;
+       ++digits) {
+    std::stringstream ss;
+    ss.imbue(std::locale::classic());
+    ss << std::setprecision(digits) << value;
+    text = ss.str();
+    T back = 0;
+    if (StringToNumber(text.c_str(), &back) && back == value) {
+      break;
+    }
+  }
+  return text;
+}
+
+// The largest integer a double holds exactly, 2^53 - 1. A 64-bit integer
+// written as a JSON number is bounded by it when the exact string form is
+// also offered: past it a reader that holds numbers as doubles (JavaScript's
+// JSON.parse, and so Ajv) sees a different number than was written, so a
+// validator could not agree with one that reads exactly.
+static const char* const kMaxSafeInteger = "9007199254740991";
+
+// The least and greatest values of a numeric base type as JSON numbers, or
+// false for any other base type. `safe_64bit` narrows a 64-bit integer to
+// the doubles' exact range (see kMaxSafeInteger). A float's limits are the
+// shortest spellings of its largest finite value, the spelling the canonical
+// JSON writer uses for it.
+static bool NumberRange(BaseType type, bool safe_64bit, std::string* lo,
+                        std::string* hi) {
   switch (type) {
     case BASE_TYPE_CHAR:
-      return ", \"minimum\" : " +
-             NumToString(std::numeric_limits<int8_t>::min()) +
-             ", \"maximum\" : " +
-             NumToString(std::numeric_limits<int8_t>::max());
+      *lo = "-128";
+      *hi = "127";
+      return true;
     case BASE_TYPE_UCHAR:
-      return ", \"minimum\" : 0, \"maximum\" :" +
-             NumToString(std::numeric_limits<uint8_t>::max());
+      *lo = "0";
+      *hi = "255";
+      return true;
     case BASE_TYPE_SHORT:
-      return ", \"minimum\" : " +
-             NumToString(std::numeric_limits<int16_t>::min()) +
-             ", \"maximum\" : " +
-             NumToString(std::numeric_limits<int16_t>::max());
+      *lo = "-32768";
+      *hi = "32767";
+      return true;
     case BASE_TYPE_USHORT:
-      return ", \"minimum\" : 0, \"maximum\" : " +
-             NumToString(std::numeric_limits<uint16_t>::max());
+      *lo = "0";
+      *hi = "65535";
+      return true;
     case BASE_TYPE_INT:
-      return ", \"minimum\" : " +
-             NumToString(std::numeric_limits<int32_t>::min()) +
-             ", \"maximum\" : " +
-             NumToString(std::numeric_limits<int32_t>::max());
+      *lo = "-2147483648";
+      *hi = "2147483647";
+      return true;
     case BASE_TYPE_UINT:
-      return ", \"minimum\" : 0, \"maximum\" : " +
-             NumToString(std::numeric_limits<uint32_t>::max());
+      *lo = "0";
+      *hi = "4294967295";
+      return true;
     case BASE_TYPE_LONG:
-      return ", \"minimum\" : " +
-             NumToString(std::numeric_limits<int64_t>::min()) +
-             ", \"maximum\" : " +
-             NumToString(std::numeric_limits<int64_t>::max());
+      *lo = safe_64bit ? "-" + std::string(kMaxSafeInteger)
+                       : "-9223372036854775808";
+      *hi = safe_64bit ? kMaxSafeInteger : "9223372036854775807";
+      return true;
     case BASE_TYPE_ULONG:
-      return ", \"minimum\" : 0, \"maximum\" : " +
-             NumToString(std::numeric_limits<uint64_t>::max());
+      *lo = "0";
+      *hi = safe_64bit ? kMaxSafeInteger : "18446744073709551615";
+      return true;
+    case BASE_TYPE_FLOAT:
+      *hi = ShortestNumber(std::numeric_limits<float>::max());
+      *lo = "-" + *hi;
+      return true;
+    case BASE_TYPE_DOUBLE:
+      *hi = ShortestNumber(std::numeric_limits<double>::max());
+      *lo = "-" + *hi;
+      return true;
     default:
-      return "";
+      return false;
   }
 }
 
-static std::string GenType(BaseType type) {
-  const char* type_name = JsonTypeName(type);
-  if (type_name == nullptr) {
+// The minimum/maximum keywords bounding a numeric base type to its range,
+// each preceded by ", ". Empty for every other base type.
+static std::string GenNumberRange(BaseType type, bool safe_64bit) {
+  std::string lo;
+  std::string hi;
+  if (!NumberRange(type, safe_64bit, &lo, &hi)) {
     return "";
   }
-  return GenType(std::string(type_name)) + GenIntegerRange(type);
+  return ", \"minimum\" : " + lo + ", \"maximum\" : " + hi;
 }
 
 static std::string Join(const std::vector<std::string>& parts,
@@ -236,6 +283,44 @@ static std::string GenIntegerPattern(BaseType type) {
   return pattern + ")$";
 }
 
+// An integer of any width and sign, exactly: a ulong bound past INT64_MAX and
+// a negative long bound both fit, which no single C++ integer type holds.
+struct Integer {
+  bool negative = false;
+  uint64_t magnitude = 0;
+};
+
+static bool ParseInteger(const std::string& text, Integer* out) {
+  if (!text.empty() && text[0] == '-') {
+    int64_t value = 0;
+    if (!StringToNumber(text.c_str(), &value)) return false;
+    out->negative = value < 0;
+    out->magnitude = value < 0 ? static_cast<uint64_t>(-(value + 1)) + 1
+                               : static_cast<uint64_t>(value);
+    return true;
+  }
+  uint64_t value = 0;
+  if (!StringToNumber(text.c_str(), &value)) return false;
+  out->negative = false;
+  out->magnitude = value;
+  return true;
+}
+
+static int CompareIntegers(const Integer& a, const Integer& b) {
+  if (a.negative != b.negative) return a.negative ? -1 : 1;
+  if (a.magnitude == b.magnitude) return 0;
+  const bool a_smaller_magnitude = a.magnitude < b.magnitude;
+  // Among negatives the larger magnitude is the smaller number.
+  return a_smaller_magnitude != a.negative ? -1 : 1;
+}
+
+static std::string IntegerText(const Integer& value) {
+  if (value.negative && value.magnitude != 0) {
+    return "-" + NumToString(value.magnitude);
+  }
+  return NumToString(value.magnitude);
+}
+
 // Recognised field attributes, each declared in the schema by the user
 // (`attribute "json_minimum";`) and mapped onto one JSON Schema keyword.
 struct ValidationAttribute {
@@ -299,27 +384,33 @@ class JsonSchemaGenerator : public BaseGenerator {
   struct ValidationKeywords {
     std::string value;
     std::string array;
-    // `value` carries an integer field's minimum and maximum, replacing the
+    // `value` carries a numeric field's minimum and maximum, replacing the
     // range its type would otherwise contribute.
-    bool replaces_integer_range = false;
+    bool replaces_type_range = false;
   };
 
   // Set while one property's schema is generated, when its validation
-  // keywords already bound its integers.
-  bool omit_integer_range_ = false;
+  // keywords already bound its numbers.
+  bool omit_type_range_ = false;
 
-  // A scalar's type keyword with its integer range, unless validation
-  // keywords for the same property already bound it.
+  bool Int64AsString() const { return parser_.opts.json_int64_as_string; }
+
+  // The range keywords of a numeric base type. A 64-bit integer number is
+  // bounded to the doubles' exact range when its string form is offered.
+  std::string GenTypeRange(BaseType type) const {
+    return GenNumberRange(type, Int64AsString());
+  }
+
+  // A scalar's type keyword with its range, unless validation keywords for
+  // the same property already bound it.
   std::string GenRangedType(BaseType type) const {
     const char* type_name = JsonTypeName(type);
     if (type_name == nullptr) {
       return "";
     }
     return GenType(std::string(type_name)) +
-           (omit_integer_range_ ? "" : GenIntegerRange(type));
+           (omit_type_range_ ? "" : GenTypeRange(type));
   }
-
-  bool Int64AsString() const { return parser_.opts.json_int64_as_string; }
 
   std::string DefsKeyword() const {
     return parser_.opts.jsonschema_2020_12 ? "$defs" : "definitions";
@@ -372,7 +463,7 @@ class JsonSchemaGenerator : public BaseGenerator {
              null_type + " }]";
     }
     if (Is64BitInteger(type.base_type) && Int64AsString()) {
-      return "\"anyOf\" : [{ " + GenType(type.base_type) + " }, { " +
+      return "\"anyOf\" : [{ " + GenRangedType(type.base_type) + " }, { " +
              GenInt64StringType(type.base_type) + " }, { " + null_type + " }]";
     }
     const char* type_name = JsonTypeName(type.base_type);
@@ -381,7 +472,7 @@ class JsonSchemaGenerator : public BaseGenerator {
       return "";
     }
     return "\"type\" : [\"" + std::string(type_name) + "\", \"null\"]" +
-           (omit_integer_range_ ? "" : GenIntegerRange(type.base_type));
+           (omit_type_range_ ? "" : GenTypeRange(type.base_type));
   }
 
   std::string GenBaseType(const Type& type) const {
@@ -404,19 +495,15 @@ class JsonSchemaGenerator : public BaseGenerator {
     return GenTypeRef(variant.union_type.struct_def);
   }
 
-  // The schema of a union value without regard to its type field: any one of
-  // the variants. Pairing the value with the variant its type field names is a
-  // cross-member constraint, stated on the enclosing table instead.
-  std::string GenUnionValueType(const EnumDef& union_def) const {
-    std::vector<std::string> variants;
-    for (auto variant = union_def.Vals().cbegin();
-         variant != union_def.Vals().cend(); ++variant) {
-      const std::string variant_type = GenUnionVariantType(**variant);
-      if (!variant_type.empty()) {
-        variants.push_back("{ " + variant_type + " }");
-      }
-    }
-    return "\"anyOf\": [" + Join(variants, ",") + "]";
+  // The schema of a union value on its own: an object. Which variant it must
+  // be depends on the type field, a cross-member constraint the enclosing
+  // table states (GenUnionConstraints), and that alone is enough: a value
+  // needs a type, and the type must name a variant. Repeating the variants
+  // here as an anyOf added nothing but a composite keyword, under which Ajv's
+  // useDefaults refuses (strict mode) or ignores the variants' defaults --
+  // and an empty union gave "anyOf": [], which is not a valid schema.
+  std::string GenUnionValueType() const {
+    return GenType(std::string("object"));
   }
 
   std::string GenArrayType(const Type& type,
@@ -446,7 +533,7 @@ class JsonSchemaGenerator : public BaseGenerator {
         return GenTypeRef(type.struct_def);
       }
       case BASE_TYPE_UNION: {
-        return GenUnionValueType(*type.enum_def);
+        return GenUnionValueType();
       }
       case BASE_TYPE_UTYPE:
         return GenTypeRef(type.enum_def);
@@ -482,8 +569,17 @@ class JsonSchemaGenerator : public BaseGenerator {
 
   // A map key as a JSON property name, which is always a string: an enum by
   // its variant name, a bool as "true"/"false", an integer as its canonical
-  // decimal digits.
+  // decimal digits. A bit_flags key is its flag names, or the digits of a
+  // value they cannot spell (zero, or an unnamed bit): the enum's own
+  // definition will not do, as its number form can never be a property name.
   std::string GenMapKeyName(const Type& key_type) const {
+    if (key_type.enum_def != nullptr && IsBitFlags(*key_type.enum_def)) {
+      return "\"anyOf\" : [{ " + GenBitFlagsNamesType(*key_type.enum_def) +
+             " }, { " + GenType(std::string("string")) +
+             ", \"pattern\" : \"" +
+             GenIntegerPattern(key_type.enum_def->underlying_type.base_type) +
+             "\" }]";
+    }
     if (key_type.enum_def != nullptr) {
       return GenTypeRef(key_type.enum_def);
     }
@@ -499,6 +595,12 @@ class JsonSchemaGenerator : public BaseGenerator {
 
   // A map field: an object whose property names are the keys and whose
   // values are the map's values. Value keywords constrain every value.
+  //
+  // An entry may lack its string or table value, which flatc prints as null
+  // (and reads back as absent); the canonical writers write null for a
+  // missing table. The table case is an if/then/else, not an anyOf with
+  // null: Ajv's useDefaults ignores, and in strict mode refuses, defaults
+  // reached through anyOf.
   std::string GenMapType(const FieldDef& field,
                          const std::string& value_keywords) const {
     const StructDef& entry = *field.value.type.VectorType().struct_def;
@@ -508,11 +610,22 @@ class JsonSchemaGenerator : public BaseGenerator {
     if (key != nullptr) {
       code += ", \"propertyNames\" : {" + GenMapKeyName(key->value.type) + "}";
     }
-    if (value != nullptr) {
-      code += ", \"additionalProperties\" : {" +
-              GenFieldType(value->value.type, "") + value_keywords + "}";
+    if (value == nullptr) {
+      return code;
     }
-    return code;
+    const Type& value_type = value->value.type;
+    std::string value_schema;
+    if (IsString(value_type)) {
+      value_schema = "\"type\" : [\"string\", \"null\"]" + value_keywords;
+    } else if (value_type.base_type == BASE_TYPE_STRUCT &&
+               !value_type.struct_def->fixed) {
+      value_schema = "\"if\" : { " + GenType(std::string("object")) +
+                     " }, \"then\" : { " + GenTypeRef(value_type.struct_def) +
+                     " }, \"else\" : { " + GenType(std::string("null")) + " }";
+    } else {
+      value_schema = GenFieldType(value_type, "") + value_keywords;
+    }
+    return code + ", \"additionalProperties\" : {" + value_schema + "}";
   }
 
   // A set field: an array of distinct keys. Key keywords constrain each one.
@@ -595,12 +708,19 @@ class JsonSchemaGenerator : public BaseGenerator {
     if (type.base_type == BASE_TYPE_BOOL) {
       return constant == "0" || constant == "false" ? "false" : "true";
     }
-    if (IsFloat(type.base_type)) {
+    if (type.base_type == BASE_TYPE_FLOAT) {
+      float value = 0;
+      if (!StringToNumber(constant.c_str(), &value) || !std::isfinite(value)) {
+        return "";
+      }
+      return ShortestNumber(value);
+    }
+    if (type.base_type == BASE_TYPE_DOUBLE) {
       double value = 0;
       if (!StringToNumber(constant.c_str(), &value) || !std::isfinite(value)) {
         return "";
       }
-      return NumToString(value);
+      return ShortestNumber(value);
     }
     if (type.base_type == BASE_TYPE_ULONG) {
       uint64_t value = 0;
@@ -622,11 +742,10 @@ class JsonSchemaGenerator : public BaseGenerator {
     return false;
   }
 
-  // Appends one numeric keyword from an attribute value, normalised so the
-  // schema always holds a JSON number whatever spelling the .fbs used.
   // json_minimum / json_maximum on an integer field replace the range its
   // type contributes rather than repeating it -- one JSON object cannot hold
-  // two "minimum" members -- clamped so a bound never widens the type.
+  // two "minimum" members -- clamped so a bound never widens the type. A
+  // bound no value of the type can meet fails generation.
   bool GenIntegerBounds(const FieldDef& field, BaseType type,
                         ValidationKeywords* out) {
     const Value* lo = field.attributes.Lookup("json_minimum");
@@ -634,41 +753,155 @@ class JsonSchemaGenerator : public BaseGenerator {
     if (lo == nullptr && hi == nullptr) {
       return true;
     }
-    std::string type_max;
-    std::string negative_magnitude;
-    IntegerBounds(type, &type_max, &negative_magnitude);
-    int64_t minimum = 0;
-    if (!negative_magnitude.empty()) {
-      StringToNumber(("-" + negative_magnitude).c_str(), &minimum);
-    }
-    uint64_t type_maximum = 0;
-    StringToNumber(type_max.c_str(), &type_maximum);
-    std::string maximum = type_max;
+    std::string type_lo;
+    std::string type_hi;
+    NumberRange(type, Int64AsString(), &type_lo, &type_hi);
+    Integer minimum;
+    Integer maximum;
+    ParseInteger(type_lo, &minimum);
+    ParseInteger(type_hi, &maximum);
+    const Integer type_minimum = minimum;
+    const Integer type_maximum = maximum;
 
-    int64_t bound = 0;
+    Integer bound;
     if (lo != nullptr) {
-      if (!StringToNumber(lo->constant.c_str(), &bound)) {
+      if (!ParseInteger(lo->constant, &bound)) {
         return Fail(field, "json_minimum on an integer field must be an "
                            "integer, got `" + lo->constant + "`");
       }
-      minimum = std::max(minimum, bound);
+      if (CompareIntegers(bound, type_maximum) > 0) {
+        return Fail(field, "json_minimum " + lo->constant +
+                               " is above the largest value the field's type "
+                               "holds, " + type_hi);
+      }
+      if (CompareIntegers(bound, minimum) > 0) minimum = bound;
     }
     if (hi != nullptr) {
-      if (!StringToNumber(hi->constant.c_str(), &bound)) {
+      if (!ParseInteger(hi->constant, &bound)) {
         return Fail(field, "json_maximum on an integer field must be an "
                            "integer, got `" + hi->constant + "`");
       }
-      if (bound < minimum) {
-        return Fail(field, "json_maximum is below the field's minimum, so no "
-                           "value could pass");
+      if (CompareIntegers(bound, type_minimum) < 0) {
+        return Fail(field, "json_maximum " + hi->constant +
+                               " is below the smallest value the field's type "
+                               "holds, " + type_lo);
       }
-      if (static_cast<uint64_t>(bound) < type_maximum) {
-        maximum = NumToString(bound);
+      if (CompareIntegers(bound, maximum) < 0) maximum = bound;
+    }
+    if (CompareIntegers(maximum, minimum) < 0) {
+      return Fail(field, "json_maximum is below the field's minimum, so no "
+                         "value could pass");
+    }
+    out->value += ", \"minimum\" : " + IntegerText(minimum) +
+                  ", \"maximum\" : " + IntegerText(maximum);
+    out->replaces_type_range = true;
+    return true;
+  }
+
+  // json_minimum / json_maximum on a float or double field, merged with the
+  // type's finite range as GenIntegerBounds merges an integer's.
+  bool GenFloatBounds(const FieldDef& field, BaseType type,
+                      ValidationKeywords* out) {
+    const Value* lo = field.attributes.Lookup("json_minimum");
+    const Value* hi = field.attributes.Lookup("json_maximum");
+    if (lo == nullptr && hi == nullptr) {
+      return true;
+    }
+    std::string type_lo;
+    std::string type_hi;
+    NumberRange(type, false, &type_lo, &type_hi);
+    double largest = 0;
+    StringToNumber(type_hi.c_str(), &largest);
+    std::string minimum = type_lo;
+    std::string maximum = type_hi;
+    double low = -largest;
+    double high = largest;
+    double bound = 0;
+    if (lo != nullptr) {
+      if (!StringToNumber(lo->constant.c_str(), &bound) ||
+          !std::isfinite(bound)) {
+        return Fail(field, "json_minimum must be a finite number, got `" +
+                               lo->constant + "`");
+      }
+      if (bound > largest) {
+        return Fail(field, "json_minimum " + lo->constant +
+                               " is above the largest value the field's type "
+                               "holds, " + type_hi);
+      }
+      if (bound > low) {
+        low = bound;
+        minimum = ShortestNumber(bound);
       }
     }
-    out->value += ", \"minimum\" : " + NumToString(minimum) +
-                  ", \"maximum\" : " + maximum;
-    out->replaces_integer_range = true;
+    if (hi != nullptr) {
+      if (!StringToNumber(hi->constant.c_str(), &bound) ||
+          !std::isfinite(bound)) {
+        return Fail(field, "json_maximum must be a finite number, got `" +
+                               hi->constant + "`");
+      }
+      if (bound < -largest) {
+        return Fail(field, "json_maximum " + hi->constant +
+                               " is below the smallest value the field's type "
+                               "holds, " + type_lo);
+      }
+      if (bound < high) {
+        high = bound;
+        maximum = ShortestNumber(bound);
+      }
+    }
+    if (high < low) {
+      return Fail(field, "json_maximum is below the field's minimum, so no "
+                         "value could pass");
+    }
+    out->value += ", \"minimum\" : " + minimum + ", \"maximum\" : " + maximum;
+    out->replaces_type_range = true;
+    return true;
+  }
+
+  // Whether a numeric field's default meets its json_* bounds. One that does
+  // not gets no "default" keyword: the keyword tells a validator what to fill
+  // in for an absent member (Ajv's useDefaults does exactly that), and filling
+  // in a value the same schema then rejects turns a valid document invalid.
+  // The default itself stands -- it is what an absent field reads as.
+  static bool DefaultWithinBounds(const FieldDef& field) {
+    const Type& type = field.value.type;
+    if (!IsScalar(type.base_type) || type.enum_def != nullptr ||
+        type.base_type == BASE_TYPE_BOOL) {
+      return true;
+    }
+    struct Bound {
+      const char* attribute;
+      int violated_when;  // the comparison of default to bound that fails
+      bool or_equal;
+    };
+    static const Bound kBounds[] = {
+        {"json_minimum", -1, false},
+        {"json_maximum", 1, false},
+        {"json_exclusive_minimum", -1, true},
+        {"json_exclusive_maximum", 1, true},
+    };
+    for (const auto& b : kBounds) {
+      const Value* attr = field.attributes.Lookup(b.attribute);
+      if (attr == nullptr) continue;
+      int order = 0;
+      Integer di;
+      Integer bi;
+      double dr = 0;
+      double br = 0;
+      if (IsInteger(type.base_type) &&
+          ParseInteger(field.value.constant, &di) &&
+          ParseInteger(attr->constant, &bi)) {
+        order = CompareIntegers(di, bi);
+      } else if (StringToNumber(field.value.constant.c_str(), &dr) &&
+                 StringToNumber(attr->constant.c_str(), &br)) {
+        order = dr < br ? -1 : (dr > br ? 1 : 0);
+      } else {
+        continue;  // a malformed bound fails generation elsewhere
+      }
+      if (order == b.violated_when || (b.or_equal && order == 0)) {
+        return false;
+      }
+    }
     return true;
   }
 
@@ -683,7 +916,7 @@ class JsonSchemaGenerator : public BaseGenerator {
     } else if (StringToNumber(value.constant.c_str(), &real) &&
                std::isfinite(real)) {
       *keywords +=
-          ", \"" + std::string(keyword) + "\" : " + NumToString(real);
+          ", \"" + std::string(keyword) + "\" : " + ShortestNumber(real);
     } else {
       return Fail(field, attribute + " must be a finite number, got `" +
                              value.constant + "`");
@@ -766,8 +999,7 @@ class JsonSchemaGenerator : public BaseGenerator {
                                "would escape the bound");
       }
       const std::string attribute = a.attribute;
-      if (is_integer &&
-          (attribute == "json_minimum" || attribute == "json_maximum")) {
+      if (attribute == "json_minimum" || attribute == "json_maximum") {
         continue;  // merged with the type's range below
       }
       if (!AppendNumberKeyword(field, a.attribute, a.keyword, *value,
@@ -776,6 +1008,10 @@ class JsonSchemaGenerator : public BaseGenerator {
       }
     }
     if (is_integer && !GenIntegerBounds(field, element.base_type, out)) {
+      return false;
+    }
+    if (is_number && !is_integer &&
+        !GenFloatBounds(field, element.base_type, out)) {
       return false;
     }
     for (const auto& a : kLengthAttributes) {
@@ -925,22 +1161,33 @@ class JsonSchemaGenerator : public BaseGenerator {
            NewLine() + Indent(3) + "]," + NewLine();
   }
 
+  // A bit_flags value spelled as the space-separated names of its set bits.
+  static std::string GenBitFlagsNamesType(const EnumDef& enum_def) {
+    std::vector<std::string> names;
+    for (auto ev = enum_def.Vals().cbegin(); ev != enum_def.Vals().cend();
+         ++ev) {
+      names.push_back((*ev)->name);
+    }
+    const std::string name = "(" + Join(names, "|") + ")";
+    return GenType(std::string("string")) + ", \"pattern\" : \"^" + name +
+           "( " + name + ")*$\"";
+  }
+
   // An enum's definition body. A bit_flags value is written as the
   // space-separated names of its set bits, or as its number when it has none
   // (zero) or sets a bit no name covers -- both forms the JSON parser reads.
+  // A 64-bit number may also be a decimal string under
+  // --json-int64-as-string, as for any other 64-bit integer.
   std::string GenEnumBody(const EnumDef& enum_def) const {
     if (IsBitFlags(enum_def)) {
-      std::vector<std::string> names;
-      for (auto ev = enum_def.Vals().cbegin(); ev != enum_def.Vals().cend();
-           ++ev) {
-        names.push_back((*ev)->name);
+      const BaseType underlying = enum_def.underlying_type.base_type;
+      std::string number = "{ " + GenType(std::string("integer")) +
+                           GenTypeRange(underlying) + " }";
+      if (Is64BitInteger(underlying) && Int64AsString()) {
+        number += ", { " + GenInt64StringType(underlying) + " }";
       }
-      const std::string name = "(" + Join(names, "|") + ")";
-      return Indent(3) + "\"anyOf\" : [{ " + GenType(std::string("string")) +
-             ", \"pattern\" : \"^" + name + "( " + name + ")*$\" }, { " +
-             GenType(std::string("integer")) +
-             GenIntegerRange(enum_def.underlying_type.base_type) + " }]" +
-             NewLine();
+      return Indent(3) + "\"anyOf\" : [{ " + GenBitFlagsNamesType(enum_def) +
+             " }, " + number + "]" + NewLine();
     }
     std::string body = Indent(3) + GenType("string") + "," + NewLine();
     auto enumdef(Indent(3) + "\"enum\": [");
@@ -970,7 +1217,34 @@ class JsonSchemaGenerator : public BaseGenerator {
     return true;
   }
 
+  // Every type gets the definition name GenFullName gives it, which joins
+  // the namespace and the name with "_": A.B.C and A.B_C both become A_B_C.
+  // Two types sharing a name would make every reference to it ambiguous, so
+  // that fails generation instead of silently describing only one of them.
+  template <class T>
+  bool CheckDefinitionNames(const std::vector<T*>& defs,
+                            std::map<std::string, std::string>* seen) {
+    for (auto d = defs.cbegin(); d != defs.cend(); ++d) {
+      const std::string name = GenFullName(*d);
+      const std::string qualified =
+          (*d)->defined_namespace->GetFullyQualifiedName((*d)->name);
+      auto inserted = seen->insert(std::make_pair(name, qualified));
+      if (!inserted.second && inserted.first->second != qualified) {
+        error_ = "types `" + inserted.first->second + "` and `" + qualified +
+                 "` would share the JSON Schema definition name `" + name +
+                 "`; rename one of them";
+        return false;
+      }
+    }
+    return true;
+  }
+
   bool GenerateSchema() {
+    std::map<std::string, std::string> names;
+    if (!CheckDefinitionNames(parser_.enums_.vec, &names) ||
+        !CheckDefinitionNames(parser_.structs_.vec, &names)) {
+      return false;
+    }
     code_ = "";
     code_ += "{" + NewLine();
     code_ += Indent(1) + "\"$schema\": \"https://json-schema.org/draft/" +
@@ -1025,7 +1299,8 @@ class JsonSchemaGenerator : public BaseGenerator {
                       NumToString(property->value.type.fixed_length);
         }
         std::string default_info = "";
-        if (parser_.opts.jsonschema_defaults) {
+        if (parser_.opts.jsonschema_defaults &&
+            DefaultWithinBounds(*property)) {
           const std::string default_value =
               GenDefaultValue(*structure, *property);
           if (!default_value.empty()) {
@@ -1040,9 +1315,9 @@ class JsonSchemaGenerator : public BaseGenerator {
         }
         std::string typeLine = Indent(4) + "\"" + property->name + "\"";
         typeLine += " : {" + NewLine() + Indent(8);
-        omit_integer_range_ = validation.replaces_integer_range;
+        omit_type_range_ = validation.replaces_type_range;
         typeLine += GenPropertyType(*property, validation);
-        omit_integer_range_ = false;
+        omit_type_range_ = false;
         typeLine += arrayInfo;
         typeLine += default_info;
         typeLine += deprecated_info;
