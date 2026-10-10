@@ -11,6 +11,7 @@
 #include "flatbuffers/buffer.h"
 #include "flatbuffers/flatbuffer_builder.h"
 #include "flatbuffers/flatbuffers.h"
+#include "flatbuffers/idl.h"
 #include "flatbuffers/reflection.h"
 #include "tests/64bit/evolution/v1_generated.h"
 #include "tests/64bit/evolution/v2_generated.h"
@@ -544,11 +545,15 @@ void Offset64ReflectionVerify() {
     const size_t target = static_cast<size_t>(
         root->GetPointer64<const uint8_t*>(field->offset()) - buf.data());
 
-    // The offset points past the buffer, but its low 32 bits are unchanged.
+    // The offset points past the buffer, but its low 32 bits are unchanged. A
+    // 32-bit host wraps it back to the original, readers included, so only a
+    // 64-bit host must reject it.
     std::vector<uint8_t> far_offset = buf;
     SetHighWord(far_offset.data() + slot);
-    TEST_EQ(GeneratedVerify(far_offset), false);
-    TEST_EQ(ReflectionVerify(schema, far_offset), false);
+    TEST_EQ(ReflectionVerify(schema, far_offset), GeneratedVerify(far_offset));
+    if (sizeof(size_t) > sizeof(uoffset_t)) {
+      TEST_EQ(GeneratedVerify(far_offset), false);
+    }
 
     // The length runs past the buffer: by 2^32 elements for a 64-bit length,
     // or as the largest 32-bit length otherwise.
@@ -561,6 +566,41 @@ void Offset64ReflectionVerify() {
     }
     TEST_EQ(GeneratedVerify(long_length), false);
     TEST_EQ(ReflectionVerify(schema, long_length), false);
+  }
+}
+
+void Offset64ReflectionVerifyRequired() {
+  Parser parser;
+  TEST_EQ(
+      parser.Parse("struct Leaf { a:int; }"
+                   "table Optional {"
+                   "  s:string (offset64);"
+                   "  v:[int] (offset64);"
+                   "  v64:[ubyte] (vector64);"
+                   "  structs:[Leaf] (vector64);"
+                   "}"
+                   "table RequiredString { s:string (offset64, required); }"
+                   "table RequiredVector { v:[int] (offset64, required); }"
+                   "table RequiredVector64 { v:[ubyte] (vector64, required); }"
+                   "table RequiredStructs { v:[Leaf] (vector64, required); }"),
+      true);
+  parser.Serialize();
+  const reflection::Schema& schema =
+      *reflection::GetSchema(parser.builder_.GetBufferPointer());
+
+  // A table with no fields set satisfies every table without a required field.
+  FlatBufferBuilder64 fbb;
+  fbb.Finish(Offset<Table>(fbb.EndTable(fbb.StartTable())));
+
+  for (const reflection::Object* const obj : *schema.objects()) {
+    if (obj->is_struct()) continue;
+    bool has_required = false;
+    for (const reflection::Field* const field : *obj->fields()) {
+      has_required = has_required || field->required();
+    }
+    TEST_EQ(flatbuffers::Verify(schema, *obj, fbb.GetBufferPointer(),
+                                fbb.GetSize()),
+            !has_required);
   }
 }
 

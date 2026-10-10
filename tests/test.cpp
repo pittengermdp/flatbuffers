@@ -1722,6 +1722,7 @@ static void Offset64Tests() {
   Offset64ManyVectors();
   Offset64ForceAlign();
   Offset64ReflectionVerify();
+  Offset64ReflectionVerifyRequired();
 #endif
 }
 

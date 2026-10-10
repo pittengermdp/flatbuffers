@@ -60,6 +60,15 @@ static bool VerifyVectorOfStructs(flatbuffers::Verifier& v,
   return !p || v.VerifyVectorOrString<LenT>(p, obj.bytesize());
 }
 
+// Verifies the 64-bit offset in a field's slot, which must be present if the
+// field is required, as the generated VerifyOffset64Required() does.
+static bool VerifyOffset64Field(flatbuffers::Verifier& v,
+                                const flatbuffers::Table& table,
+                                const reflection::Field& field) {
+  return field.required() ? table.VerifyOffset64Required(v, field.offset())
+                          : table.VerifyOffset64(v, field.offset());
+}
+
 // Verifies a vector reached through a 64-bit offset. A `(vector64)` field also
 // has a 64-bit length (LenT = uoffset64_t); an `(offset64)` one keeps a 32-bit
 // length. The parser only allows scalar and struct elements in either.
@@ -68,7 +77,7 @@ static bool VerifyOffset64Vector(flatbuffers::Verifier& v,
                                  const reflection::Schema& schema,
                                  const flatbuffers::Table& table,
                                  const reflection::Field& vec_field) {
-  if (!table.VerifyOffset64(v, vec_field.offset())) return false;
+  if (!VerifyOffset64Field(v, table, vec_field)) return false;
 
   const auto element = vec_field.type()->element();
   if (element == reflection::Obj) {
@@ -118,7 +127,7 @@ static bool VerifyString(flatbuffers::Verifier& v,
                          const flatbuffers::Table& table,
                          const reflection::Field& str_field) {
   if (str_field.offset64()) {
-    return table.VerifyOffset64(v, str_field.offset()) &&
+    return VerifyOffset64Field(v, table, str_field) &&
            v.VerifyString(
                table.GetPointer64<const String*>(str_field.offset()));
   }
