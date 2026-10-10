@@ -611,7 +611,7 @@ void Offset64ReflectionVerify() {
     std::vector<uint8_t> far_offset = buf;
     SetHighWord(far_offset.data() + slot);
     TEST_EQ(ReflectionVerify(schema, far_offset), GeneratedVerify(far_offset));
-    if (sizeof(size_t) > sizeof(uoffset_t)) {
+    if (IsConstTrue(sizeof(size_t) > sizeof(uoffset_t))) {
       TEST_EQ(GeneratedVerify(far_offset), false);
     }
 
@@ -626,6 +626,68 @@ void Offset64ReflectionVerify() {
     }
     TEST_EQ(GeneratedVerify(long_length), false);
     TEST_EQ(ReflectionVerify(schema, long_length), false);
+  }
+}
+
+// Serializes a table whose `(offset64)` vector of longs, at `field`, has its
+// element data aligned to `elem_align`, and returns that data's offset in the
+// buffer.
+static size_t BuildFarLongVector(FlatBufferBuilder64& builder,
+                                 const voffset_t field,
+                                 const size_t elem_align) {
+  const std::vector<int64_t> longs{1, 2};
+
+  // Start 4 bytes past an 8-byte boundary, inside the 64-bit region, as
+  // BuildFarStructVector() does.
+  const std::vector<uint8_t> filler(8, 0);
+  builder.CreateVector64<Vector>(filler);
+  TEST_EQ(builder.GetSize() % sizeof(int64_t), sizeof(uint32_t));
+
+  builder.StartVector<Offset64, uint32_t>(longs.size(), sizeof(int64_t),
+                                          elem_align);
+  builder.PushBytes(reinterpret_cast<const uint8_t*>(longs.data()),
+                    sizeof(int64_t) * longs.size());
+  const Offset64<Vector<int64_t>> vec(
+      builder.EndVector<uint32_t, uoffset64_t>(longs.size()));
+
+  const uoffset_t start = builder.StartTable();
+  builder.AddOffset(field, vec);
+  builder.Finish(Offset<Table>(builder.EndTable(start)));
+
+  const uint8_t* const buf = builder.GetBufferPointer();
+  return static_cast<size_t>(
+      GetAnyRoot(buf)->GetPointer64<const Vector<int64_t>*>(field)->Data() -
+      buf);
+}
+
+void Offset64ReflectionVerifyAlignment() {
+  Parser parser;
+  TEST_EQ(parser.Parse("table Longs { longs:[long] (offset64); }"
+                       "root_type Longs;"),
+          true);
+  parser.Serialize();
+  const reflection::Schema& schema =
+      *reflection::GetSchema(parser.builder_.GetBufferPointer());
+  const voffset_t field =
+      schema.root_table()->fields()->LookupByKey("longs")->offset();
+  const auto verifies = [&schema](const FlatBufferBuilder64& builder) {
+    return flatbuffers::Verify(schema, *schema.root_table(),
+                               builder.GetBufferPointer(), builder.GetSize());
+  };
+
+  FlatBufferBuilder64 aligned;
+  TEST_EQ(BuildFarLongVector(aligned, field, AlignOf<int64_t>()) %
+              AlignOf<int64_t>(),
+          0u);
+  TEST_EQ(verifies(aligned), true);
+
+  // Elements at 4 mod 8: the length prefix is aligned, the element data is not.
+  if (IsConstTrue(AlignOf<int64_t>() > sizeof(uint32_t))) {
+    FlatBufferBuilder64 misaligned;
+    TEST_EQ(BuildFarLongVector(misaligned, field, sizeof(uint32_t)) %
+                AlignOf<int64_t>(),
+            sizeof(uint32_t));
+    TEST_EQ(verifies(misaligned), false);
   }
 }
 

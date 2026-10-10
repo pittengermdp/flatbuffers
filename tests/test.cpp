@@ -1724,6 +1724,7 @@ static void Offset64Tests() {
   Offset64ForceAlign();
   Offset64ReflectionVerify();
   Offset64ReflectionVerifyRequired();
+  Offset64ReflectionVerifyAlignment();
 #endif
 }
 
