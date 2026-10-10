@@ -46,17 +46,40 @@ static bool VerifyStruct(flatbuffers::Verifier& v,
                              offset, obj.bytesize(), obj.minalign());
 }
 
+template <typename OffsetT = uoffset_t, typename LenT = uoffset_t>
 static bool VerifyVectorOfStructs(flatbuffers::Verifier& v,
                                   const flatbuffers::Table& parent_table,
                                   voffset_t field_offset,
                                   const reflection::Object& obj,
                                   bool required) {
-  auto p = parent_table.GetPointer<const uint8_t*>(field_offset);
+  auto p = parent_table.GetPointer<const uint8_t*, OffsetT>(field_offset);
   if (required && !p) {
     return false;
   }
 
-  return !p || v.VerifyVectorOrString(p, obj.bytesize());
+  return !p || v.VerifyVectorOrString<LenT>(p, obj.bytesize());
+}
+
+// Verifies a vector reached through a 64-bit offset. A `(vector64)` field also
+// has a 64-bit length (LenT = uoffset64_t); an `(offset64)` one keeps a 32-bit
+// length. The parser only allows scalar and struct elements in either.
+template <typename LenT>
+static bool VerifyOffset64Vector(flatbuffers::Verifier& v,
+                                 const reflection::Schema& schema,
+                                 const flatbuffers::Table& table,
+                                 const reflection::Field& vec_field) {
+  if (!table.VerifyOffset64(v, vec_field.offset())) return false;
+
+  const auto element = vec_field.type()->element();
+  if (element == reflection::Obj) {
+    auto obj = schema.objects()->Get(vec_field.type()->index());
+    return obj->is_struct() &&
+           VerifyVectorOfStructs<uoffset64_t, LenT>(
+               v, table, vec_field.offset(), *obj, vec_field.required());
+  }
+  if (!IsScalar(element)) return false;
+  auto vec = table.GetPointer64<const uint8_t*>(vec_field.offset());
+  return !vec || v.VerifyVectorOrString<LenT>(vec, GetTypeSize(element));
 }
 
 // forward declare to resolve cyclic deps between VerifyObject and VerifyVector
@@ -91,11 +114,30 @@ static bool VerifyUnion(flatbuffers::Verifier& v,
   }
 }
 
+static bool VerifyString(flatbuffers::Verifier& v,
+                         const flatbuffers::Table& table,
+                         const reflection::Field& str_field) {
+  if (str_field.offset64()) {
+    return table.VerifyOffset64(v, str_field.offset()) &&
+           v.VerifyString(
+               table.GetPointer64<const String*>(str_field.offset()));
+  }
+  return table.VerifyField<uoffset_t>(v, str_field.offset(),
+                                      sizeof(uoffset_t)) &&
+         v.VerifyString(flatbuffers::GetFieldS(table, str_field));
+}
+
 static bool VerifyVector(flatbuffers::Verifier& v,
                          const reflection::Schema& schema,
                          const flatbuffers::Table& table,
                          const reflection::Field& vec_field) {
+  if (vec_field.type()->base_type() == reflection::Vector64) {
+    return VerifyOffset64Vector<uoffset64_t>(v, schema, table, vec_field);
+  }
   FLATBUFFERS_ASSERT(vec_field.type()->base_type() == reflection::Vector);
+  if (vec_field.offset64()) {
+    return VerifyOffset64Vector<uoffset_t>(v, schema, table, vec_field);
+  }
   if (!table.VerifyField<uoffset_t>(v, vec_field.offset(), sizeof(uoffset_t)))
     return false;
 
@@ -182,9 +224,6 @@ static bool VerifyObject(flatbuffers::Verifier& v,
   for (uoffset_t i = 0; i < obj.fields()->size(); i++) {
     auto field_def = obj.fields()->Get(i);
     switch (field_def->type()->base_type()) {
-      case reflection::None:
-        FLATBUFFERS_ASSERT(false);
-        break;
       case reflection::UType:
         if (!table->VerifyField<uint8_t>(v, field_def->offset(),
                                          sizeof(uint8_t)))
@@ -223,13 +262,10 @@ static bool VerifyObject(flatbuffers::Verifier& v,
           return false;
         break;
       case reflection::String:
-        if (!table->VerifyField<uoffset_t>(v, field_def->offset(),
-                                           sizeof(uoffset_t)) ||
-            !v.VerifyString(flatbuffers::GetFieldS(*table, *field_def))) {
-          return false;
-        }
+        if (!VerifyString(v, *table, *field_def)) return false;
         break;
       case reflection::Vector:
+      case reflection::Vector64:
         if (!VerifyVector(v, schema, *table, *field_def)) return false;
         break;
       case reflection::Obj: {
@@ -259,9 +295,12 @@ static bool VerifyObject(flatbuffers::Verifier& v,
         }
         break;
       }
+      case reflection::None:
       default:
-        FLATBUFFERS_ASSERT(false);
-        break;
+        // None is never a field type, and one this verifier does not know,
+        // e.g. from a newer schema, cannot be verified: reject either in every
+        // build type rather than skip the field.
+        return false;
     }
   }
 

@@ -13,6 +13,7 @@ void Offset64VectorOfStructs();
 void Offset64SizePrefix();
 void Offset64ManyVectors();
 void Offset64ForceAlign();
+void Offset64ReflectionVerify();
 
 }  // namespace tests
 }  // namespace flatbuffers

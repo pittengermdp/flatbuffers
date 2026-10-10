@@ -11,6 +11,7 @@
 #include "flatbuffers/buffer.h"
 #include "flatbuffers/flatbuffer_builder.h"
 #include "flatbuffers/flatbuffers.h"
+#include "flatbuffers/reflection.h"
 #include "tests/64bit/evolution/v1_generated.h"
 #include "tests/64bit/evolution/v2_generated.h"
 #include "tests/64bit/test_64bit_generated.h"
@@ -458,6 +459,109 @@ void Offset64ForceAlign() {
 
   // Finish the buffer.
   FinishRootTableBuffer(builder, root_table_offset);
+}
+
+// Packs a RootTable with every 64-bit offset field set. near_string and
+// many_vectors stay empty: Pack() serializes them ahead of the 64-bit
+// nested_root and forced_aligned_vector, which the builder does not allow.
+static std::vector<uint8_t> PackRootTableWith64BitFields() {
+  RootTableT nested;
+  nested.a = 7;
+  FlatBufferBuilder64 nested_fbb;
+  FinishRootTableBuffer(nested_fbb, RootTable::Pack(nested_fbb, &nested));
+
+  RootTableT root;
+  root.far_vector = {1, 2, 3};
+  root.a = 42;
+  root.far_string = "some far string";
+  root.big_bool_vector = {1, 0, 1};
+  root.big_vector = {4, 5, 6, 7};
+  root.nested_root.assign(nested_fbb.GetBufferPointer(),
+                          nested_fbb.GetBufferPointer() + nested_fbb.GetSize());
+  root.far_struct_vector = {LeafStruct{123, 4.567}, LeafStruct{987, 6.543}};
+  root.big_struct_vector = {LeafStruct{72, 72.8}};
+  root.forced_aligned_vector = {8, 9};
+
+  FlatBufferBuilder64 fbb;
+  FinishRootTableBuffer(fbb, RootTable::Pack(fbb, &root));
+  std::vector<uint8_t> buf(fbb.GetBufferPointer(),
+                           fbb.GetBufferPointer() + fbb.GetSize());
+
+  const std::unique_ptr<RootTableT> unpacked(
+      GetRootTable(buf.data())->UnPack());
+  TEST_ASSERT(*unpacked == root);
+  return buf;
+}
+
+static bool GeneratedVerify(const std::vector<uint8_t>& buf) {
+  Verifier::Options options;
+  // Allow the verifier to verify 64-bit buffers.
+  options.max_size = FLATBUFFERS_MAX_64_BUFFER_SIZE;
+  Verifier verifier(buf.data(), buf.size(), options);
+  return VerifyRootTableBuffer(verifier);
+}
+
+static bool ReflectionVerify(const reflection::Schema& schema,
+                             const std::vector<uint8_t>& buf) {
+  return flatbuffers::Verify(schema, *schema.root_table(), buf.data(),
+                             buf.size());
+}
+
+// Adds 2^32 to the 64-bit value at `p`. A verifier that reads only the low 32
+// bits still sees the original, valid value; a 64-bit reader does not.
+static void SetHighWord(uint8_t* const p) {
+  WriteScalar(p, ReadScalar<uint64_t>(p) + (uint64_t{1} << 32));
+}
+
+void Offset64ReflectionVerify() {
+  Verifier schema_verifier(RootTable::BinarySchema::data(),
+                           RootTable::BinarySchema::size());
+  TEST_EQ(reflection::VerifySchemaBuffer(schema_verifier), true);
+  const reflection::Schema& schema =
+      *reflection::GetSchema(RootTable::BinarySchema::data());
+  const auto* const fields = schema.root_table()->fields();
+
+  // The two shapes a 64-bit offset takes in a schema: a Vector64 base type,
+  // and a 32-bit String or Vector base type flagged offset64.
+  TEST_EQ(fields->LookupByKey("big_vector")->type()->base_type(),
+          reflection::Vector64);
+  TEST_EQ(fields->LookupByKey("far_string")->type()->base_type(),
+          reflection::String);
+  TEST_EQ(fields->LookupByKey("far_string")->offset64(), true);
+
+  const std::vector<uint8_t> buf = PackRootTableWith64BitFields();
+  TEST_EQ(GeneratedVerify(buf), true);
+  TEST_EQ(ReflectionVerify(schema, buf), true);
+
+  const Table* const root = GetAnyRoot(buf.data());
+  for (const reflection::Field* const field : *fields) {
+    if (!field->offset64()) continue;
+    // The fixture sets every 64-bit field, so a new one fails here until it
+    // is added there.
+    const uint8_t* const slot_ptr = root->GetAddressOf(field->offset());
+    TEST_NOTNULL(slot_ptr);
+    const size_t slot = static_cast<size_t>(slot_ptr - buf.data());
+    const size_t target = static_cast<size_t>(
+        root->GetPointer64<const uint8_t*>(field->offset()) - buf.data());
+
+    // The offset points past the buffer, but its low 32 bits are unchanged.
+    std::vector<uint8_t> far_offset = buf;
+    SetHighWord(far_offset.data() + slot);
+    TEST_EQ(GeneratedVerify(far_offset), false);
+    TEST_EQ(ReflectionVerify(schema, far_offset), false);
+
+    // The length runs past the buffer: by 2^32 elements for a 64-bit length,
+    // or as the largest 32-bit length otherwise.
+    std::vector<uint8_t> long_length = buf;
+    if (field->type()->base_type() == reflection::Vector64) {
+      SetHighWord(long_length.data() + target);
+    } else {
+      WriteScalar(long_length.data() + target,
+                  std::numeric_limits<uoffset_t>::max());
+    }
+    TEST_EQ(GeneratedVerify(long_length), false);
+    TEST_EQ(ReflectionVerify(schema, long_length), false);
+  }
 }
 
 }  // namespace tests
