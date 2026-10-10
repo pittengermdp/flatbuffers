@@ -2038,6 +2038,34 @@ void MapStructValueJsonTest() {
   TEST_EQ(nulls.Parse(printed.c_str()), true);
 }
 
+// JSON has no NaN or infinity. Strict JSON quotes them, as the parser reads
+// a quoted float; printed bare they made the document invalid JSON.
+void JsonNonFiniteFloatsTest() {
+  flatbuffers::IDLOptions opts;
+  opts.strict_json = true;
+  opts.indent_step = -1;
+  flatbuffers::Parser parser(opts);
+  const char* schema =
+      "table T { f:float; d:double; v:[double]; } root_type T;";
+  TEST_EQ(parser.Parse(schema), true);
+  TEST_EQ(parser.Parse("{\"f\": \"nan\", \"d\": \"-inf\", "
+                       "\"v\": [1.5, \"inf\"]}"),
+          true);
+  std::string text;
+  TEST_NULL(flatbuffers::GenText(parser, parser.builder_.GetBufferPointer(),
+                                 &text));
+  TEST_EQ_STR(text.c_str(),
+              "{\"f\": \"nan\",\"d\": \"-inf\",\"v\": [1.5,\"inf\"]}");
+
+  flatbuffers::Parser reparser(opts);
+  TEST_EQ(reparser.Parse(schema), true);
+  TEST_EQ(reparser.Parse(text.c_str()), true);
+  std::string again;
+  TEST_NULL(flatbuffers::GenText(
+      reparser, reparser.builder_.GetBufferPointer(), &again));
+  TEST_EQ_STR(again.c_str(), text.c_str());
+}
+
 // --json-int64-as-string: 64-bit integers print as quoted decimal strings (a
 // double cannot hold every one exactly) and parse back to the same value, as
 // does a 64-bit enum value no variant names; named enum values and narrower
@@ -2214,6 +2242,7 @@ int FlatBufferTests(const std::string& tests_data_path) {
   MapSetJsonRoundTripTest();
   MapSetJsonAllKindsTest();
   MapStructValueJsonTest();
+  JsonNonFiniteFloatsTest();
   JsonInt64AsStringTest();
   FbsReEmitTest();
   StringVectorDefaultsTest();

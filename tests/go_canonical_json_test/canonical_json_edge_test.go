@@ -110,18 +110,14 @@ func TestEdgeThreeWays(t *testing.T) {
 			fromFlatc := edge.GetRootAsEdge(flatcBinary(t, "canonical_json_edge.fbs", generated), 0).UnPack()
 			equalT(t, "flatc's reading", withoutNaN(t, want), withoutNaN(t, fromFlatc))
 
-			// flatc prints a NaN that Pack stored as "nan", which is not
-			// JSON; a value without one prints as JSON the generated code
-			// reads back.
-			if math.IsNaN(float64(want.NanF)) {
-				return
-			}
+			// A NaN-defaulted field holding NaN is its default, so Pack does
+			// not store it and flatc does not print it.
 			printed := flatcJSON(t, "canonical_json_edge.fbs", packEdge(want), "--json-int64-as-string")
 			var fromPrinted edge.EdgeT
 			if err := fromPrinted.UnmarshalFlatJSON(printed); err != nil {
 				t.Fatalf("reading flatc's JSON %s: %v", printed, err)
 			}
-			equalT(t, "generated reading of flatc's JSON", want, &fromPrinted)
+			equalT(t, "generated reading of flatc's JSON", withoutNaN(t, want), withoutNaN(t, &fromPrinted))
 		})
 	}
 

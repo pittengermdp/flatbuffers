@@ -18,6 +18,7 @@
 #include "idl_gen_text.h"
 
 #include <algorithm>
+#include <cmath>
 
 #include "flatbuffers/base.h"
 #include "flatbuffers/code_generator.h"
@@ -105,6 +106,17 @@ struct JsonPrinter {
     if (opts.json_int64_as_string &&
         (type.base_type == BASE_TYPE_LONG ||
          type.base_type == BASE_TYPE_ULONG)) {
+      text += '\"';
+      text += NumToString(val);
+      text += '\"';
+      return;
+    }
+
+    // JSON has no NaN or infinity: printed bare, either makes the whole
+    // document invalid JSON. Strict JSON quotes them ("nan", "inf", "-inf"),
+    // which the parser reads back as the same float.
+    if (opts.strict_json && IsFloat(type.base_type) &&
+        !std::isfinite(static_cast<double>(val))) {
       text += '\"';
       text += NumToString(val);
       text += '\"';
