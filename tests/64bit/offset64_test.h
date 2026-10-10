@@ -14,6 +14,8 @@ void Offset64VectorOfStructsMisaligned();
 void Offset64SizePrefix();
 void Offset64ManyVectors();
 void Offset64ForceAlign();
+void Offset64ReflectionCopyTable();
+void Offset64ReflectionCopyTableSubTables();
 
 }  // namespace tests
 }  // namespace flatbuffers

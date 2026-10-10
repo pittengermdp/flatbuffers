@@ -1722,6 +1722,8 @@ static void Offset64Tests() {
   Offset64SizePrefix();
   Offset64ManyVectors();
   Offset64ForceAlign();
+  Offset64ReflectionCopyTable();
+  Offset64ReflectionCopyTableSubTables();
 #endif
 }
 
