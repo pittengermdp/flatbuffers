@@ -1724,6 +1724,7 @@ static void Offset64Tests() {
   Offset64ForceAlign();
   Offset64ReflectionVerify();
   Offset64ReflectionVerifyRequired();
+  Offset64ReflectionVerifyZeroOffset();
   Offset64ReflectionVerifySizePrefixed();
   Offset64ReflectionVerifyRoot();
   Offset64ReflectionVerifyMaxSize();
@@ -2162,6 +2163,8 @@ int FlatBufferTests(const std::string& tests_data_path) {
 
   MiniReflectFlatBuffersTest(flatbuf.data());
   MiniReflectFixedLengthArrayTest();
+  ReflectionVerifyOffsetFieldsTest();
+  ReflectionVerifyRequiredOffsetFieldsTest();
 
   SizePrefixedTest();
 
@@ -2173,6 +2176,7 @@ int FlatBufferTests(const std::string& tests_data_path) {
   FixedLengthArrayJsonTest(tests_data_path, false);
   FixedLengthArrayJsonTest(tests_data_path, true);
   ReflectionTest(tests_data_path, flatbuf.data(), flatbuf.size());
+  ReflectionVerifyUnionTypeSlotsTest(tests_data_path);
   ForAllFieldsReverseTest(tests_data_path);
   ParseProtoTest(tests_data_path);
   EvolutionTest(tests_data_path);

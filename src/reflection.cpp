@@ -60,6 +60,23 @@ static bool VerifyVectorOfStructs(flatbuffers::Verifier& v,
   return !p || v.VerifyVectorOrString<LenT>(p, obj.bytesize());
 }
 
+// Verifies the 32-bit offset in a field's slot, which must be present if the
+// field is required, as the generated VerifyOffset() and
+// VerifyOffsetRequired() do. Call it before reading the slot: only this bounds
+// the slot by the buffer, since a vtable can put a field anywhere in the 64KiB
+// past its table. It also rejects an offset of 0, which points the field at
+// its own slot, one that is negative read as signed, and one that leads out of
+// the buffer. A deprecated field need not be present even if it is marked
+// required: the generated builder does not require it, and the generated
+// verifier skips it.
+static bool VerifyOffset32Field(flatbuffers::Verifier& v,
+                                const flatbuffers::Table& table,
+                                const reflection::Field& field) {
+  return field.required() && !field.deprecated()
+             ? table.VerifyOffsetRequired(v, field.offset())
+             : table.VerifyOffset(v, field.offset());
+}
+
 // Verifies the 64-bit offset in a field's slot, which must be present if the
 // field is required, as the generated VerifyOffset64Required() does.
 static bool VerifyOffset64Field(flatbuffers::Verifier& v,
@@ -131,8 +148,7 @@ static bool VerifyString(flatbuffers::Verifier& v,
            v.VerifyString(
                table.GetPointer64<const String*>(str_field.offset()));
   }
-  return table.VerifyField<uoffset_t>(v, str_field.offset(),
-                                      sizeof(uoffset_t)) &&
+  return VerifyOffset32Field(v, table, str_field) &&
          v.VerifyString(flatbuffers::GetFieldS(table, str_field));
 }
 
@@ -147,8 +163,7 @@ static bool VerifyVector(flatbuffers::Verifier& v,
   if (vec_field.offset64()) {
     return VerifyOffset64Vector<uoffset_t>(v, schema, table, vec_field);
   }
-  if (!table.VerifyField<uoffset_t>(v, vec_field.offset(), sizeof(uoffset_t)))
-    return false;
+  if (!VerifyOffset32Field(v, table, vec_field)) return false;
 
   switch (vec_field.type()->element()) {
     case reflection::UType:
@@ -204,6 +219,10 @@ static bool VerifyVector(flatbuffers::Verifier& v,
           table, vec_field);
       if (!v.VerifyVector(vec)) return false;
       if (!vec) return true;
+      // The types are in the field before this one, `<name>_type`, which
+      // sorts after it by name and so is not verified yet.
+      if (!table.VerifyOffset(v, vec_field.offset() - sizeof(voffset_t)))
+        return false;
       auto type_vec = table.GetPointer<Vector<uint8_t>*>(vec_field.offset() -
                                                          sizeof(voffset_t));
       if (!v.VerifyVector(type_vec)) return false;
@@ -285,7 +304,8 @@ static bool VerifyObject(flatbuffers::Verifier& v,
             return false;
           }
         } else {
-          if (!VerifyObject(v, schema, *child_obj,
+          if (!VerifyOffset32Field(v, *table, *field_def) ||
+              !VerifyObject(v, schema, *child_obj,
                             flatbuffers::GetFieldT(*table, *field_def),
                             field_def->required())) {
             return false;
@@ -296,6 +316,12 @@ static bool VerifyObject(flatbuffers::Verifier& v,
       case reflection::Union: {
         //  get union type from the prev field
         voffset_t utype_offset = field_def->offset() - sizeof(voffset_t);
+        // That field, `<name>_type`, sorts after this one by name and so is
+        // not verified yet.
+        if (!table->VerifyField<uint8_t>(v, utype_offset, sizeof(uint8_t)) ||
+            !VerifyOffset32Field(v, *table, *field_def)) {
+          return false;
+        }
         auto utype = table->GetField<uint8_t>(utype_offset, 0);
         auto uval = reinterpret_cast<const uint8_t*>(
             flatbuffers::GetFieldT(*table, *field_def));

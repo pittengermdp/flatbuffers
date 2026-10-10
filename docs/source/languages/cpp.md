@@ -365,7 +365,12 @@ And example of usage, for the time being, can be found in
 `flatbuffers::VerifySizePrefixed()` does the same for a size-prefixed buffer.
 They check the buffer's framing (its minimum size, size prefix and root offset)
 the way the generated `Verify<Root>Buffer()` does, but not the file identifier
-or the contents of `nested_flatbuffer` fields. Both have overloads that take a
+or the contents of `nested_flatbuffer` fields. Before following the offset of a
+string, vector, table or union field, they check it as the generated verifier
+does: it must be present if the field is `required` (unless it is also
+`deprecated`), nonzero, and lead to a position inside the buffer. Unlike the
+generated verifier, they still check a `deprecated` field that is present,
+since reflection can still read it. Both have overloads that take a
 `Verifier::Options`.
 
 A buffer finished with `FlatBufferBuilder64` needs both of these, as generated
