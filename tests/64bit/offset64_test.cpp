@@ -804,5 +804,16 @@ void Offset64ReflectionVerifyMaxSize() {
           true);
 }
 
+// A 64-bit size prefix puts the identifier at bytes 12 to 16, past the end of
+// a minimum-size buffer. No such buffer verifies, so only a sanitizer build
+// (FLATBUFFERS_CODE_SANITIZE) sees an identifier read past its end.
+void Offset64SizePrefixedIdentifierBounds() {
+  std::vector<uint8_t> buf(FLATBUFFERS_MIN_BUFFER_SIZE);
+  WriteScalar<uoffset64_t>(buf.data(), buf.size() - sizeof(uoffset64_t));
+  Verifier verifier(buf.data(), buf.size(), Options64());
+  TEST_EQ((verifier.VerifySizePrefixedBuffer<RootTable, uoffset64_t>("RTBL")),
+          false);
+}
+
 }  // namespace tests
 }  // namespace flatbuffers

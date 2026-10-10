@@ -1727,6 +1727,7 @@ static void Offset64Tests() {
   Offset64ReflectionVerifySizePrefixed();
   Offset64ReflectionVerifyRoot();
   Offset64ReflectionVerifyMaxSize();
+  Offset64SizePrefixedIdentifierBounds();
 #endif
 }
 
