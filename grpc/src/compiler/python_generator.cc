@@ -141,10 +141,10 @@ class StubGenerator : public BaseGenerator {
 
     std::string sanitized_suffix{parser_.opts.grpc_filename_suffix};
     std::replace(sanitized_suffix.begin(), sanitized_suffix.end(), '.', '_');
+    // NamespaceDir is either empty or ends in a separator.
     std::string filename =
-        ns_name + kPathSeparator +
-        StripPath(StripExtension(parser_.file_being_parsed_)) + "_grpc" +
-        sanitized_suffix + namer_.config_.filename_extension;
+        ns_name + StripPath(StripExtension(parser_.file_being_parsed_)) +
+        "_grpc" + sanitized_suffix + namer_.config_.filename_extension;
 
     return SaveStub(filename, imports, stub.str());
   }
@@ -282,10 +282,10 @@ class ServiceGenerator : public BaseGenerator {
 
     std::string sanitized_suffix{parser_.opts.grpc_filename_suffix};
     std::replace(sanitized_suffix.begin(), sanitized_suffix.end(), '.', '_');
+    // NamespaceDir is either empty or ends in a separator.
     std::string filename =
-        ns_name + kPathSeparator +
-        StripPath(StripExtension(parser_.file_being_parsed_)) + "_grpc" +
-        sanitized_suffix + namer_.config_.filename_extension;
+        ns_name + StripPath(StripExtension(parser_.file_being_parsed_)) +
+        "_grpc" + sanitized_suffix + namer_.config_.filename_extension;
 
     return SaveService(filename, imports, ss.str());
   }
