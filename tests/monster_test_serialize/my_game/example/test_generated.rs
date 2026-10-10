@@ -54,7 +54,7 @@ impl<'a> ::flatbuffers::Follow<'a> for &'a Test {
     }
 }
 
-impl<'b> ::flatbuffers::Push for Test {
+impl ::flatbuffers::Push for Test {
     type Output = Self;
 
     #[inline]
@@ -96,7 +96,7 @@ impl Serialize for Test {
     }
 }
 
-impl<'a> Test {
+impl Test {
     #[allow(clippy::too_many_arguments)]
     #[must_use]
     pub fn new(a: i16, b: i8) -> Self {

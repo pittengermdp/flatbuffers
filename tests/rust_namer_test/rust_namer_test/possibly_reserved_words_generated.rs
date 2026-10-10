@@ -54,7 +54,7 @@ impl<'a> ::flatbuffers::Follow<'a> for &'a PossiblyReservedWords {
     }
 }
 
-impl<'b> ::flatbuffers::Push for PossiblyReservedWords {
+impl ::flatbuffers::Push for PossiblyReservedWords {
     type Output = Self;
 
     #[inline]
@@ -84,7 +84,7 @@ impl ::flatbuffers::Verifiable for PossiblyReservedWords {
     }
 }
 
-impl<'a> PossiblyReservedWords {
+impl PossiblyReservedWords {
     #[allow(clippy::too_many_arguments)]
     #[must_use]
     pub fn new(follow_: f32, push_: f32, size: f32, alignment: f32) -> Self {

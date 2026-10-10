@@ -3706,7 +3706,7 @@ class RustGenerator : public BaseGenerator {
     code_ += "}";
     code_ += "";
 
-    code_ += "impl<'b> ::flatbuffers::Push for {{STRUCT_TY}} {";
+    code_ += "impl ::flatbuffers::Push for {{STRUCT_TY}} {";
     code_ += "    type Output = Self;";
     code_ += "";
     code_ += "    #[inline]";
@@ -3769,8 +3769,10 @@ class RustGenerator : public BaseGenerator {
       code_ += "";
     }
 
-    // Generate a constructor that takes all fields as arguments.
-    code_ += "impl<'a> {{STRUCT_TY}} {";
+    // Generate a constructor that takes all fields as arguments. The impl
+    // carries no lifetime: a struct owns its bytes, so the only borrow its
+    // methods return (an array view) is tied to `&self` by elision.
+    code_ += "impl {{STRUCT_TY}} {";
     code_ += "    #[allow(clippy::too_many_arguments)]";
     code_ += "    #[must_use]";
     code_ += "    pub fn new(";
@@ -3811,8 +3813,8 @@ class RustGenerator : public BaseGenerator {
                        NumToString(field.value.type.fixed_length));
         code_.SetValue("ARRAY_ITEM", GetTypeGet(field.value.type.VectorType()));
         code_ +=
-            "pub fn {{FIELD}}(&'a self) -> "
-            "::flatbuffers::Array<'a, {{ARRAY_ITEM}}, {{ARRAY_SIZE}}> {";
+            "pub fn {{FIELD}}(&self) -> "
+            "::flatbuffers::Array<'_, {{ARRAY_ITEM}}, {{ARRAY_SIZE}}> {";
         code_ += "    // Safety:";
         code_ += "    // Created from a valid Table for this object";
         code_ += "    // Which contains a valid array in this slot";

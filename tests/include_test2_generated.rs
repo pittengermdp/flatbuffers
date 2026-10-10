@@ -328,7 +328,7 @@ pub mod my_game {
             }
         }
 
-        impl<'b> ::flatbuffers::Push for Unused {
+        impl ::flatbuffers::Push for Unused {
             type Output = Self;
 
             #[inline]
@@ -358,7 +358,7 @@ pub mod my_game {
             }
         }
 
-        impl<'a> Unused {
+        impl Unused {
             #[allow(clippy::too_many_arguments)]
             #[must_use]
             pub fn new(a: i32) -> Self {

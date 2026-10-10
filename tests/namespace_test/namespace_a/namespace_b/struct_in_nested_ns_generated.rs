@@ -52,7 +52,7 @@ impl<'a> ::flatbuffers::Follow<'a> for &'a StructInNestedNS {
     }
 }
 
-impl<'b> ::flatbuffers::Push for StructInNestedNS {
+impl ::flatbuffers::Push for StructInNestedNS {
     type Output = Self;
 
     #[inline]
@@ -82,7 +82,7 @@ impl ::flatbuffers::Verifiable for StructInNestedNS {
     }
 }
 
-impl<'a> StructInNestedNS {
+impl StructInNestedNS {
     #[allow(clippy::too_many_arguments)]
     #[must_use]
     pub fn new(a: i32, b: i32) -> Self {

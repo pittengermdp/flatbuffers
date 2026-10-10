@@ -51,7 +51,7 @@ impl<'a> ::flatbuffers::Follow<'a> for &'a Object {
     }
 }
 
-impl<'b> ::flatbuffers::Push for Object {
+impl ::flatbuffers::Push for Object {
     type Output = Self;
 
     #[inline]
@@ -81,7 +81,7 @@ impl ::flatbuffers::Verifiable for Object {
     }
 }
 
-impl<'a> Object {
+impl Object {
     #[allow(clippy::too_many_arguments)]
     #[must_use]
     pub fn new(value: i32) -> Self {

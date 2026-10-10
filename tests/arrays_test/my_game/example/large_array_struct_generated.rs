@@ -55,7 +55,7 @@ impl<'a> ::flatbuffers::Follow<'a> for &'a LargeArrayStruct {
     }
 }
 
-impl<'b> ::flatbuffers::Push for LargeArrayStruct {
+impl ::flatbuffers::Push for LargeArrayStruct {
     type Output = Self;
 
     #[inline]
@@ -85,7 +85,7 @@ impl ::flatbuffers::Verifiable for LargeArrayStruct {
     }
 }
 
-impl<'a> LargeArrayStruct {
+impl LargeArrayStruct {
     #[allow(clippy::too_many_arguments)]
     #[must_use]
     pub fn new(
@@ -110,7 +110,7 @@ impl<'a> LargeArrayStruct {
     }
 
     #[must_use]
-    pub fn d(&'a self) -> ::flatbuffers::Array<'a, u8, 64> {
+    pub fn d(&self) -> ::flatbuffers::Array<'_, u8, 64> {
         // Safety:
         // Created from a valid Table for this object
         // Which contains a valid array in this slot
@@ -126,7 +126,7 @@ impl<'a> LargeArrayStruct {
     }
 
     #[must_use]
-    pub fn e(&'a self) -> ::flatbuffers::Array<'a, f32, 64> {
+    pub fn e(&self) -> ::flatbuffers::Array<'_, f32, 64> {
         // Safety:
         // Created from a valid Table for this object
         // Which contains a valid array in this slot
@@ -142,7 +142,7 @@ impl<'a> LargeArrayStruct {
     }
 
     #[must_use]
-    pub fn f(&'a self) -> ::flatbuffers::Array<'a, bool, 64> {
+    pub fn f(&self) -> ::flatbuffers::Array<'_, bool, 64> {
         // Safety:
         // Created from a valid Table for this object
         // Which contains a valid array in this slot
@@ -158,7 +158,7 @@ impl<'a> LargeArrayStruct {
     }
 
     #[must_use]
-    pub fn g(&'a self) -> ::flatbuffers::Array<'a, NestedStruct, 64> {
+    pub fn g(&self) -> ::flatbuffers::Array<'_, NestedStruct, 64> {
         // Safety:
         // Created from a valid Table for this object
         // Which contains a valid array in this slot
@@ -176,7 +176,7 @@ impl<'a> LargeArrayStruct {
     }
 
     #[must_use]
-    pub fn h(&'a self) -> ::flatbuffers::Array<'a, TestEnum, 64> {
+    pub fn h(&self) -> ::flatbuffers::Array<'_, TestEnum, 64> {
         // Safety:
         // Created from a valid Table for this object
         // Which contains a valid array in this slot

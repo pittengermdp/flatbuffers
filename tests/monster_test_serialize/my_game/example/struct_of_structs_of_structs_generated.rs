@@ -53,7 +53,7 @@ impl<'a> ::flatbuffers::Follow<'a> for &'a StructOfStructsOfStructs {
     }
 }
 
-impl<'b> ::flatbuffers::Push for StructOfStructsOfStructs {
+impl ::flatbuffers::Push for StructOfStructsOfStructs {
     type Output = Self;
 
     #[inline]
@@ -94,7 +94,7 @@ impl Serialize for StructOfStructsOfStructs {
     }
 }
 
-impl<'a> StructOfStructsOfStructs {
+impl StructOfStructsOfStructs {
     #[allow(clippy::too_many_arguments)]
     #[must_use]
     pub fn new(a: &StructOfStructs) -> Self {

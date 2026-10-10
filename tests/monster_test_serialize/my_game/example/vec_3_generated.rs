@@ -58,7 +58,7 @@ impl<'a> ::flatbuffers::Follow<'a> for &'a Vec3 {
     }
 }
 
-impl<'b> ::flatbuffers::Push for Vec3 {
+impl ::flatbuffers::Push for Vec3 {
     type Output = Self;
 
     #[inline]
@@ -104,7 +104,7 @@ impl Serialize for Vec3 {
     }
 }
 
-impl<'a> Vec3 {
+impl Vec3 {
     #[allow(clippy::too_many_arguments)]
     #[must_use]
     pub fn new(x: f32, y: f32, z: f32, test1: f64, test2: Color, test3: &Test) -> Self {

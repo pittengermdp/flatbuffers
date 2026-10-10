@@ -56,7 +56,7 @@ impl<'a> ::flatbuffers::Follow<'a> for &'a ArrayStruct {
     }
 }
 
-impl<'b> ::flatbuffers::Push for ArrayStruct {
+impl ::flatbuffers::Push for ArrayStruct {
     type Output = Self;
 
     #[inline]
@@ -86,7 +86,7 @@ impl ::flatbuffers::Verifiable for ArrayStruct {
     }
 }
 
-impl<'a> ArrayStruct {
+impl ArrayStruct {
     #[allow(clippy::too_many_arguments)]
     #[must_use]
     pub fn new(a: f32, b: &[i32; 15], c: i8, d: &[NestedStruct; 2], e: i32, f: &[i64; 2]) -> Self {
@@ -137,7 +137,7 @@ impl<'a> ArrayStruct {
     }
 
     #[must_use]
-    pub fn b(&'a self) -> ::flatbuffers::Array<'a, i32, 15> {
+    pub fn b(&self) -> ::flatbuffers::Array<'_, i32, 15> {
         // Safety:
         // Created from a valid Table for this object
         // Which contains a valid array in this slot
@@ -184,7 +184,7 @@ impl<'a> ArrayStruct {
     }
 
     #[must_use]
-    pub fn d(&'a self) -> ::flatbuffers::Array<'a, NestedStruct, 2> {
+    pub fn d(&self) -> ::flatbuffers::Array<'_, NestedStruct, 2> {
         // Safety:
         // Created from a valid Table for this object
         // Which contains a valid array in this slot
@@ -233,7 +233,7 @@ impl<'a> ArrayStruct {
     }
 
     #[must_use]
-    pub fn f(&'a self) -> ::flatbuffers::Array<'a, i64, 2> {
+    pub fn f(&self) -> ::flatbuffers::Array<'_, i64, 2> {
         // Safety:
         // Created from a valid Table for this object
         // Which contains a valid array in this slot

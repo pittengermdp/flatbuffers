@@ -52,7 +52,7 @@ impl<'a> ::flatbuffers::Follow<'a> for &'a Ability {
     }
 }
 
-impl<'b> ::flatbuffers::Push for Ability {
+impl ::flatbuffers::Push for Ability {
     type Output = Self;
 
     #[inline]
@@ -82,7 +82,7 @@ impl ::flatbuffers::Verifiable for Ability {
     }
 }
 
-impl<'a> Ability {
+impl Ability {
     #[allow(clippy::too_many_arguments)]
     #[must_use]
     pub fn new(id: u32, distance: u32) -> Self {
