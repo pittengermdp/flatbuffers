@@ -1,3 +1,5 @@
+#![cfg(test)]
+
 use flatbuffers_reflection::reflection::{root_as_schema, BaseType, Field};
 use flatbuffers_reflection::{
     get_any_field_float, get_any_field_float_in_struct, get_any_field_integer,
@@ -6,13 +8,9 @@ use flatbuffers_reflection::{
     get_field_struct_in_struct, get_field_table, get_field_vector, set_any_field_float,
     set_any_field_integer, set_any_field_string, set_field, set_string, FlatbufferError,
 };
-use flatbuffers_reflection::{FieldValue, SafeBuffer, Struct};
+use flatbuffers_reflection::{FieldValue, SafeBuffer};
 
 use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, Table, Vector, VerifierOptions};
-
-use std::error::Error;
-use std::fs::File;
-use std::io::Read;
 
 use assert_approx_eq::assert_approx_eq;
 
@@ -2666,7 +2664,7 @@ fn test_safe_table_get_any_field_integer() {
     let val = root.get_any_field("hp").unwrap();
     match val {
         FieldValue::Integer(n) => assert_eq!(n, 32767),
-        other => panic!("expected FieldValue::Integer, got {other:?}"),
+        other => panic!("expected FieldValue::Integer, got {:?}", other),
     }
 }
 
@@ -2682,9 +2680,9 @@ fn test_safe_table_get_any_field_float() {
     match val {
         FieldValue::Float(f) => {
             let diff = (f - 3.14f64).abs();
-            assert!(diff < 0.001, "expected ~3.14, got {f}");
+            assert!(diff < 0.001, "expected ~3.14, got {}", f);
         }
-        other => panic!("expected FieldValue::Float, got {other:?}"),
+        other => panic!("expected FieldValue::Float, got {:?}", other),
     }
 }
 
@@ -2699,7 +2697,7 @@ fn test_safe_table_get_any_field_string() {
     let val = root.get_any_field("name").unwrap();
     match val {
         FieldValue::String(s) => assert_eq!(s, "MyMonster"),
-        other => panic!("expected FieldValue::String, got {other:?}"),
+        other => panic!("expected FieldValue::String, got {:?}", other),
     }
 }
 
@@ -2716,7 +2714,7 @@ fn test_safe_table_get_any_field_bool() {
     // Default of false means the field may be absent from the vtable.
     match val {
         FieldValue::Bool(_) | FieldValue::Absent => {}
-        other => panic!("expected FieldValue::Bool or Absent, got {other:?}"),
+        other => panic!("expected FieldValue::Bool or Absent, got {:?}", other),
     }
 }
 
@@ -2735,7 +2733,7 @@ fn test_safe_table_get_any_field_vec_integer() {
             assert_eq!(v.len(), 5);
             assert_eq!(v, vec![0, 1, 2, 3, 4]);
         }
-        other => panic!("expected FieldValue::VecInteger, got {other:?}"),
+        other => panic!("expected FieldValue::VecInteger, got {:?}", other),
     }
 }
 
@@ -2755,7 +2753,7 @@ fn test_safe_table_get_any_field_vec_string() {
             assert_eq!(v[0], "test1");
             assert_eq!(v[1], "test2");
         }
-        other => panic!("expected FieldValue::VecString, got {other:?}"),
+        other => panic!("expected FieldValue::VecString, got {:?}", other),
     }
 }
 
@@ -2775,7 +2773,7 @@ fn test_safe_table_get_any_field_table() {
             let id = t.get_field_string("id").unwrap();
             assert_eq!(id, Some("Fred"));
         }
-        other => panic!("expected FieldValue::Table, got {other:?}"),
+        other => panic!("expected FieldValue::Table, got {:?}", other),
     }
 }
 
@@ -2797,7 +2795,7 @@ fn test_safe_table_get_any_field_union() {
         FieldValue::Absent => {
             // Acceptable: if the union is treated as absent when variant is 0.
         }
-        other => panic!("expected FieldValue::Union or Absent, got {other:?}"),
+        other => panic!("expected FieldValue::Union or Absent, got {:?}", other),
     }
 }
 
