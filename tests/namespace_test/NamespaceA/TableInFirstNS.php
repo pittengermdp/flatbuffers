@@ -100,7 +100,7 @@ class TableInFirstNS extends Table
 
     /**
      * @param FlatBufferBuilder $builder
-     * @param int
+     * @param VectorOffset
      * @return void
      */
     public static function addFooTable(FlatBufferBuilder $builder, $fooTable)
@@ -135,7 +135,7 @@ class TableInFirstNS extends Table
 
     /**
      * @param FlatBufferBuilder $builder
-     * @param int
+     * @param VectorOffset
      * @return void
      */
     public static function addFooStruct(FlatBufferBuilder $builder, $fooStruct)
