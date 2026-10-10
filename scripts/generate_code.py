@@ -516,6 +516,20 @@ flatc(
     schema="nested_union_test.fbs",
 )
 
+# The same command tests/PythonTest.sh runs before the Python tests.
+flatc(
+    [
+        "-p",
+        "--grpc",
+        "--grpc-python-typed-handlers",
+        "--python-typing",
+        "--no-python-gen-numpy",
+        "--gen-onefile",
+    ],
+    schema="service_test.fbs",
+    include="include_test",
+)
+
 flatc(
     ["--python", "--gen-object-api"],
     schema="union_name_test.fbs",
