@@ -828,9 +828,11 @@ pub unsafe fn set_string(
         // dependency.
         let mask = (size_of::<core::ffi::c_long>() - 1) as isize;
         let offset = (delta + mask) & !mask;
-        let mut visited_vec = vec![false; buf.len()];
+        // Converts before anything is written, so a failure leaves `buf` intact.
+        let len_new_value: SOffsetT = len_new.try_into()?;
 
         if offset != 0 {
+            let mut visited_vec = vec![false; buf.len()];
             // Everything after the string moves, so an offset anywhere in the
             // buffer may span it: walk from the root, not from `table_loc`.
             // SAFETY: the caller guarantees `buf` holds a valid root table.
@@ -857,7 +859,7 @@ pub unsafe fn set_string(
         unsafe {
             emplace_scalar::<SOffsetT>(
                 &mut buf[string_loc..string_loc + SIZE_UOFFSET],
-                len_new.try_into()?,
+                len_new_value,
             );
         }
 
@@ -1436,19 +1438,12 @@ unsafe fn update_offset(
                         field.key_compare_with_value(key)
                     })
                     .unwrap();
+                // An absent `_type` reads as its default, NONE, as in C++.
                 // SAFETY: the caller guarantees `buf` holds a valid table at
-                // `table_loc`; `VTable::get` bounds the slot by the vtable.
-                let union_type_offset = unsafe { Table::new(buf, table_loc) }
-                    .vtable()
-                    .get(union_type.offset());
-                // An absent `_type` reads as its default, NONE: no table to walk.
-                if union_type_offset == 0 {
-                    continue;
-                }
-                // SAFETY: `table_loc + union_type_offset` is the `_type` field
-                // of the valid table at `table_loc`.
+                // `table_loc`; `Table::get` bounds the slot by the vtable.
                 let union_type_value =
-                    unsafe { u8::follow(buf, table_loc.saturating_add(union_type_offset.into())) };
+                    unsafe { Table::new(buf, table_loc).get::<u8>(union_type.offset(), Some(0)) }
+                        .unwrap_or_default();
                 let union_enum_value = union_enum
                     .values()
                     .lookup_by_key(union_type_value.into(), |value, key| {
