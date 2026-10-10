@@ -1499,6 +1499,41 @@ fn test_buffer_set_string_diff_type_fails() {
 }
 
 #[test]
+fn test_buffer_set_string_shrink_by_less_than_eight_succeeds() {
+    // A size change is rounded to a multiple of 8 to keep everything after the
+    // string aligned, so shrinking by 1..=7 bytes leaves the buffer its old
+    // size. The string must still take its new length, not keep the old one
+    // and read back padded with NULs.
+    let original = my_game::example::MonsterT {
+        name: String::from("Abcdefgh"),
+        ..Default::default()
+    };
+    let original_bytes = pack_monster(&original);
+    let schema_buffer = load_file_as_buffer("../monster_test.bfbs");
+    let schema = root_as_schema(schema_buffer.as_slice()).unwrap();
+    let string_field = get_schema_field(&schema_buffer, "name");
+
+    for len in 1..original.name.len() {
+        let new_name = &original.name[..len];
+        let mut buffer = original_bytes.clone();
+        let table_loc = unsafe { get_any_root(&buffer) }.loc();
+
+        let res = unsafe { set_string(&mut buffer, table_loc, &string_field, new_name, &schema) };
+
+        assert_eq!(res, Ok(()));
+        assert_eq!(
+            buffer.len(),
+            original_bytes.len(),
+            "fixture must shrink by less than 8 bytes"
+        );
+        assert_unpacks_to_original(&buffer, &original_bytes, |monster| {
+            assert_eq!(monster.name, new_name);
+            monster.name = original.name.clone();
+        });
+    }
+}
+
+#[test]
 fn test_create_safe_buffer_default_options_succeeds() {
     let buffer = create_test_buffer();
     let schema_buffer = load_file_as_buffer("../monster_test.bfbs");
@@ -2555,6 +2590,26 @@ fn test_field_value_display_vec_string() {
 
 fn load_file_as_buffer(path: &str) -> Vec<u8> {
     std::fs::read(path).unwrap()
+}
+
+fn pack_monster(monster: &my_game::example::MonsterT) -> Vec<u8> {
+    let mut builder = FlatBufferBuilder::new();
+    let root = monster.pack(&mut builder);
+    builder.finish(root, None);
+    builder.finished_data().to_vec()
+}
+
+/// Unpacks `buffer`, lets `restore` check the edited value and put the
+/// original back, then asserts that repacking reproduces `original_bytes`
+/// byte for byte: proof that every other field survived the edit.
+fn assert_unpacks_to_original(
+    buffer: &[u8],
+    original_bytes: &[u8],
+    restore: impl FnOnce(&mut my_game::example::MonsterT),
+) {
+    let mut monster = my_game::example::root_as_monster(buffer).unwrap().unpack();
+    restore(&mut monster);
+    assert_eq!(pack_monster(&monster), original_bytes);
 }
 
 fn get_schema_field<'a>(schema_buffer: &'a Vec<u8>, field_name: &'a str) -> Field<'a> {

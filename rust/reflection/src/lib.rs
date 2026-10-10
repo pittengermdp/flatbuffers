@@ -846,16 +846,17 @@ pub unsafe fn set_string(
                     offset,
                 )?;
             }
+        }
 
-            // Sets the new length.
-            // SAFETY: the slice is exactly `SIZE_UOFFSET` bytes, the size of
-            // `SOffsetT`.
-            unsafe {
-                emplace_scalar::<SOffsetT>(
-                    &mut buf[string_loc..string_loc + SIZE_UOFFSET],
-                    len_new.try_into()?,
-                );
-            }
+        // Sets the new length, even when `offset` rounds to 0 and the buffer
+        // keeps its size.
+        // SAFETY: the slice is exactly `SIZE_UOFFSET` bytes, the size of
+        // `SOffsetT`.
+        unsafe {
+            emplace_scalar::<SOffsetT>(
+                &mut buf[string_loc..string_loc + SIZE_UOFFSET],
+                len_new.try_into()?,
+            );
         }
 
         // Pads the bytes vector with 0 if `offset` doesn't equal `delta`.
