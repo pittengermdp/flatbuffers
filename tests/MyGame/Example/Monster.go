@@ -73,432 +73,432 @@ type MonsterT struct {
 	DoubleInfDefault             float64                    `json:"double_inf_default,omitempty"`
 }
 
-func (t *MonsterT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *MonsterT) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	nameOffset := builder.CreateString(t.Name)
-	inventoryOffset := flatbuffers.UOffsetT(0)
-	if t.Inventory != nil {
-		inventoryOffset = builder.CreateByteString(t.Inventory)
+	nameOffset_ := builder_.CreateString(t_.Name)
+	inventoryOffset_ := flatbuffers.UOffsetT(0)
+	if t_.Inventory != nil {
+		inventoryOffset_ = builder_.CreateByteString(t_.Inventory)
 	}
-	testOffset := t.Test.Pack(builder)
+	testOffset_ := t_.Test.Pack(builder_)
 
-	test4Offset := flatbuffers.UOffsetT(0)
-	if t.Test4 != nil {
-		test4Length := len(t.Test4)
-		MonsterStartTest4Vector(builder, test4Length)
-		for j := test4Length - 1; j >= 0; j-- {
-			t.Test4[j].Pack(builder)
+	test4Offset_ := flatbuffers.UOffsetT(0)
+	if t_.Test4 != nil {
+		test4Length_ := len(t_.Test4)
+		MonsterStartTest4Vector(builder_, test4Length_)
+		for j_ := test4Length_ - 1; j_ >= 0; j_-- {
+			t_.Test4[j_].Pack(builder_)
 		}
-		test4Offset = builder.EndVector(test4Length)
+		test4Offset_ = builder_.EndVector(test4Length_)
 	}
-	testarrayofstringOffset := flatbuffers.UOffsetT(0)
-	if t.Testarrayofstring != nil {
-		testarrayofstringLength := len(t.Testarrayofstring)
-		testarrayofstringOffsets := make([]flatbuffers.UOffsetT, testarrayofstringLength)
-		for j := 0; j < testarrayofstringLength; j++ {
-			testarrayofstringOffsets[j] = builder.CreateString(t.Testarrayofstring[j])
+	testarrayofstringOffset_ := flatbuffers.UOffsetT(0)
+	if t_.Testarrayofstring != nil {
+		testarrayofstringLength_ := len(t_.Testarrayofstring)
+		testarrayofstringOffsets_ := make([]flatbuffers.UOffsetT, testarrayofstringLength_)
+		for j_ := 0; j_ < testarrayofstringLength_; j_++ {
+			testarrayofstringOffsets_[j_] = builder_.CreateString(t_.Testarrayofstring[j_])
 		}
-		MonsterStartTestarrayofstringVector(builder, testarrayofstringLength)
-		for j := testarrayofstringLength - 1; j >= 0; j-- {
-			builder.PrependUOffsetT(testarrayofstringOffsets[j])
+		MonsterStartTestarrayofstringVector(builder_, testarrayofstringLength_)
+		for j_ := testarrayofstringLength_ - 1; j_ >= 0; j_-- {
+			builder_.PrependUOffsetT(testarrayofstringOffsets_[j_])
 		}
-		testarrayofstringOffset = builder.EndVector(testarrayofstringLength)
+		testarrayofstringOffset_ = builder_.EndVector(testarrayofstringLength_)
 	}
-	testarrayoftablesOffset := flatbuffers.UOffsetT(0)
-	if t.Testarrayoftables != nil {
-		testarrayoftablesLength := len(t.Testarrayoftables)
-		testarrayoftablesOffsets := make([]flatbuffers.UOffsetT, testarrayoftablesLength)
-		for j := 0; j < testarrayoftablesLength; j++ {
-			testarrayoftablesOffsets[j] = t.Testarrayoftables[j].Pack(builder)
+	testarrayoftablesOffset_ := flatbuffers.UOffsetT(0)
+	if t_.Testarrayoftables != nil {
+		testarrayoftablesLength_ := len(t_.Testarrayoftables)
+		testarrayoftablesOffsets_ := make([]flatbuffers.UOffsetT, testarrayoftablesLength_)
+		for j_ := 0; j_ < testarrayoftablesLength_; j_++ {
+			testarrayoftablesOffsets_[j_] = t_.Testarrayoftables[j_].Pack(builder_)
 		}
-		MonsterStartTestarrayoftablesVector(builder, testarrayoftablesLength)
-		for j := testarrayoftablesLength - 1; j >= 0; j-- {
-			builder.PrependUOffsetT(testarrayoftablesOffsets[j])
+		MonsterStartTestarrayoftablesVector(builder_, testarrayoftablesLength_)
+		for j_ := testarrayoftablesLength_ - 1; j_ >= 0; j_-- {
+			builder_.PrependUOffsetT(testarrayoftablesOffsets_[j_])
 		}
-		testarrayoftablesOffset = builder.EndVector(testarrayoftablesLength)
+		testarrayoftablesOffset_ = builder_.EndVector(testarrayoftablesLength_)
 	}
-	enemyOffset := t.Enemy.Pack(builder)
-	testnestedflatbufferOffset := flatbuffers.UOffsetT(0)
-	if t.Testnestedflatbuffer != nil {
-		testnestedflatbufferOffset = builder.CreateByteString(t.Testnestedflatbuffer)
+	enemyOffset_ := t_.Enemy.Pack(builder_)
+	testnestedflatbufferOffset_ := flatbuffers.UOffsetT(0)
+	if t_.Testnestedflatbuffer != nil {
+		testnestedflatbufferOffset_ = builder_.CreateByteString(t_.Testnestedflatbuffer)
 	}
-	testemptyOffset := t.Testempty.Pack(builder)
-	testarrayofboolsOffset := flatbuffers.UOffsetT(0)
-	if t.Testarrayofbools != nil {
-		testarrayofboolsLength := len(t.Testarrayofbools)
-		MonsterStartTestarrayofboolsVector(builder, testarrayofboolsLength)
-		for j := testarrayofboolsLength - 1; j >= 0; j-- {
-			builder.PrependBool(t.Testarrayofbools[j])
+	testemptyOffset_ := t_.Testempty.Pack(builder_)
+	testarrayofboolsOffset_ := flatbuffers.UOffsetT(0)
+	if t_.Testarrayofbools != nil {
+		testarrayofboolsLength_ := len(t_.Testarrayofbools)
+		MonsterStartTestarrayofboolsVector(builder_, testarrayofboolsLength_)
+		for j_ := testarrayofboolsLength_ - 1; j_ >= 0; j_-- {
+			builder_.PrependBool(t_.Testarrayofbools[j_])
 		}
-		testarrayofboolsOffset = builder.EndVector(testarrayofboolsLength)
+		testarrayofboolsOffset_ = builder_.EndVector(testarrayofboolsLength_)
 	}
-	testarrayofstring2Offset := flatbuffers.UOffsetT(0)
-	if t.Testarrayofstring2 != nil {
-		testarrayofstring2Length := len(t.Testarrayofstring2)
-		testarrayofstring2Offsets := make([]flatbuffers.UOffsetT, testarrayofstring2Length)
-		for j := 0; j < testarrayofstring2Length; j++ {
-			testarrayofstring2Offsets[j] = builder.CreateString(t.Testarrayofstring2[j])
+	testarrayofstring2Offset_ := flatbuffers.UOffsetT(0)
+	if t_.Testarrayofstring2 != nil {
+		testarrayofstring2Length_ := len(t_.Testarrayofstring2)
+		testarrayofstring2Offsets_ := make([]flatbuffers.UOffsetT, testarrayofstring2Length_)
+		for j_ := 0; j_ < testarrayofstring2Length_; j_++ {
+			testarrayofstring2Offsets_[j_] = builder_.CreateString(t_.Testarrayofstring2[j_])
 		}
-		MonsterStartTestarrayofstring2Vector(builder, testarrayofstring2Length)
-		for j := testarrayofstring2Length - 1; j >= 0; j-- {
-			builder.PrependUOffsetT(testarrayofstring2Offsets[j])
+		MonsterStartTestarrayofstring2Vector(builder_, testarrayofstring2Length_)
+		for j_ := testarrayofstring2Length_ - 1; j_ >= 0; j_-- {
+			builder_.PrependUOffsetT(testarrayofstring2Offsets_[j_])
 		}
-		testarrayofstring2Offset = builder.EndVector(testarrayofstring2Length)
+		testarrayofstring2Offset_ = builder_.EndVector(testarrayofstring2Length_)
 	}
-	testarrayofsortedstructOffset := flatbuffers.UOffsetT(0)
-	if t.Testarrayofsortedstruct != nil {
-		testarrayofsortedstructLength := len(t.Testarrayofsortedstruct)
-		MonsterStartTestarrayofsortedstructVector(builder, testarrayofsortedstructLength)
-		for j := testarrayofsortedstructLength - 1; j >= 0; j-- {
-			t.Testarrayofsortedstruct[j].Pack(builder)
+	testarrayofsortedstructOffset_ := flatbuffers.UOffsetT(0)
+	if t_.Testarrayofsortedstruct != nil {
+		testarrayofsortedstructLength_ := len(t_.Testarrayofsortedstruct)
+		MonsterStartTestarrayofsortedstructVector(builder_, testarrayofsortedstructLength_)
+		for j_ := testarrayofsortedstructLength_ - 1; j_ >= 0; j_-- {
+			t_.Testarrayofsortedstruct[j_].Pack(builder_)
 		}
-		testarrayofsortedstructOffset = builder.EndVector(testarrayofsortedstructLength)
+		testarrayofsortedstructOffset_ = builder_.EndVector(testarrayofsortedstructLength_)
 	}
-	flexOffset := flatbuffers.UOffsetT(0)
-	if t.Flex != nil {
-		flexOffset = builder.CreateByteString(t.Flex)
+	flexOffset_ := flatbuffers.UOffsetT(0)
+	if t_.Flex != nil {
+		flexOffset_ = builder_.CreateByteString(t_.Flex)
 	}
-	test5Offset := flatbuffers.UOffsetT(0)
-	if t.Test5 != nil {
-		test5Length := len(t.Test5)
-		MonsterStartTest5Vector(builder, test5Length)
-		for j := test5Length - 1; j >= 0; j-- {
-			t.Test5[j].Pack(builder)
+	test5Offset_ := flatbuffers.UOffsetT(0)
+	if t_.Test5 != nil {
+		test5Length_ := len(t_.Test5)
+		MonsterStartTest5Vector(builder_, test5Length_)
+		for j_ := test5Length_ - 1; j_ >= 0; j_-- {
+			t_.Test5[j_].Pack(builder_)
 		}
-		test5Offset = builder.EndVector(test5Length)
+		test5Offset_ = builder_.EndVector(test5Length_)
 	}
-	vectorOfLongsOffset := flatbuffers.UOffsetT(0)
-	if t.VectorOfLongs != nil {
-		vectorOfLongsLength := len(t.VectorOfLongs)
-		MonsterStartVectorOfLongsVector(builder, vectorOfLongsLength)
-		for j := vectorOfLongsLength - 1; j >= 0; j-- {
-			builder.PrependInt64(t.VectorOfLongs[j])
+	vectorOfLongsOffset_ := flatbuffers.UOffsetT(0)
+	if t_.VectorOfLongs != nil {
+		vectorOfLongsLength_ := len(t_.VectorOfLongs)
+		MonsterStartVectorOfLongsVector(builder_, vectorOfLongsLength_)
+		for j_ := vectorOfLongsLength_ - 1; j_ >= 0; j_-- {
+			builder_.PrependInt64(t_.VectorOfLongs[j_])
 		}
-		vectorOfLongsOffset = builder.EndVector(vectorOfLongsLength)
+		vectorOfLongsOffset_ = builder_.EndVector(vectorOfLongsLength_)
 	}
-	vectorOfDoublesOffset := flatbuffers.UOffsetT(0)
-	if t.VectorOfDoubles != nil {
-		vectorOfDoublesLength := len(t.VectorOfDoubles)
-		MonsterStartVectorOfDoublesVector(builder, vectorOfDoublesLength)
-		for j := vectorOfDoublesLength - 1; j >= 0; j-- {
-			builder.PrependFloat64(t.VectorOfDoubles[j])
+	vectorOfDoublesOffset_ := flatbuffers.UOffsetT(0)
+	if t_.VectorOfDoubles != nil {
+		vectorOfDoublesLength_ := len(t_.VectorOfDoubles)
+		MonsterStartVectorOfDoublesVector(builder_, vectorOfDoublesLength_)
+		for j_ := vectorOfDoublesLength_ - 1; j_ >= 0; j_-- {
+			builder_.PrependFloat64(t_.VectorOfDoubles[j_])
 		}
-		vectorOfDoublesOffset = builder.EndVector(vectorOfDoublesLength)
+		vectorOfDoublesOffset_ = builder_.EndVector(vectorOfDoublesLength_)
 	}
-	parentNamespaceTestOffset := t.ParentNamespaceTest.Pack(builder)
-	vectorOfReferrablesOffset := flatbuffers.UOffsetT(0)
-	if t.VectorOfReferrables != nil {
-		vectorOfReferrablesLength := len(t.VectorOfReferrables)
-		vectorOfReferrablesOffsets := make([]flatbuffers.UOffsetT, vectorOfReferrablesLength)
-		for j := 0; j < vectorOfReferrablesLength; j++ {
-			vectorOfReferrablesOffsets[j] = t.VectorOfReferrables[j].Pack(builder)
+	parentNamespaceTestOffset_ := t_.ParentNamespaceTest.Pack(builder_)
+	vectorOfReferrablesOffset_ := flatbuffers.UOffsetT(0)
+	if t_.VectorOfReferrables != nil {
+		vectorOfReferrablesLength_ := len(t_.VectorOfReferrables)
+		vectorOfReferrablesOffsets_ := make([]flatbuffers.UOffsetT, vectorOfReferrablesLength_)
+		for j_ := 0; j_ < vectorOfReferrablesLength_; j_++ {
+			vectorOfReferrablesOffsets_[j_] = t_.VectorOfReferrables[j_].Pack(builder_)
 		}
-		MonsterStartVectorOfReferrablesVector(builder, vectorOfReferrablesLength)
-		for j := vectorOfReferrablesLength - 1; j >= 0; j-- {
-			builder.PrependUOffsetT(vectorOfReferrablesOffsets[j])
+		MonsterStartVectorOfReferrablesVector(builder_, vectorOfReferrablesLength_)
+		for j_ := vectorOfReferrablesLength_ - 1; j_ >= 0; j_-- {
+			builder_.PrependUOffsetT(vectorOfReferrablesOffsets_[j_])
 		}
-		vectorOfReferrablesOffset = builder.EndVector(vectorOfReferrablesLength)
+		vectorOfReferrablesOffset_ = builder_.EndVector(vectorOfReferrablesLength_)
 	}
-	vectorOfWeakReferencesOffset := flatbuffers.UOffsetT(0)
-	if t.VectorOfWeakReferences != nil {
-		vectorOfWeakReferencesLength := len(t.VectorOfWeakReferences)
-		MonsterStartVectorOfWeakReferencesVector(builder, vectorOfWeakReferencesLength)
-		for j := vectorOfWeakReferencesLength - 1; j >= 0; j-- {
-			builder.PrependUint64(t.VectorOfWeakReferences[j])
+	vectorOfWeakReferencesOffset_ := flatbuffers.UOffsetT(0)
+	if t_.VectorOfWeakReferences != nil {
+		vectorOfWeakReferencesLength_ := len(t_.VectorOfWeakReferences)
+		MonsterStartVectorOfWeakReferencesVector(builder_, vectorOfWeakReferencesLength_)
+		for j_ := vectorOfWeakReferencesLength_ - 1; j_ >= 0; j_-- {
+			builder_.PrependUint64(t_.VectorOfWeakReferences[j_])
 		}
-		vectorOfWeakReferencesOffset = builder.EndVector(vectorOfWeakReferencesLength)
+		vectorOfWeakReferencesOffset_ = builder_.EndVector(vectorOfWeakReferencesLength_)
 	}
-	vectorOfStrongReferrablesOffset := flatbuffers.UOffsetT(0)
-	if t.VectorOfStrongReferrables != nil {
-		vectorOfStrongReferrablesLength := len(t.VectorOfStrongReferrables)
-		vectorOfStrongReferrablesOffsets := make([]flatbuffers.UOffsetT, vectorOfStrongReferrablesLength)
-		for j := 0; j < vectorOfStrongReferrablesLength; j++ {
-			vectorOfStrongReferrablesOffsets[j] = t.VectorOfStrongReferrables[j].Pack(builder)
+	vectorOfStrongReferrablesOffset_ := flatbuffers.UOffsetT(0)
+	if t_.VectorOfStrongReferrables != nil {
+		vectorOfStrongReferrablesLength_ := len(t_.VectorOfStrongReferrables)
+		vectorOfStrongReferrablesOffsets_ := make([]flatbuffers.UOffsetT, vectorOfStrongReferrablesLength_)
+		for j_ := 0; j_ < vectorOfStrongReferrablesLength_; j_++ {
+			vectorOfStrongReferrablesOffsets_[j_] = t_.VectorOfStrongReferrables[j_].Pack(builder_)
 		}
-		MonsterStartVectorOfStrongReferrablesVector(builder, vectorOfStrongReferrablesLength)
-		for j := vectorOfStrongReferrablesLength - 1; j >= 0; j-- {
-			builder.PrependUOffsetT(vectorOfStrongReferrablesOffsets[j])
+		MonsterStartVectorOfStrongReferrablesVector(builder_, vectorOfStrongReferrablesLength_)
+		for j_ := vectorOfStrongReferrablesLength_ - 1; j_ >= 0; j_-- {
+			builder_.PrependUOffsetT(vectorOfStrongReferrablesOffsets_[j_])
 		}
-		vectorOfStrongReferrablesOffset = builder.EndVector(vectorOfStrongReferrablesLength)
+		vectorOfStrongReferrablesOffset_ = builder_.EndVector(vectorOfStrongReferrablesLength_)
 	}
-	vectorOfCoOwningReferencesOffset := flatbuffers.UOffsetT(0)
-	if t.VectorOfCoOwningReferences != nil {
-		vectorOfCoOwningReferencesLength := len(t.VectorOfCoOwningReferences)
-		MonsterStartVectorOfCoOwningReferencesVector(builder, vectorOfCoOwningReferencesLength)
-		for j := vectorOfCoOwningReferencesLength - 1; j >= 0; j-- {
-			builder.PrependUint64(t.VectorOfCoOwningReferences[j])
+	vectorOfCoOwningReferencesOffset_ := flatbuffers.UOffsetT(0)
+	if t_.VectorOfCoOwningReferences != nil {
+		vectorOfCoOwningReferencesLength_ := len(t_.VectorOfCoOwningReferences)
+		MonsterStartVectorOfCoOwningReferencesVector(builder_, vectorOfCoOwningReferencesLength_)
+		for j_ := vectorOfCoOwningReferencesLength_ - 1; j_ >= 0; j_-- {
+			builder_.PrependUint64(t_.VectorOfCoOwningReferences[j_])
 		}
-		vectorOfCoOwningReferencesOffset = builder.EndVector(vectorOfCoOwningReferencesLength)
+		vectorOfCoOwningReferencesOffset_ = builder_.EndVector(vectorOfCoOwningReferencesLength_)
 	}
-	vectorOfNonOwningReferencesOffset := flatbuffers.UOffsetT(0)
-	if t.VectorOfNonOwningReferences != nil {
-		vectorOfNonOwningReferencesLength := len(t.VectorOfNonOwningReferences)
-		MonsterStartVectorOfNonOwningReferencesVector(builder, vectorOfNonOwningReferencesLength)
-		for j := vectorOfNonOwningReferencesLength - 1; j >= 0; j-- {
-			builder.PrependUint64(t.VectorOfNonOwningReferences[j])
+	vectorOfNonOwningReferencesOffset_ := flatbuffers.UOffsetT(0)
+	if t_.VectorOfNonOwningReferences != nil {
+		vectorOfNonOwningReferencesLength_ := len(t_.VectorOfNonOwningReferences)
+		MonsterStartVectorOfNonOwningReferencesVector(builder_, vectorOfNonOwningReferencesLength_)
+		for j_ := vectorOfNonOwningReferencesLength_ - 1; j_ >= 0; j_-- {
+			builder_.PrependUint64(t_.VectorOfNonOwningReferences[j_])
 		}
-		vectorOfNonOwningReferencesOffset = builder.EndVector(vectorOfNonOwningReferencesLength)
+		vectorOfNonOwningReferencesOffset_ = builder_.EndVector(vectorOfNonOwningReferencesLength_)
 	}
-	anyUniqueOffset := t.AnyUnique.Pack(builder)
+	anyUniqueOffset_ := t_.AnyUnique.Pack(builder_)
 
-	anyAmbiguousOffset := t.AnyAmbiguous.Pack(builder)
+	anyAmbiguousOffset_ := t_.AnyAmbiguous.Pack(builder_)
 
-	vectorOfEnumsOffset := flatbuffers.UOffsetT(0)
-	if t.VectorOfEnums != nil {
-		vectorOfEnumsLength := len(t.VectorOfEnums)
-		MonsterStartVectorOfEnumsVector(builder, vectorOfEnumsLength)
-		for j := vectorOfEnumsLength - 1; j >= 0; j-- {
-			builder.PrependByte(byte(t.VectorOfEnums[j]))
+	vectorOfEnumsOffset_ := flatbuffers.UOffsetT(0)
+	if t_.VectorOfEnums != nil {
+		vectorOfEnumsLength_ := len(t_.VectorOfEnums)
+		MonsterStartVectorOfEnumsVector(builder_, vectorOfEnumsLength_)
+		for j_ := vectorOfEnumsLength_ - 1; j_ >= 0; j_-- {
+			builder_.PrependByte(byte(t_.VectorOfEnums[j_]))
 		}
-		vectorOfEnumsOffset = builder.EndVector(vectorOfEnumsLength)
+		vectorOfEnumsOffset_ = builder_.EndVector(vectorOfEnumsLength_)
 	}
-	testrequirednestedflatbufferOffset := flatbuffers.UOffsetT(0)
-	if t.Testrequirednestedflatbuffer != nil {
-		testrequirednestedflatbufferOffset = builder.CreateByteString(t.Testrequirednestedflatbuffer)
+	testrequirednestedflatbufferOffset_ := flatbuffers.UOffsetT(0)
+	if t_.Testrequirednestedflatbuffer != nil {
+		testrequirednestedflatbufferOffset_ = builder_.CreateByteString(t_.Testrequirednestedflatbuffer)
 	}
-	scalarKeySortedTablesOffset := flatbuffers.UOffsetT(0)
-	if t.ScalarKeySortedTables != nil {
-		scalarKeySortedTablesLength := len(t.ScalarKeySortedTables)
-		scalarKeySortedTablesOffsets := make([]flatbuffers.UOffsetT, scalarKeySortedTablesLength)
-		for j := 0; j < scalarKeySortedTablesLength; j++ {
-			scalarKeySortedTablesOffsets[j] = t.ScalarKeySortedTables[j].Pack(builder)
+	scalarKeySortedTablesOffset_ := flatbuffers.UOffsetT(0)
+	if t_.ScalarKeySortedTables != nil {
+		scalarKeySortedTablesLength_ := len(t_.ScalarKeySortedTables)
+		scalarKeySortedTablesOffsets_ := make([]flatbuffers.UOffsetT, scalarKeySortedTablesLength_)
+		for j_ := 0; j_ < scalarKeySortedTablesLength_; j_++ {
+			scalarKeySortedTablesOffsets_[j_] = t_.ScalarKeySortedTables[j_].Pack(builder_)
 		}
-		MonsterStartScalarKeySortedTablesVector(builder, scalarKeySortedTablesLength)
-		for j := scalarKeySortedTablesLength - 1; j >= 0; j-- {
-			builder.PrependUOffsetT(scalarKeySortedTablesOffsets[j])
+		MonsterStartScalarKeySortedTablesVector(builder_, scalarKeySortedTablesLength_)
+		for j_ := scalarKeySortedTablesLength_ - 1; j_ >= 0; j_-- {
+			builder_.PrependUOffsetT(scalarKeySortedTablesOffsets_[j_])
 		}
-		scalarKeySortedTablesOffset = builder.EndVector(scalarKeySortedTablesLength)
+		scalarKeySortedTablesOffset_ = builder_.EndVector(scalarKeySortedTablesLength_)
 	}
-	MonsterStart(builder)
-	posOffset := t.Pos.Pack(builder)
-	MonsterAddPos(builder, posOffset)
-	MonsterAddMana(builder, t.Mana)
-	MonsterAddHp(builder, t.Hp)
-	MonsterAddName(builder, nameOffset)
-	MonsterAddInventory(builder, inventoryOffset)
-	MonsterAddColor(builder, t.Color)
-	if t.Test != nil {
-		MonsterAddTestType(builder, t.Test.Type)
+	MonsterStart(builder_)
+	posOffset_ := t_.Pos.Pack(builder_)
+	MonsterAddPos(builder_, posOffset_)
+	MonsterAddMana(builder_, t_.Mana)
+	MonsterAddHp(builder_, t_.Hp)
+	MonsterAddName(builder_, nameOffset_)
+	MonsterAddInventory(builder_, inventoryOffset_)
+	MonsterAddColor(builder_, t_.Color)
+	if t_.Test != nil {
+		MonsterAddTestType(builder_, t_.Test.Type)
 	}
-	MonsterAddTest(builder, testOffset)
-	MonsterAddTest4(builder, test4Offset)
-	MonsterAddTestarrayofstring(builder, testarrayofstringOffset)
-	MonsterAddTestarrayoftables(builder, testarrayoftablesOffset)
-	MonsterAddEnemy(builder, enemyOffset)
-	MonsterAddTestnestedflatbuffer(builder, testnestedflatbufferOffset)
-	MonsterAddTestempty(builder, testemptyOffset)
-	MonsterAddTestbool(builder, t.Testbool)
-	MonsterAddTesthashs32Fnv1(builder, t.Testhashs32Fnv1)
-	MonsterAddTesthashu32Fnv1(builder, t.Testhashu32Fnv1)
-	MonsterAddTesthashs64Fnv1(builder, t.Testhashs64Fnv1)
-	MonsterAddTesthashu64Fnv1(builder, t.Testhashu64Fnv1)
-	MonsterAddTesthashs32Fnv1a(builder, t.Testhashs32Fnv1a)
-	MonsterAddTesthashu32Fnv1a(builder, t.Testhashu32Fnv1a)
-	MonsterAddTesthashs64Fnv1a(builder, t.Testhashs64Fnv1a)
-	MonsterAddTesthashu64Fnv1a(builder, t.Testhashu64Fnv1a)
-	MonsterAddTestarrayofbools(builder, testarrayofboolsOffset)
-	MonsterAddTestf(builder, t.Testf)
-	MonsterAddTestf2(builder, t.Testf2)
-	MonsterAddTestf3(builder, t.Testf3)
-	MonsterAddTestarrayofstring2(builder, testarrayofstring2Offset)
-	MonsterAddTestarrayofsortedstruct(builder, testarrayofsortedstructOffset)
-	MonsterAddFlex(builder, flexOffset)
-	MonsterAddTest5(builder, test5Offset)
-	MonsterAddVectorOfLongs(builder, vectorOfLongsOffset)
-	MonsterAddVectorOfDoubles(builder, vectorOfDoublesOffset)
-	MonsterAddParentNamespaceTest(builder, parentNamespaceTestOffset)
-	MonsterAddVectorOfReferrables(builder, vectorOfReferrablesOffset)
-	MonsterAddSingleWeakReference(builder, t.SingleWeakReference)
-	MonsterAddVectorOfWeakReferences(builder, vectorOfWeakReferencesOffset)
-	MonsterAddVectorOfStrongReferrables(builder, vectorOfStrongReferrablesOffset)
-	MonsterAddCoOwningReference(builder, t.CoOwningReference)
-	MonsterAddVectorOfCoOwningReferences(builder, vectorOfCoOwningReferencesOffset)
-	MonsterAddNonOwningReference(builder, t.NonOwningReference)
-	MonsterAddVectorOfNonOwningReferences(builder, vectorOfNonOwningReferencesOffset)
-	if t.AnyUnique != nil {
-		MonsterAddAnyUniqueType(builder, t.AnyUnique.Type)
+	MonsterAddTest(builder_, testOffset_)
+	MonsterAddTest4(builder_, test4Offset_)
+	MonsterAddTestarrayofstring(builder_, testarrayofstringOffset_)
+	MonsterAddTestarrayoftables(builder_, testarrayoftablesOffset_)
+	MonsterAddEnemy(builder_, enemyOffset_)
+	MonsterAddTestnestedflatbuffer(builder_, testnestedflatbufferOffset_)
+	MonsterAddTestempty(builder_, testemptyOffset_)
+	MonsterAddTestbool(builder_, t_.Testbool)
+	MonsterAddTesthashs32Fnv1(builder_, t_.Testhashs32Fnv1)
+	MonsterAddTesthashu32Fnv1(builder_, t_.Testhashu32Fnv1)
+	MonsterAddTesthashs64Fnv1(builder_, t_.Testhashs64Fnv1)
+	MonsterAddTesthashu64Fnv1(builder_, t_.Testhashu64Fnv1)
+	MonsterAddTesthashs32Fnv1a(builder_, t_.Testhashs32Fnv1a)
+	MonsterAddTesthashu32Fnv1a(builder_, t_.Testhashu32Fnv1a)
+	MonsterAddTesthashs64Fnv1a(builder_, t_.Testhashs64Fnv1a)
+	MonsterAddTesthashu64Fnv1a(builder_, t_.Testhashu64Fnv1a)
+	MonsterAddTestarrayofbools(builder_, testarrayofboolsOffset_)
+	MonsterAddTestf(builder_, t_.Testf)
+	MonsterAddTestf2(builder_, t_.Testf2)
+	MonsterAddTestf3(builder_, t_.Testf3)
+	MonsterAddTestarrayofstring2(builder_, testarrayofstring2Offset_)
+	MonsterAddTestarrayofsortedstruct(builder_, testarrayofsortedstructOffset_)
+	MonsterAddFlex(builder_, flexOffset_)
+	MonsterAddTest5(builder_, test5Offset_)
+	MonsterAddVectorOfLongs(builder_, vectorOfLongsOffset_)
+	MonsterAddVectorOfDoubles(builder_, vectorOfDoublesOffset_)
+	MonsterAddParentNamespaceTest(builder_, parentNamespaceTestOffset_)
+	MonsterAddVectorOfReferrables(builder_, vectorOfReferrablesOffset_)
+	MonsterAddSingleWeakReference(builder_, t_.SingleWeakReference)
+	MonsterAddVectorOfWeakReferences(builder_, vectorOfWeakReferencesOffset_)
+	MonsterAddVectorOfStrongReferrables(builder_, vectorOfStrongReferrablesOffset_)
+	MonsterAddCoOwningReference(builder_, t_.CoOwningReference)
+	MonsterAddVectorOfCoOwningReferences(builder_, vectorOfCoOwningReferencesOffset_)
+	MonsterAddNonOwningReference(builder_, t_.NonOwningReference)
+	MonsterAddVectorOfNonOwningReferences(builder_, vectorOfNonOwningReferencesOffset_)
+	if t_.AnyUnique != nil {
+		MonsterAddAnyUniqueType(builder_, t_.AnyUnique.Type)
 	}
-	MonsterAddAnyUnique(builder, anyUniqueOffset)
-	if t.AnyAmbiguous != nil {
-		MonsterAddAnyAmbiguousType(builder, t.AnyAmbiguous.Type)
+	MonsterAddAnyUnique(builder_, anyUniqueOffset_)
+	if t_.AnyAmbiguous != nil {
+		MonsterAddAnyAmbiguousType(builder_, t_.AnyAmbiguous.Type)
 	}
-	MonsterAddAnyAmbiguous(builder, anyAmbiguousOffset)
-	MonsterAddVectorOfEnums(builder, vectorOfEnumsOffset)
-	MonsterAddSignedEnum(builder, t.SignedEnum)
-	MonsterAddTestrequirednestedflatbuffer(builder, testrequirednestedflatbufferOffset)
-	MonsterAddScalarKeySortedTables(builder, scalarKeySortedTablesOffset)
-	nativeInlineOffset := t.NativeInline.Pack(builder)
-	MonsterAddNativeInline(builder, nativeInlineOffset)
-	MonsterAddLongEnumNonEnumDefault(builder, t.LongEnumNonEnumDefault)
-	MonsterAddLongEnumNormalDefault(builder, t.LongEnumNormalDefault)
-	MonsterAddNanDefault(builder, t.NanDefault)
-	MonsterAddInfDefault(builder, t.InfDefault)
-	MonsterAddPositiveInfDefault(builder, t.PositiveInfDefault)
-	MonsterAddInfinityDefault(builder, t.InfinityDefault)
-	MonsterAddPositiveInfinityDefault(builder, t.PositiveInfinityDefault)
-	MonsterAddNegativeInfDefault(builder, t.NegativeInfDefault)
-	MonsterAddNegativeInfinityDefault(builder, t.NegativeInfinityDefault)
-	MonsterAddDoubleInfDefault(builder, t.DoubleInfDefault)
-	return MonsterEnd(builder)
+	MonsterAddAnyAmbiguous(builder_, anyAmbiguousOffset_)
+	MonsterAddVectorOfEnums(builder_, vectorOfEnumsOffset_)
+	MonsterAddSignedEnum(builder_, t_.SignedEnum)
+	MonsterAddTestrequirednestedflatbuffer(builder_, testrequirednestedflatbufferOffset_)
+	MonsterAddScalarKeySortedTables(builder_, scalarKeySortedTablesOffset_)
+	nativeInlineOffset_ := t_.NativeInline.Pack(builder_)
+	MonsterAddNativeInline(builder_, nativeInlineOffset_)
+	MonsterAddLongEnumNonEnumDefault(builder_, t_.LongEnumNonEnumDefault)
+	MonsterAddLongEnumNormalDefault(builder_, t_.LongEnumNormalDefault)
+	MonsterAddNanDefault(builder_, t_.NanDefault)
+	MonsterAddInfDefault(builder_, t_.InfDefault)
+	MonsterAddPositiveInfDefault(builder_, t_.PositiveInfDefault)
+	MonsterAddInfinityDefault(builder_, t_.InfinityDefault)
+	MonsterAddPositiveInfinityDefault(builder_, t_.PositiveInfinityDefault)
+	MonsterAddNegativeInfDefault(builder_, t_.NegativeInfDefault)
+	MonsterAddNegativeInfinityDefault(builder_, t_.NegativeInfinityDefault)
+	MonsterAddDoubleInfDefault(builder_, t_.DoubleInfDefault)
+	return MonsterEnd(builder_)
 }
 
-func (rcv *Monster) UnPackTo(t *MonsterT) {
-	t.Pos = rcv.Pos(nil).UnPack()
-	t.Mana = rcv.Mana()
-	t.Hp = rcv.Hp()
-	t.Name = string(rcv.Name())
-	t.Inventory = rcv.InventoryBytes()
-	t.Color = rcv.Color()
-	testTable := flatbuffers.Table{}
-	if rcv.Test(&testTable) {
-		t.Test = rcv.TestType().UnPack(testTable)
+func (rcv_ *Monster) UnPackTo(t_ *MonsterT) {
+	t_.Pos = rcv_.Pos(nil).UnPack()
+	t_.Mana = rcv_.Mana()
+	t_.Hp = rcv_.Hp()
+	t_.Name = string(rcv_.Name())
+	t_.Inventory = rcv_.InventoryBytes()
+	t_.Color = rcv_.Color()
+	testTable_ := flatbuffers.Table{}
+	if rcv_.Test(&testTable_) {
+		t_.Test = rcv_.TestType().UnPack(testTable_)
 	}
-	test4Length := rcv.Test4Length()
-	t.Test4 = make([]*TestT, test4Length)
-	for j := 0; j < test4Length; j++ {
-		x := Test{}
-		rcv.Test4(&x, j)
-		t.Test4[j] = x.UnPack()
+	test4Length_ := rcv_.Test4Length()
+	t_.Test4 = make([]*TestT, test4Length_)
+	for j_ := 0; j_ < test4Length_; j_++ {
+		x_ := Test{}
+		rcv_.Test4(&x_, j_)
+		t_.Test4[j_] = x_.UnPack()
 	}
-	testarrayofstringLength := rcv.TestarrayofstringLength()
-	t.Testarrayofstring = make([]string, testarrayofstringLength)
-	for j := 0; j < testarrayofstringLength; j++ {
-		t.Testarrayofstring[j] = string(rcv.Testarrayofstring(j))
+	testarrayofstringLength_ := rcv_.TestarrayofstringLength()
+	t_.Testarrayofstring = make([]string, testarrayofstringLength_)
+	for j_ := 0; j_ < testarrayofstringLength_; j_++ {
+		t_.Testarrayofstring[j_] = string(rcv_.Testarrayofstring(j_))
 	}
-	testarrayoftablesLength := rcv.TestarrayoftablesLength()
-	t.Testarrayoftables = make([]*MonsterT, testarrayoftablesLength)
-	for j := 0; j < testarrayoftablesLength; j++ {
-		x := Monster{}
-		rcv.Testarrayoftables(&x, j)
-		t.Testarrayoftables[j] = x.UnPack()
+	testarrayoftablesLength_ := rcv_.TestarrayoftablesLength()
+	t_.Testarrayoftables = make([]*MonsterT, testarrayoftablesLength_)
+	for j_ := 0; j_ < testarrayoftablesLength_; j_++ {
+		x_ := Monster{}
+		rcv_.Testarrayoftables(&x_, j_)
+		t_.Testarrayoftables[j_] = x_.UnPack()
 	}
-	t.Enemy = rcv.Enemy(nil).UnPack()
-	t.Testnestedflatbuffer = rcv.TestnestedflatbufferBytes()
-	t.Testempty = rcv.Testempty(nil).UnPack()
-	t.Testbool = rcv.Testbool()
-	t.Testhashs32Fnv1 = rcv.Testhashs32Fnv1()
-	t.Testhashu32Fnv1 = rcv.Testhashu32Fnv1()
-	t.Testhashs64Fnv1 = rcv.Testhashs64Fnv1()
-	t.Testhashu64Fnv1 = rcv.Testhashu64Fnv1()
-	t.Testhashs32Fnv1a = rcv.Testhashs32Fnv1a()
-	t.Testhashu32Fnv1a = rcv.Testhashu32Fnv1a()
-	t.Testhashs64Fnv1a = rcv.Testhashs64Fnv1a()
-	t.Testhashu64Fnv1a = rcv.Testhashu64Fnv1a()
-	testarrayofboolsLength := rcv.TestarrayofboolsLength()
-	t.Testarrayofbools = make([]bool, testarrayofboolsLength)
-	for j := 0; j < testarrayofboolsLength; j++ {
-		t.Testarrayofbools[j] = rcv.Testarrayofbools(j)
+	t_.Enemy = rcv_.Enemy(nil).UnPack()
+	t_.Testnestedflatbuffer = rcv_.TestnestedflatbufferBytes()
+	t_.Testempty = rcv_.Testempty(nil).UnPack()
+	t_.Testbool = rcv_.Testbool()
+	t_.Testhashs32Fnv1 = rcv_.Testhashs32Fnv1()
+	t_.Testhashu32Fnv1 = rcv_.Testhashu32Fnv1()
+	t_.Testhashs64Fnv1 = rcv_.Testhashs64Fnv1()
+	t_.Testhashu64Fnv1 = rcv_.Testhashu64Fnv1()
+	t_.Testhashs32Fnv1a = rcv_.Testhashs32Fnv1a()
+	t_.Testhashu32Fnv1a = rcv_.Testhashu32Fnv1a()
+	t_.Testhashs64Fnv1a = rcv_.Testhashs64Fnv1a()
+	t_.Testhashu64Fnv1a = rcv_.Testhashu64Fnv1a()
+	testarrayofboolsLength_ := rcv_.TestarrayofboolsLength()
+	t_.Testarrayofbools = make([]bool, testarrayofboolsLength_)
+	for j_ := 0; j_ < testarrayofboolsLength_; j_++ {
+		t_.Testarrayofbools[j_] = rcv_.Testarrayofbools(j_)
 	}
-	t.Testf = rcv.Testf()
-	t.Testf2 = rcv.Testf2()
-	t.Testf3 = rcv.Testf3()
-	testarrayofstring2Length := rcv.Testarrayofstring2Length()
-	t.Testarrayofstring2 = make([]string, testarrayofstring2Length)
-	for j := 0; j < testarrayofstring2Length; j++ {
-		t.Testarrayofstring2[j] = string(rcv.Testarrayofstring2(j))
+	t_.Testf = rcv_.Testf()
+	t_.Testf2 = rcv_.Testf2()
+	t_.Testf3 = rcv_.Testf3()
+	testarrayofstring2Length_ := rcv_.Testarrayofstring2Length()
+	t_.Testarrayofstring2 = make([]string, testarrayofstring2Length_)
+	for j_ := 0; j_ < testarrayofstring2Length_; j_++ {
+		t_.Testarrayofstring2[j_] = string(rcv_.Testarrayofstring2(j_))
 	}
-	testarrayofsortedstructLength := rcv.TestarrayofsortedstructLength()
-	t.Testarrayofsortedstruct = make([]*AbilityT, testarrayofsortedstructLength)
-	for j := 0; j < testarrayofsortedstructLength; j++ {
-		x := Ability{}
-		rcv.Testarrayofsortedstruct(&x, j)
-		t.Testarrayofsortedstruct[j] = x.UnPack()
+	testarrayofsortedstructLength_ := rcv_.TestarrayofsortedstructLength()
+	t_.Testarrayofsortedstruct = make([]*AbilityT, testarrayofsortedstructLength_)
+	for j_ := 0; j_ < testarrayofsortedstructLength_; j_++ {
+		x_ := Ability{}
+		rcv_.Testarrayofsortedstruct(&x_, j_)
+		t_.Testarrayofsortedstruct[j_] = x_.UnPack()
 	}
-	t.Flex = rcv.FlexBytes()
-	test5Length := rcv.Test5Length()
-	t.Test5 = make([]*TestT, test5Length)
-	for j := 0; j < test5Length; j++ {
-		x := Test{}
-		rcv.Test5(&x, j)
-		t.Test5[j] = x.UnPack()
+	t_.Flex = rcv_.FlexBytes()
+	test5Length_ := rcv_.Test5Length()
+	t_.Test5 = make([]*TestT, test5Length_)
+	for j_ := 0; j_ < test5Length_; j_++ {
+		x_ := Test{}
+		rcv_.Test5(&x_, j_)
+		t_.Test5[j_] = x_.UnPack()
 	}
-	vectorOfLongsLength := rcv.VectorOfLongsLength()
-	t.VectorOfLongs = make([]int64, vectorOfLongsLength)
-	for j := 0; j < vectorOfLongsLength; j++ {
-		t.VectorOfLongs[j] = rcv.VectorOfLongs(j)
+	vectorOfLongsLength_ := rcv_.VectorOfLongsLength()
+	t_.VectorOfLongs = make([]int64, vectorOfLongsLength_)
+	for j_ := 0; j_ < vectorOfLongsLength_; j_++ {
+		t_.VectorOfLongs[j_] = rcv_.VectorOfLongs(j_)
 	}
-	vectorOfDoublesLength := rcv.VectorOfDoublesLength()
-	t.VectorOfDoubles = make([]float64, vectorOfDoublesLength)
-	for j := 0; j < vectorOfDoublesLength; j++ {
-		t.VectorOfDoubles[j] = rcv.VectorOfDoubles(j)
+	vectorOfDoublesLength_ := rcv_.VectorOfDoublesLength()
+	t_.VectorOfDoubles = make([]float64, vectorOfDoublesLength_)
+	for j_ := 0; j_ < vectorOfDoublesLength_; j_++ {
+		t_.VectorOfDoubles[j_] = rcv_.VectorOfDoubles(j_)
 	}
-	t.ParentNamespaceTest = rcv.ParentNamespaceTest(nil).UnPack()
-	vectorOfReferrablesLength := rcv.VectorOfReferrablesLength()
-	t.VectorOfReferrables = make([]*ReferrableT, vectorOfReferrablesLength)
-	for j := 0; j < vectorOfReferrablesLength; j++ {
-		x := Referrable{}
-		rcv.VectorOfReferrables(&x, j)
-		t.VectorOfReferrables[j] = x.UnPack()
+	t_.ParentNamespaceTest = rcv_.ParentNamespaceTest(nil).UnPack()
+	vectorOfReferrablesLength_ := rcv_.VectorOfReferrablesLength()
+	t_.VectorOfReferrables = make([]*ReferrableT, vectorOfReferrablesLength_)
+	for j_ := 0; j_ < vectorOfReferrablesLength_; j_++ {
+		x_ := Referrable{}
+		rcv_.VectorOfReferrables(&x_, j_)
+		t_.VectorOfReferrables[j_] = x_.UnPack()
 	}
-	t.SingleWeakReference = rcv.SingleWeakReference()
-	vectorOfWeakReferencesLength := rcv.VectorOfWeakReferencesLength()
-	t.VectorOfWeakReferences = make([]uint64, vectorOfWeakReferencesLength)
-	for j := 0; j < vectorOfWeakReferencesLength; j++ {
-		t.VectorOfWeakReferences[j] = rcv.VectorOfWeakReferences(j)
+	t_.SingleWeakReference = rcv_.SingleWeakReference()
+	vectorOfWeakReferencesLength_ := rcv_.VectorOfWeakReferencesLength()
+	t_.VectorOfWeakReferences = make([]uint64, vectorOfWeakReferencesLength_)
+	for j_ := 0; j_ < vectorOfWeakReferencesLength_; j_++ {
+		t_.VectorOfWeakReferences[j_] = rcv_.VectorOfWeakReferences(j_)
 	}
-	vectorOfStrongReferrablesLength := rcv.VectorOfStrongReferrablesLength()
-	t.VectorOfStrongReferrables = make([]*ReferrableT, vectorOfStrongReferrablesLength)
-	for j := 0; j < vectorOfStrongReferrablesLength; j++ {
-		x := Referrable{}
-		rcv.VectorOfStrongReferrables(&x, j)
-		t.VectorOfStrongReferrables[j] = x.UnPack()
+	vectorOfStrongReferrablesLength_ := rcv_.VectorOfStrongReferrablesLength()
+	t_.VectorOfStrongReferrables = make([]*ReferrableT, vectorOfStrongReferrablesLength_)
+	for j_ := 0; j_ < vectorOfStrongReferrablesLength_; j_++ {
+		x_ := Referrable{}
+		rcv_.VectorOfStrongReferrables(&x_, j_)
+		t_.VectorOfStrongReferrables[j_] = x_.UnPack()
 	}
-	t.CoOwningReference = rcv.CoOwningReference()
-	vectorOfCoOwningReferencesLength := rcv.VectorOfCoOwningReferencesLength()
-	t.VectorOfCoOwningReferences = make([]uint64, vectorOfCoOwningReferencesLength)
-	for j := 0; j < vectorOfCoOwningReferencesLength; j++ {
-		t.VectorOfCoOwningReferences[j] = rcv.VectorOfCoOwningReferences(j)
+	t_.CoOwningReference = rcv_.CoOwningReference()
+	vectorOfCoOwningReferencesLength_ := rcv_.VectorOfCoOwningReferencesLength()
+	t_.VectorOfCoOwningReferences = make([]uint64, vectorOfCoOwningReferencesLength_)
+	for j_ := 0; j_ < vectorOfCoOwningReferencesLength_; j_++ {
+		t_.VectorOfCoOwningReferences[j_] = rcv_.VectorOfCoOwningReferences(j_)
 	}
-	t.NonOwningReference = rcv.NonOwningReference()
-	vectorOfNonOwningReferencesLength := rcv.VectorOfNonOwningReferencesLength()
-	t.VectorOfNonOwningReferences = make([]uint64, vectorOfNonOwningReferencesLength)
-	for j := 0; j < vectorOfNonOwningReferencesLength; j++ {
-		t.VectorOfNonOwningReferences[j] = rcv.VectorOfNonOwningReferences(j)
+	t_.NonOwningReference = rcv_.NonOwningReference()
+	vectorOfNonOwningReferencesLength_ := rcv_.VectorOfNonOwningReferencesLength()
+	t_.VectorOfNonOwningReferences = make([]uint64, vectorOfNonOwningReferencesLength_)
+	for j_ := 0; j_ < vectorOfNonOwningReferencesLength_; j_++ {
+		t_.VectorOfNonOwningReferences[j_] = rcv_.VectorOfNonOwningReferences(j_)
 	}
-	anyUniqueTable := flatbuffers.Table{}
-	if rcv.AnyUnique(&anyUniqueTable) {
-		t.AnyUnique = rcv.AnyUniqueType().UnPack(anyUniqueTable)
+	anyUniqueTable_ := flatbuffers.Table{}
+	if rcv_.AnyUnique(&anyUniqueTable_) {
+		t_.AnyUnique = rcv_.AnyUniqueType().UnPack(anyUniqueTable_)
 	}
-	anyAmbiguousTable := flatbuffers.Table{}
-	if rcv.AnyAmbiguous(&anyAmbiguousTable) {
-		t.AnyAmbiguous = rcv.AnyAmbiguousType().UnPack(anyAmbiguousTable)
+	anyAmbiguousTable_ := flatbuffers.Table{}
+	if rcv_.AnyAmbiguous(&anyAmbiguousTable_) {
+		t_.AnyAmbiguous = rcv_.AnyAmbiguousType().UnPack(anyAmbiguousTable_)
 	}
-	vectorOfEnumsLength := rcv.VectorOfEnumsLength()
-	t.VectorOfEnums = make([]Color, vectorOfEnumsLength)
-	for j := 0; j < vectorOfEnumsLength; j++ {
-		t.VectorOfEnums[j] = rcv.VectorOfEnums(j)
+	vectorOfEnumsLength_ := rcv_.VectorOfEnumsLength()
+	t_.VectorOfEnums = make([]Color, vectorOfEnumsLength_)
+	for j_ := 0; j_ < vectorOfEnumsLength_; j_++ {
+		t_.VectorOfEnums[j_] = rcv_.VectorOfEnums(j_)
 	}
-	t.SignedEnum = rcv.SignedEnum()
-	t.Testrequirednestedflatbuffer = rcv.TestrequirednestedflatbufferBytes()
-	scalarKeySortedTablesLength := rcv.ScalarKeySortedTablesLength()
-	t.ScalarKeySortedTables = make([]*StatT, scalarKeySortedTablesLength)
-	for j := 0; j < scalarKeySortedTablesLength; j++ {
-		x := Stat{}
-		rcv.ScalarKeySortedTables(&x, j)
-		t.ScalarKeySortedTables[j] = x.UnPack()
+	t_.SignedEnum = rcv_.SignedEnum()
+	t_.Testrequirednestedflatbuffer = rcv_.TestrequirednestedflatbufferBytes()
+	scalarKeySortedTablesLength_ := rcv_.ScalarKeySortedTablesLength()
+	t_.ScalarKeySortedTables = make([]*StatT, scalarKeySortedTablesLength_)
+	for j_ := 0; j_ < scalarKeySortedTablesLength_; j_++ {
+		x_ := Stat{}
+		rcv_.ScalarKeySortedTables(&x_, j_)
+		t_.ScalarKeySortedTables[j_] = x_.UnPack()
 	}
-	t.NativeInline = rcv.NativeInline(nil).UnPack()
-	t.LongEnumNonEnumDefault = rcv.LongEnumNonEnumDefault()
-	t.LongEnumNormalDefault = rcv.LongEnumNormalDefault()
-	t.NanDefault = rcv.NanDefault()
-	t.InfDefault = rcv.InfDefault()
-	t.PositiveInfDefault = rcv.PositiveInfDefault()
-	t.InfinityDefault = rcv.InfinityDefault()
-	t.PositiveInfinityDefault = rcv.PositiveInfinityDefault()
-	t.NegativeInfDefault = rcv.NegativeInfDefault()
-	t.NegativeInfinityDefault = rcv.NegativeInfinityDefault()
-	t.DoubleInfDefault = rcv.DoubleInfDefault()
+	t_.NativeInline = rcv_.NativeInline(nil).UnPack()
+	t_.LongEnumNonEnumDefault = rcv_.LongEnumNonEnumDefault()
+	t_.LongEnumNormalDefault = rcv_.LongEnumNormalDefault()
+	t_.NanDefault = rcv_.NanDefault()
+	t_.InfDefault = rcv_.InfDefault()
+	t_.PositiveInfDefault = rcv_.PositiveInfDefault()
+	t_.InfinityDefault = rcv_.InfinityDefault()
+	t_.PositiveInfinityDefault = rcv_.PositiveInfinityDefault()
+	t_.NegativeInfDefault = rcv_.NegativeInfDefault()
+	t_.NegativeInfinityDefault = rcv_.NegativeInfinityDefault()
+	t_.DoubleInfDefault = rcv_.DoubleInfDefault()
 }
 
-func (rcv *Monster) UnPack() *MonsterT {
-	if rcv == nil {
+func (rcv_ *Monster) UnPack() *MonsterT {
+	if rcv_ == nil {
 		return nil
 	}
-	t := &MonsterT{}
-	rcv.UnPackTo(t)
-	return t
+	t_ := &MonsterT{}
+	rcv_.UnPackTo(t_)
+	return t_
 }
 
 const (
@@ -566,274 +566,274 @@ const (
 // Fields not in the list are left at their zero/default values.
 // This avoids materializing the entire table tree. Pass the
 // generated MonsterField* constants rather than raw strings.
-func (rcv *Monster) UnpackFields(fields ...string) *MonsterT {
-	t := &MonsterT{}
-	fieldSet := make(map[string]bool, len(fields))
-	for _, f := range fields {
-		fieldSet[f] = true
+func (rcv_ *Monster) UnpackFields(fields_ ...string) *MonsterT {
+	t_ := &MonsterT{}
+	fieldSet_ := make(map[string]bool, len(fields_))
+	for _, f_ := range fields_ {
+		fieldSet_[f_] = true
 	}
-	if fieldSet["pos"] {
-		t.Pos = rcv.Pos(nil).UnPack()
+	if fieldSet_["pos"] {
+		t_.Pos = rcv_.Pos(nil).UnPack()
 	}
-	if fieldSet["mana"] {
-		t.Mana = rcv.Mana()
+	if fieldSet_["mana"] {
+		t_.Mana = rcv_.Mana()
 	}
-	if fieldSet["hp"] {
-		t.Hp = rcv.Hp()
+	if fieldSet_["hp"] {
+		t_.Hp = rcv_.Hp()
 	}
-	if fieldSet["name"] {
-		t.Name = string(rcv.Name())
+	if fieldSet_["name"] {
+		t_.Name = string(rcv_.Name())
 	}
-	if fieldSet["inventory"] {
-		t.Inventory = rcv.InventoryBytes()
+	if fieldSet_["inventory"] {
+		t_.Inventory = rcv_.InventoryBytes()
 	}
-	if fieldSet["color"] {
-		t.Color = rcv.Color()
+	if fieldSet_["color"] {
+		t_.Color = rcv_.Color()
 	}
-	if fieldSet["test"] {
-		testTable := flatbuffers.Table{}
-		if rcv.Test(&testTable) {
-			t.Test = rcv.TestType().UnPack(testTable)
+	if fieldSet_["test"] {
+		testTable_ := flatbuffers.Table{}
+		if rcv_.Test(&testTable_) {
+			t_.Test = rcv_.TestType().UnPack(testTable_)
 		}
 	}
-	if fieldSet["test4"] {
-		test4Length := rcv.Test4Length()
-		t.Test4 = make([]*TestT, test4Length)
-		for j := 0; j < test4Length; j++ {
-			x := Test{}
-			rcv.Test4(&x, j)
-			t.Test4[j] = x.UnPack()
+	if fieldSet_["test4"] {
+		test4Length_ := rcv_.Test4Length()
+		t_.Test4 = make([]*TestT, test4Length_)
+		for j_ := 0; j_ < test4Length_; j_++ {
+			x_ := Test{}
+			rcv_.Test4(&x_, j_)
+			t_.Test4[j_] = x_.UnPack()
 		}
 	}
-	if fieldSet["testarrayofstring"] {
-		testarrayofstringLength := rcv.TestarrayofstringLength()
-		t.Testarrayofstring = make([]string, testarrayofstringLength)
-		for j := 0; j < testarrayofstringLength; j++ {
-			t.Testarrayofstring[j] = string(rcv.Testarrayofstring(j))
+	if fieldSet_["testarrayofstring"] {
+		testarrayofstringLength_ := rcv_.TestarrayofstringLength()
+		t_.Testarrayofstring = make([]string, testarrayofstringLength_)
+		for j_ := 0; j_ < testarrayofstringLength_; j_++ {
+			t_.Testarrayofstring[j_] = string(rcv_.Testarrayofstring(j_))
 		}
 	}
-	if fieldSet["testarrayoftables"] {
-		testarrayoftablesLength := rcv.TestarrayoftablesLength()
-		t.Testarrayoftables = make([]*MonsterT, testarrayoftablesLength)
-		for j := 0; j < testarrayoftablesLength; j++ {
-			x := Monster{}
-			rcv.Testarrayoftables(&x, j)
-			t.Testarrayoftables[j] = x.UnPack()
+	if fieldSet_["testarrayoftables"] {
+		testarrayoftablesLength_ := rcv_.TestarrayoftablesLength()
+		t_.Testarrayoftables = make([]*MonsterT, testarrayoftablesLength_)
+		for j_ := 0; j_ < testarrayoftablesLength_; j_++ {
+			x_ := Monster{}
+			rcv_.Testarrayoftables(&x_, j_)
+			t_.Testarrayoftables[j_] = x_.UnPack()
 		}
 	}
-	if fieldSet["enemy"] {
-		t.Enemy = rcv.Enemy(nil).UnPack()
+	if fieldSet_["enemy"] {
+		t_.Enemy = rcv_.Enemy(nil).UnPack()
 	}
-	if fieldSet["testnestedflatbuffer"] {
-		t.Testnestedflatbuffer = rcv.TestnestedflatbufferBytes()
+	if fieldSet_["testnestedflatbuffer"] {
+		t_.Testnestedflatbuffer = rcv_.TestnestedflatbufferBytes()
 	}
-	if fieldSet["testempty"] {
-		t.Testempty = rcv.Testempty(nil).UnPack()
+	if fieldSet_["testempty"] {
+		t_.Testempty = rcv_.Testempty(nil).UnPack()
 	}
-	if fieldSet["testbool"] {
-		t.Testbool = rcv.Testbool()
+	if fieldSet_["testbool"] {
+		t_.Testbool = rcv_.Testbool()
 	}
-	if fieldSet["testhashs32_fnv1"] {
-		t.Testhashs32Fnv1 = rcv.Testhashs32Fnv1()
+	if fieldSet_["testhashs32_fnv1"] {
+		t_.Testhashs32Fnv1 = rcv_.Testhashs32Fnv1()
 	}
-	if fieldSet["testhashu32_fnv1"] {
-		t.Testhashu32Fnv1 = rcv.Testhashu32Fnv1()
+	if fieldSet_["testhashu32_fnv1"] {
+		t_.Testhashu32Fnv1 = rcv_.Testhashu32Fnv1()
 	}
-	if fieldSet["testhashs64_fnv1"] {
-		t.Testhashs64Fnv1 = rcv.Testhashs64Fnv1()
+	if fieldSet_["testhashs64_fnv1"] {
+		t_.Testhashs64Fnv1 = rcv_.Testhashs64Fnv1()
 	}
-	if fieldSet["testhashu64_fnv1"] {
-		t.Testhashu64Fnv1 = rcv.Testhashu64Fnv1()
+	if fieldSet_["testhashu64_fnv1"] {
+		t_.Testhashu64Fnv1 = rcv_.Testhashu64Fnv1()
 	}
-	if fieldSet["testhashs32_fnv1a"] {
-		t.Testhashs32Fnv1a = rcv.Testhashs32Fnv1a()
+	if fieldSet_["testhashs32_fnv1a"] {
+		t_.Testhashs32Fnv1a = rcv_.Testhashs32Fnv1a()
 	}
-	if fieldSet["testhashu32_fnv1a"] {
-		t.Testhashu32Fnv1a = rcv.Testhashu32Fnv1a()
+	if fieldSet_["testhashu32_fnv1a"] {
+		t_.Testhashu32Fnv1a = rcv_.Testhashu32Fnv1a()
 	}
-	if fieldSet["testhashs64_fnv1a"] {
-		t.Testhashs64Fnv1a = rcv.Testhashs64Fnv1a()
+	if fieldSet_["testhashs64_fnv1a"] {
+		t_.Testhashs64Fnv1a = rcv_.Testhashs64Fnv1a()
 	}
-	if fieldSet["testhashu64_fnv1a"] {
-		t.Testhashu64Fnv1a = rcv.Testhashu64Fnv1a()
+	if fieldSet_["testhashu64_fnv1a"] {
+		t_.Testhashu64Fnv1a = rcv_.Testhashu64Fnv1a()
 	}
-	if fieldSet["testarrayofbools"] {
-		testarrayofboolsLength := rcv.TestarrayofboolsLength()
-		t.Testarrayofbools = make([]bool, testarrayofboolsLength)
-		for j := 0; j < testarrayofboolsLength; j++ {
-			t.Testarrayofbools[j] = rcv.Testarrayofbools(j)
+	if fieldSet_["testarrayofbools"] {
+		testarrayofboolsLength_ := rcv_.TestarrayofboolsLength()
+		t_.Testarrayofbools = make([]bool, testarrayofboolsLength_)
+		for j_ := 0; j_ < testarrayofboolsLength_; j_++ {
+			t_.Testarrayofbools[j_] = rcv_.Testarrayofbools(j_)
 		}
 	}
-	if fieldSet["testf"] {
-		t.Testf = rcv.Testf()
+	if fieldSet_["testf"] {
+		t_.Testf = rcv_.Testf()
 	}
-	if fieldSet["testf2"] {
-		t.Testf2 = rcv.Testf2()
+	if fieldSet_["testf2"] {
+		t_.Testf2 = rcv_.Testf2()
 	}
-	if fieldSet["testf3"] {
-		t.Testf3 = rcv.Testf3()
+	if fieldSet_["testf3"] {
+		t_.Testf3 = rcv_.Testf3()
 	}
-	if fieldSet["testarrayofstring2"] {
-		testarrayofstring2Length := rcv.Testarrayofstring2Length()
-		t.Testarrayofstring2 = make([]string, testarrayofstring2Length)
-		for j := 0; j < testarrayofstring2Length; j++ {
-			t.Testarrayofstring2[j] = string(rcv.Testarrayofstring2(j))
+	if fieldSet_["testarrayofstring2"] {
+		testarrayofstring2Length_ := rcv_.Testarrayofstring2Length()
+		t_.Testarrayofstring2 = make([]string, testarrayofstring2Length_)
+		for j_ := 0; j_ < testarrayofstring2Length_; j_++ {
+			t_.Testarrayofstring2[j_] = string(rcv_.Testarrayofstring2(j_))
 		}
 	}
-	if fieldSet["testarrayofsortedstruct"] {
-		testarrayofsortedstructLength := rcv.TestarrayofsortedstructLength()
-		t.Testarrayofsortedstruct = make([]*AbilityT, testarrayofsortedstructLength)
-		for j := 0; j < testarrayofsortedstructLength; j++ {
-			x := Ability{}
-			rcv.Testarrayofsortedstruct(&x, j)
-			t.Testarrayofsortedstruct[j] = x.UnPack()
+	if fieldSet_["testarrayofsortedstruct"] {
+		testarrayofsortedstructLength_ := rcv_.TestarrayofsortedstructLength()
+		t_.Testarrayofsortedstruct = make([]*AbilityT, testarrayofsortedstructLength_)
+		for j_ := 0; j_ < testarrayofsortedstructLength_; j_++ {
+			x_ := Ability{}
+			rcv_.Testarrayofsortedstruct(&x_, j_)
+			t_.Testarrayofsortedstruct[j_] = x_.UnPack()
 		}
 	}
-	if fieldSet["flex"] {
-		t.Flex = rcv.FlexBytes()
+	if fieldSet_["flex"] {
+		t_.Flex = rcv_.FlexBytes()
 	}
-	if fieldSet["test5"] {
-		test5Length := rcv.Test5Length()
-		t.Test5 = make([]*TestT, test5Length)
-		for j := 0; j < test5Length; j++ {
-			x := Test{}
-			rcv.Test5(&x, j)
-			t.Test5[j] = x.UnPack()
+	if fieldSet_["test5"] {
+		test5Length_ := rcv_.Test5Length()
+		t_.Test5 = make([]*TestT, test5Length_)
+		for j_ := 0; j_ < test5Length_; j_++ {
+			x_ := Test{}
+			rcv_.Test5(&x_, j_)
+			t_.Test5[j_] = x_.UnPack()
 		}
 	}
-	if fieldSet["vector_of_longs"] {
-		vectorOfLongsLength := rcv.VectorOfLongsLength()
-		t.VectorOfLongs = make([]int64, vectorOfLongsLength)
-		for j := 0; j < vectorOfLongsLength; j++ {
-			t.VectorOfLongs[j] = rcv.VectorOfLongs(j)
+	if fieldSet_["vector_of_longs"] {
+		vectorOfLongsLength_ := rcv_.VectorOfLongsLength()
+		t_.VectorOfLongs = make([]int64, vectorOfLongsLength_)
+		for j_ := 0; j_ < vectorOfLongsLength_; j_++ {
+			t_.VectorOfLongs[j_] = rcv_.VectorOfLongs(j_)
 		}
 	}
-	if fieldSet["vector_of_doubles"] {
-		vectorOfDoublesLength := rcv.VectorOfDoublesLength()
-		t.VectorOfDoubles = make([]float64, vectorOfDoublesLength)
-		for j := 0; j < vectorOfDoublesLength; j++ {
-			t.VectorOfDoubles[j] = rcv.VectorOfDoubles(j)
+	if fieldSet_["vector_of_doubles"] {
+		vectorOfDoublesLength_ := rcv_.VectorOfDoublesLength()
+		t_.VectorOfDoubles = make([]float64, vectorOfDoublesLength_)
+		for j_ := 0; j_ < vectorOfDoublesLength_; j_++ {
+			t_.VectorOfDoubles[j_] = rcv_.VectorOfDoubles(j_)
 		}
 	}
-	if fieldSet["parent_namespace_test"] {
-		t.ParentNamespaceTest = rcv.ParentNamespaceTest(nil).UnPack()
+	if fieldSet_["parent_namespace_test"] {
+		t_.ParentNamespaceTest = rcv_.ParentNamespaceTest(nil).UnPack()
 	}
-	if fieldSet["vector_of_referrables"] {
-		vectorOfReferrablesLength := rcv.VectorOfReferrablesLength()
-		t.VectorOfReferrables = make([]*ReferrableT, vectorOfReferrablesLength)
-		for j := 0; j < vectorOfReferrablesLength; j++ {
-			x := Referrable{}
-			rcv.VectorOfReferrables(&x, j)
-			t.VectorOfReferrables[j] = x.UnPack()
+	if fieldSet_["vector_of_referrables"] {
+		vectorOfReferrablesLength_ := rcv_.VectorOfReferrablesLength()
+		t_.VectorOfReferrables = make([]*ReferrableT, vectorOfReferrablesLength_)
+		for j_ := 0; j_ < vectorOfReferrablesLength_; j_++ {
+			x_ := Referrable{}
+			rcv_.VectorOfReferrables(&x_, j_)
+			t_.VectorOfReferrables[j_] = x_.UnPack()
 		}
 	}
-	if fieldSet["single_weak_reference"] {
-		t.SingleWeakReference = rcv.SingleWeakReference()
+	if fieldSet_["single_weak_reference"] {
+		t_.SingleWeakReference = rcv_.SingleWeakReference()
 	}
-	if fieldSet["vector_of_weak_references"] {
-		vectorOfWeakReferencesLength := rcv.VectorOfWeakReferencesLength()
-		t.VectorOfWeakReferences = make([]uint64, vectorOfWeakReferencesLength)
-		for j := 0; j < vectorOfWeakReferencesLength; j++ {
-			t.VectorOfWeakReferences[j] = rcv.VectorOfWeakReferences(j)
+	if fieldSet_["vector_of_weak_references"] {
+		vectorOfWeakReferencesLength_ := rcv_.VectorOfWeakReferencesLength()
+		t_.VectorOfWeakReferences = make([]uint64, vectorOfWeakReferencesLength_)
+		for j_ := 0; j_ < vectorOfWeakReferencesLength_; j_++ {
+			t_.VectorOfWeakReferences[j_] = rcv_.VectorOfWeakReferences(j_)
 		}
 	}
-	if fieldSet["vector_of_strong_referrables"] {
-		vectorOfStrongReferrablesLength := rcv.VectorOfStrongReferrablesLength()
-		t.VectorOfStrongReferrables = make([]*ReferrableT, vectorOfStrongReferrablesLength)
-		for j := 0; j < vectorOfStrongReferrablesLength; j++ {
-			x := Referrable{}
-			rcv.VectorOfStrongReferrables(&x, j)
-			t.VectorOfStrongReferrables[j] = x.UnPack()
+	if fieldSet_["vector_of_strong_referrables"] {
+		vectorOfStrongReferrablesLength_ := rcv_.VectorOfStrongReferrablesLength()
+		t_.VectorOfStrongReferrables = make([]*ReferrableT, vectorOfStrongReferrablesLength_)
+		for j_ := 0; j_ < vectorOfStrongReferrablesLength_; j_++ {
+			x_ := Referrable{}
+			rcv_.VectorOfStrongReferrables(&x_, j_)
+			t_.VectorOfStrongReferrables[j_] = x_.UnPack()
 		}
 	}
-	if fieldSet["co_owning_reference"] {
-		t.CoOwningReference = rcv.CoOwningReference()
+	if fieldSet_["co_owning_reference"] {
+		t_.CoOwningReference = rcv_.CoOwningReference()
 	}
-	if fieldSet["vector_of_co_owning_references"] {
-		vectorOfCoOwningReferencesLength := rcv.VectorOfCoOwningReferencesLength()
-		t.VectorOfCoOwningReferences = make([]uint64, vectorOfCoOwningReferencesLength)
-		for j := 0; j < vectorOfCoOwningReferencesLength; j++ {
-			t.VectorOfCoOwningReferences[j] = rcv.VectorOfCoOwningReferences(j)
+	if fieldSet_["vector_of_co_owning_references"] {
+		vectorOfCoOwningReferencesLength_ := rcv_.VectorOfCoOwningReferencesLength()
+		t_.VectorOfCoOwningReferences = make([]uint64, vectorOfCoOwningReferencesLength_)
+		for j_ := 0; j_ < vectorOfCoOwningReferencesLength_; j_++ {
+			t_.VectorOfCoOwningReferences[j_] = rcv_.VectorOfCoOwningReferences(j_)
 		}
 	}
-	if fieldSet["non_owning_reference"] {
-		t.NonOwningReference = rcv.NonOwningReference()
+	if fieldSet_["non_owning_reference"] {
+		t_.NonOwningReference = rcv_.NonOwningReference()
 	}
-	if fieldSet["vector_of_non_owning_references"] {
-		vectorOfNonOwningReferencesLength := rcv.VectorOfNonOwningReferencesLength()
-		t.VectorOfNonOwningReferences = make([]uint64, vectorOfNonOwningReferencesLength)
-		for j := 0; j < vectorOfNonOwningReferencesLength; j++ {
-			t.VectorOfNonOwningReferences[j] = rcv.VectorOfNonOwningReferences(j)
+	if fieldSet_["vector_of_non_owning_references"] {
+		vectorOfNonOwningReferencesLength_ := rcv_.VectorOfNonOwningReferencesLength()
+		t_.VectorOfNonOwningReferences = make([]uint64, vectorOfNonOwningReferencesLength_)
+		for j_ := 0; j_ < vectorOfNonOwningReferencesLength_; j_++ {
+			t_.VectorOfNonOwningReferences[j_] = rcv_.VectorOfNonOwningReferences(j_)
 		}
 	}
-	if fieldSet["any_unique"] {
-		anyUniqueTable := flatbuffers.Table{}
-		if rcv.AnyUnique(&anyUniqueTable) {
-			t.AnyUnique = rcv.AnyUniqueType().UnPack(anyUniqueTable)
+	if fieldSet_["any_unique"] {
+		anyUniqueTable_ := flatbuffers.Table{}
+		if rcv_.AnyUnique(&anyUniqueTable_) {
+			t_.AnyUnique = rcv_.AnyUniqueType().UnPack(anyUniqueTable_)
 		}
 	}
-	if fieldSet["any_ambiguous"] {
-		anyAmbiguousTable := flatbuffers.Table{}
-		if rcv.AnyAmbiguous(&anyAmbiguousTable) {
-			t.AnyAmbiguous = rcv.AnyAmbiguousType().UnPack(anyAmbiguousTable)
+	if fieldSet_["any_ambiguous"] {
+		anyAmbiguousTable_ := flatbuffers.Table{}
+		if rcv_.AnyAmbiguous(&anyAmbiguousTable_) {
+			t_.AnyAmbiguous = rcv_.AnyAmbiguousType().UnPack(anyAmbiguousTable_)
 		}
 	}
-	if fieldSet["vector_of_enums"] {
-		vectorOfEnumsLength := rcv.VectorOfEnumsLength()
-		t.VectorOfEnums = make([]Color, vectorOfEnumsLength)
-		for j := 0; j < vectorOfEnumsLength; j++ {
-			t.VectorOfEnums[j] = rcv.VectorOfEnums(j)
+	if fieldSet_["vector_of_enums"] {
+		vectorOfEnumsLength_ := rcv_.VectorOfEnumsLength()
+		t_.VectorOfEnums = make([]Color, vectorOfEnumsLength_)
+		for j_ := 0; j_ < vectorOfEnumsLength_; j_++ {
+			t_.VectorOfEnums[j_] = rcv_.VectorOfEnums(j_)
 		}
 	}
-	if fieldSet["signed_enum"] {
-		t.SignedEnum = rcv.SignedEnum()
+	if fieldSet_["signed_enum"] {
+		t_.SignedEnum = rcv_.SignedEnum()
 	}
-	if fieldSet["testrequirednestedflatbuffer"] {
-		t.Testrequirednestedflatbuffer = rcv.TestrequirednestedflatbufferBytes()
+	if fieldSet_["testrequirednestedflatbuffer"] {
+		t_.Testrequirednestedflatbuffer = rcv_.TestrequirednestedflatbufferBytes()
 	}
-	if fieldSet["scalar_key_sorted_tables"] {
-		scalarKeySortedTablesLength := rcv.ScalarKeySortedTablesLength()
-		t.ScalarKeySortedTables = make([]*StatT, scalarKeySortedTablesLength)
-		for j := 0; j < scalarKeySortedTablesLength; j++ {
-			x := Stat{}
-			rcv.ScalarKeySortedTables(&x, j)
-			t.ScalarKeySortedTables[j] = x.UnPack()
+	if fieldSet_["scalar_key_sorted_tables"] {
+		scalarKeySortedTablesLength_ := rcv_.ScalarKeySortedTablesLength()
+		t_.ScalarKeySortedTables = make([]*StatT, scalarKeySortedTablesLength_)
+		for j_ := 0; j_ < scalarKeySortedTablesLength_; j_++ {
+			x_ := Stat{}
+			rcv_.ScalarKeySortedTables(&x_, j_)
+			t_.ScalarKeySortedTables[j_] = x_.UnPack()
 		}
 	}
-	if fieldSet["native_inline"] {
-		t.NativeInline = rcv.NativeInline(nil).UnPack()
+	if fieldSet_["native_inline"] {
+		t_.NativeInline = rcv_.NativeInline(nil).UnPack()
 	}
-	if fieldSet["long_enum_non_enum_default"] {
-		t.LongEnumNonEnumDefault = rcv.LongEnumNonEnumDefault()
+	if fieldSet_["long_enum_non_enum_default"] {
+		t_.LongEnumNonEnumDefault = rcv_.LongEnumNonEnumDefault()
 	}
-	if fieldSet["long_enum_normal_default"] {
-		t.LongEnumNormalDefault = rcv.LongEnumNormalDefault()
+	if fieldSet_["long_enum_normal_default"] {
+		t_.LongEnumNormalDefault = rcv_.LongEnumNormalDefault()
 	}
-	if fieldSet["nan_default"] {
-		t.NanDefault = rcv.NanDefault()
+	if fieldSet_["nan_default"] {
+		t_.NanDefault = rcv_.NanDefault()
 	}
-	if fieldSet["inf_default"] {
-		t.InfDefault = rcv.InfDefault()
+	if fieldSet_["inf_default"] {
+		t_.InfDefault = rcv_.InfDefault()
 	}
-	if fieldSet["positive_inf_default"] {
-		t.PositiveInfDefault = rcv.PositiveInfDefault()
+	if fieldSet_["positive_inf_default"] {
+		t_.PositiveInfDefault = rcv_.PositiveInfDefault()
 	}
-	if fieldSet["infinity_default"] {
-		t.InfinityDefault = rcv.InfinityDefault()
+	if fieldSet_["infinity_default"] {
+		t_.InfinityDefault = rcv_.InfinityDefault()
 	}
-	if fieldSet["positive_infinity_default"] {
-		t.PositiveInfinityDefault = rcv.PositiveInfinityDefault()
+	if fieldSet_["positive_infinity_default"] {
+		t_.PositiveInfinityDefault = rcv_.PositiveInfinityDefault()
 	}
-	if fieldSet["negative_inf_default"] {
-		t.NegativeInfDefault = rcv.NegativeInfDefault()
+	if fieldSet_["negative_inf_default"] {
+		t_.NegativeInfDefault = rcv_.NegativeInfDefault()
 	}
-	if fieldSet["negative_infinity_default"] {
-		t.NegativeInfinityDefault = rcv.NegativeInfinityDefault()
+	if fieldSet_["negative_infinity_default"] {
+		t_.NegativeInfinityDefault = rcv_.NegativeInfinityDefault()
 	}
-	if fieldSet["double_inf_default"] {
-		t.DoubleInfDefault = rcv.DoubleInfDefault()
+	if fieldSet_["double_inf_default"] {
+		t_.DoubleInfDefault = rcv_.DoubleInfDefault()
 	}
-	return t
+	return t_
 }
 
 type Monster struct {
@@ -842,1721 +842,1721 @@ type Monster struct {
 
 const MonsterIdentifier = "MONS"
 
-func GetRootAsMonster(buf []byte, offset flatbuffers.UOffsetT) *Monster {
-	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &Monster{}
-	x.Init(buf, n+offset)
-	return x
+func GetRootAsMonster(buf_ []byte, offset_ flatbuffers.UOffsetT) *Monster {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_:])
+	x_ := &Monster{}
+	x_.Init(buf_, n_+offset_)
+	return x_
 }
 
-func FinishMonsterBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	identifierBytes := []byte(MonsterIdentifier)
-	builder.FinishWithFileIdentifier(offset, identifierBytes)
+func FinishMonsterBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	identifierBytes_ := []byte(MonsterIdentifier)
+	builder_.FinishWithFileIdentifier(offset_, identifierBytes_)
 }
 
-func MonsterBufferHasIdentifier(buf []byte) bool {
-	return flatbuffers.BufferHasIdentifier(buf, MonsterIdentifier)
+func MonsterBufferHasIdentifier(buf_ []byte) bool {
+	return flatbuffers.BufferHasIdentifier(buf_, MonsterIdentifier)
 }
 
-func GetSizePrefixedRootAsMonster(buf []byte, offset flatbuffers.UOffsetT) *Monster {
-	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &Monster{}
-	x.Init(buf, n+offset+flatbuffers.SizeUint32)
-	return x
+func GetSizePrefixedRootAsMonster(buf_ []byte, offset_ flatbuffers.UOffsetT) *Monster {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_+flatbuffers.SizeUint32:])
+	x_ := &Monster{}
+	x_.Init(buf_, n_+offset_+flatbuffers.SizeUint32)
+	return x_
 }
 
-func FinishSizePrefixedMonsterBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	identifierBytes := []byte(MonsterIdentifier)
-	builder.FinishSizePrefixedWithFileIdentifier(offset, identifierBytes)
+func FinishSizePrefixedMonsterBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	identifierBytes_ := []byte(MonsterIdentifier)
+	builder_.FinishSizePrefixedWithFileIdentifier(offset_, identifierBytes_)
 }
 
-func SizePrefixedMonsterBufferHasIdentifier(buf []byte) bool {
-	return flatbuffers.SizePrefixedBufferHasIdentifier(buf, MonsterIdentifier)
+func SizePrefixedMonsterBufferHasIdentifier(buf_ []byte) bool {
+	return flatbuffers.SizePrefixedBufferHasIdentifier(buf_, MonsterIdentifier)
 }
 
-func VerifyRootAsMonster(buf []byte, opts *flatbuffers.VerifierOptions) error {
-	v := flatbuffers.NewVerifier(buf, opts)
-	tablePos, err := v.CheckUOffsetT(0)
-	if err != nil {
-		return err
+func VerifyRootAsMonster(buf_ []byte, opts_ *flatbuffers.VerifierOptions) error {
+	v_ := flatbuffers.NewVerifier(buf_, opts_)
+	tablePos_, err_ := v_.CheckUOffsetT(0)
+	if err_ != nil {
+		return err_
 	}
-	return verifyMonster(v, int(tablePos))
+	return verifyMonster(v_, int(tablePos_))
 }
 
-func VerifyMonster(v *flatbuffers.Verifier, tablePos int) error {
-	return verifyMonster(v, tablePos)
+func VerifyMonster(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	return verifyMonster(v_, tablePos_)
 }
 
-func verifyMonster(v *flatbuffers.Verifier, tablePos int) error {
-	if err := v.CheckTable(tablePos); err != nil {
-		return err
+func verifyMonster(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	if err_ := v_.CheckTable(tablePos_); err_ != nil {
+		return err_
 	}
-	if err := v.CountTable(); err != nil {
-		return err
+	if err_ := v_.CountTable(); err_ != nil {
+		return err_
 	}
-	if err := v.PushDepth(); err != nil {
-		return err
+	if err_ := v_.PushDepth(); err_ != nil {
+		return err_
 	}
-	defer v.PopDepth()
+	defer v_.PopDepth()
 
-	if err := v.CheckScalarField(tablePos, 4, 32); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 4, 32); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 6, 2); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 6, 2); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 8, 2); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 8, 2); err_ != nil {
+		return err_
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 10); err != nil {
-		return err
-	} else if pos != 0 {
-		if err := v.CheckString(pos); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 10); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := v_.CheckString(pos_); err_ != nil {
+			return err_
 		}
 	}
-	if err := v.CheckRequiredField(tablePos, 10, "name"); err != nil {
-		return err
+	if err_ := v_.CheckRequiredField(tablePos_, 10, "name"); err_ != nil {
+		return err_
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 14); err != nil {
-		return err
-	} else if pos != 0 {
-		if _, err := v.CheckVector(pos, 1); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 14); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if _, err_ := v_.CheckVector(pos_, 1); err_ != nil {
+			return err_
 		}
 	}
-	if err := v.CheckScalarField(tablePos, 16, 1); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 16, 1); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 18, 1); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 18, 1); err_ != nil {
+		return err_
 	}
-	if err := v.CheckUnionConsistency(tablePos, 18, 20, "test"); err != nil {
-		return err
+	if err_ := v_.CheckUnionConsistency(tablePos_, 18, 20, "test"); err_ != nil {
+		return err_
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 20); err != nil {
-		return err
-	} else if pos != 0 {
-		uType, err := v.ReadFieldByte(tablePos, 18)
-		if err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 20); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		uType_, err_ := v_.ReadFieldByte(tablePos_, 18)
+		if err_ != nil {
+			return err_
 		}
-		switch Any(uType) {
+		switch Any(uType_) {
 		case AnyMonster:
-			if err := verifyMonster(v, pos); err != nil {
-				return err
+			if err_ := verifyMonster(v_, pos_); err_ != nil {
+				return err_
 			}
 		case AnyTestSimpleTableWithEnum:
-			if err := verifyTestSimpleTableWithEnum(v, pos); err != nil {
-				return err
+			if err_ := verifyTestSimpleTableWithEnum(v_, pos_); err_ != nil {
+				return err_
 			}
 		case AnyMyGame_Example2_Monster:
-			if err := MyGame__Example2.VerifyMonster(v, pos); err != nil {
-				return err
+			if err_ := MyGame__Example2.VerifyMonster(v_, pos_); err_ != nil {
+				return err_
 			}
 		}
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 22); err != nil {
-		return err
-	} else if pos != 0 {
-		if _, err := v.CheckVector(pos, 4); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 22); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if _, err_ := v_.CheckVector(pos_, 4); err_ != nil {
+			return err_
 		}
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 24); err != nil {
-		return err
-	} else if pos != 0 {
-		if err := v.CheckVectorOfStrings(pos); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 24); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := v_.CheckVectorOfStrings(pos_); err_ != nil {
+			return err_
 		}
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 26); err != nil {
-		return err
-	} else if pos != 0 {
-		if err := v.CheckVectorOfTables(pos, verifyMonster); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 26); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := v_.CheckVectorOfTables(pos_, verifyMonster); err_ != nil {
+			return err_
 		}
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 28); err != nil {
-		return err
-	} else if pos != 0 {
-		if err := verifyMonster(v, pos); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 28); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := verifyMonster(v_, pos_); err_ != nil {
+			return err_
 		}
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 30); err != nil {
-		return err
-	} else if pos != 0 {
-		if _, err := v.CheckVector(pos, 1); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 30); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if _, err_ := v_.CheckVector(pos_, 1); err_ != nil {
+			return err_
 		}
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 32); err != nil {
-		return err
-	} else if pos != 0 {
-		if err := verifyStat(v, pos); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 32); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := verifyStat(v_, pos_); err_ != nil {
+			return err_
 		}
 	}
-	if err := v.CheckScalarField(tablePos, 34, 1); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 34, 1); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 36, 4); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 36, 4); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 38, 4); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 38, 4); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 40, 8); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 40, 8); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 42, 8); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 42, 8); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 44, 4); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 44, 4); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 46, 4); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 46, 4); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 48, 8); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 48, 8); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 50, 8); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 50, 8); err_ != nil {
+		return err_
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 52); err != nil {
-		return err
-	} else if pos != 0 {
-		if _, err := v.CheckVector(pos, 1); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 52); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if _, err_ := v_.CheckVector(pos_, 1); err_ != nil {
+			return err_
 		}
 	}
-	if err := v.CheckScalarField(tablePos, 54, 4); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 54, 4); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 56, 4); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 56, 4); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 58, 4); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 58, 4); err_ != nil {
+		return err_
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 60); err != nil {
-		return err
-	} else if pos != 0 {
-		if err := v.CheckVectorOfStrings(pos); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 60); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := v_.CheckVectorOfStrings(pos_); err_ != nil {
+			return err_
 		}
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 62); err != nil {
-		return err
-	} else if pos != 0 {
-		if _, err := v.CheckVector(pos, 8); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 62); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if _, err_ := v_.CheckVector(pos_, 8); err_ != nil {
+			return err_
 		}
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 64); err != nil {
-		return err
-	} else if pos != 0 {
-		if _, err := v.CheckVector(pos, 1); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 64); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if _, err_ := v_.CheckVector(pos_, 1); err_ != nil {
+			return err_
 		}
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 66); err != nil {
-		return err
-	} else if pos != 0 {
-		if _, err := v.CheckVector(pos, 4); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 66); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if _, err_ := v_.CheckVector(pos_, 4); err_ != nil {
+			return err_
 		}
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 68); err != nil {
-		return err
-	} else if pos != 0 {
-		if _, err := v.CheckVector(pos, 8); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 68); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if _, err_ := v_.CheckVector(pos_, 8); err_ != nil {
+			return err_
 		}
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 70); err != nil {
-		return err
-	} else if pos != 0 {
-		if _, err := v.CheckVector(pos, 8); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 70); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if _, err_ := v_.CheckVector(pos_, 8); err_ != nil {
+			return err_
 		}
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 72); err != nil {
-		return err
-	} else if pos != 0 {
-		if err := MyGame.VerifyInParentNamespace(v, pos); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 72); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := MyGame.VerifyInParentNamespace(v_, pos_); err_ != nil {
+			return err_
 		}
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 74); err != nil {
-		return err
-	} else if pos != 0 {
-		if err := v.CheckVectorOfTables(pos, verifyReferrable); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 74); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := v_.CheckVectorOfTables(pos_, verifyReferrable); err_ != nil {
+			return err_
 		}
 	}
-	if err := v.CheckScalarField(tablePos, 76, 8); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 76, 8); err_ != nil {
+		return err_
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 78); err != nil {
-		return err
-	} else if pos != 0 {
-		if _, err := v.CheckVector(pos, 8); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 78); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if _, err_ := v_.CheckVector(pos_, 8); err_ != nil {
+			return err_
 		}
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 80); err != nil {
-		return err
-	} else if pos != 0 {
-		if err := v.CheckVectorOfTables(pos, verifyReferrable); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 80); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := v_.CheckVectorOfTables(pos_, verifyReferrable); err_ != nil {
+			return err_
 		}
 	}
-	if err := v.CheckScalarField(tablePos, 82, 8); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 82, 8); err_ != nil {
+		return err_
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 84); err != nil {
-		return err
-	} else if pos != 0 {
-		if _, err := v.CheckVector(pos, 8); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 84); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if _, err_ := v_.CheckVector(pos_, 8); err_ != nil {
+			return err_
 		}
 	}
-	if err := v.CheckScalarField(tablePos, 86, 8); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 86, 8); err_ != nil {
+		return err_
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 88); err != nil {
-		return err
-	} else if pos != 0 {
-		if _, err := v.CheckVector(pos, 8); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 88); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if _, err_ := v_.CheckVector(pos_, 8); err_ != nil {
+			return err_
 		}
 	}
-	if err := v.CheckScalarField(tablePos, 90, 1); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 90, 1); err_ != nil {
+		return err_
 	}
-	if err := v.CheckUnionConsistency(tablePos, 90, 92, "any_unique"); err != nil {
-		return err
+	if err_ := v_.CheckUnionConsistency(tablePos_, 90, 92, "any_unique"); err_ != nil {
+		return err_
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 92); err != nil {
-		return err
-	} else if pos != 0 {
-		uType, err := v.ReadFieldByte(tablePos, 90)
-		if err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 92); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		uType_, err_ := v_.ReadFieldByte(tablePos_, 90)
+		if err_ != nil {
+			return err_
 		}
-		switch AnyUniqueAliases(uType) {
+		switch AnyUniqueAliases(uType_) {
 		case AnyUniqueAliasesM:
-			if err := verifyMonster(v, pos); err != nil {
-				return err
+			if err_ := verifyMonster(v_, pos_); err_ != nil {
+				return err_
 			}
 		case AnyUniqueAliasesTS:
-			if err := verifyTestSimpleTableWithEnum(v, pos); err != nil {
-				return err
+			if err_ := verifyTestSimpleTableWithEnum(v_, pos_); err_ != nil {
+				return err_
 			}
 		case AnyUniqueAliasesM2:
-			if err := MyGame__Example2.VerifyMonster(v, pos); err != nil {
-				return err
+			if err_ := MyGame__Example2.VerifyMonster(v_, pos_); err_ != nil {
+				return err_
 			}
 		}
 	}
-	if err := v.CheckScalarField(tablePos, 94, 1); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 94, 1); err_ != nil {
+		return err_
 	}
-	if err := v.CheckUnionConsistency(tablePos, 94, 96, "any_ambiguous"); err != nil {
-		return err
+	if err_ := v_.CheckUnionConsistency(tablePos_, 94, 96, "any_ambiguous"); err_ != nil {
+		return err_
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 96); err != nil {
-		return err
-	} else if pos != 0 {
-		uType, err := v.ReadFieldByte(tablePos, 94)
-		if err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 96); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		uType_, err_ := v_.ReadFieldByte(tablePos_, 94)
+		if err_ != nil {
+			return err_
 		}
-		switch AnyAmbiguousAliases(uType) {
+		switch AnyAmbiguousAliases(uType_) {
 		case AnyAmbiguousAliasesM1:
-			if err := verifyMonster(v, pos); err != nil {
-				return err
+			if err_ := verifyMonster(v_, pos_); err_ != nil {
+				return err_
 			}
 		case AnyAmbiguousAliasesM2:
-			if err := verifyMonster(v, pos); err != nil {
-				return err
+			if err_ := verifyMonster(v_, pos_); err_ != nil {
+				return err_
 			}
 		case AnyAmbiguousAliasesM3:
-			if err := verifyMonster(v, pos); err != nil {
-				return err
+			if err_ := verifyMonster(v_, pos_); err_ != nil {
+				return err_
 			}
 		}
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 98); err != nil {
-		return err
-	} else if pos != 0 {
-		if _, err := v.CheckVector(pos, 1); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 98); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if _, err_ := v_.CheckVector(pos_, 1); err_ != nil {
+			return err_
 		}
 	}
-	if err := v.CheckScalarField(tablePos, 100, 1); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 100, 1); err_ != nil {
+		return err_
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 102); err != nil {
-		return err
-	} else if pos != 0 {
-		if _, err := v.CheckVector(pos, 1); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 102); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if _, err_ := v_.CheckVector(pos_, 1); err_ != nil {
+			return err_
 		}
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 104); err != nil {
-		return err
-	} else if pos != 0 {
-		if err := v.CheckVectorOfTables(pos, verifyStat); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 104); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := v_.CheckVectorOfTables(pos_, verifyStat); err_ != nil {
+			return err_
 		}
 	}
-	if err := v.CheckScalarField(tablePos, 106, 4); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 106, 4); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 108, 8); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 108, 8); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 110, 8); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 110, 8); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 112, 4); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 112, 4); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 114, 4); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 114, 4); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 116, 4); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 116, 4); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 118, 4); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 118, 4); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 120, 4); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 120, 4); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 122, 4); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 122, 4); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 124, 4); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 124, 4); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 126, 8); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 126, 8); err_ != nil {
+		return err_
 	}
 	return nil
 }
 
-func (rcv *Monster) Init(buf []byte, i flatbuffers.UOffsetT) {
-	rcv._tab.Bytes = buf
-	rcv._tab.Pos = i
+func (rcv_ *Monster) Init(buf_ []byte, i_ flatbuffers.UOffsetT) {
+	rcv_._tab.Bytes = buf_
+	rcv_._tab.Pos = i_
 }
 
-func (rcv *Monster) Table() flatbuffers.Table {
-	return rcv._tab
+func (rcv_ *Monster) Table() flatbuffers.Table {
+	return rcv_._tab
 }
 
-func (rcv *Monster) Pos(obj *Vec3) *Vec3 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
-	if o != 0 {
-		x := o + rcv._tab.Pos
-		if obj == nil {
-			obj = new(Vec3)
+func (rcv_ *Monster) Pos(obj_ *Vec3) *Vec3 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(4))
+	if o_ != 0 {
+		x_ := o_ + rcv_._tab.Pos
+		if obj_ == nil {
+			obj_ = new(Vec3)
 		}
-		obj.Init(rcv._tab.Bytes, x)
-		return obj
+		obj_.Init(rcv_._tab.Bytes, x_)
+		return obj_
 	}
 	return nil
 }
 
-func (rcv *Monster) Mana() int16 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
-	if o != 0 {
-		return rcv._tab.GetInt16(o + rcv._tab.Pos)
+func (rcv_ *Monster) Mana() int16 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(6))
+	if o_ != 0 {
+		return rcv_._tab.GetInt16(o_ + rcv_._tab.Pos)
 	}
 	return 150
 }
 
-func (rcv *Monster) MutateMana(n int16) bool {
-	return rcv._tab.MutateInt16Slot(6, n)
+func (rcv_ *Monster) MutateMana(n_ int16) bool {
+	return rcv_._tab.MutateInt16Slot(6, n_)
 }
 
-func (rcv *Monster) Hp() int16 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
-	if o != 0 {
-		return rcv._tab.GetInt16(o + rcv._tab.Pos)
+func (rcv_ *Monster) Hp() int16 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(8))
+	if o_ != 0 {
+		return rcv_._tab.GetInt16(o_ + rcv_._tab.Pos)
 	}
 	return 100
 }
 
-func (rcv *Monster) MutateHp(n int16) bool {
-	return rcv._tab.MutateInt16Slot(8, n)
+func (rcv_ *Monster) MutateHp(n_ int16) bool {
+	return rcv_._tab.MutateInt16Slot(8, n_)
 }
 
-func (rcv *Monster) Name() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
-	if o != 0 {
-		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+func (rcv_ *Monster) Name() []byte {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(10))
+	if o_ != 0 {
+		return rcv_._tab.ByteVector(o_ + rcv_._tab.Pos)
 	}
 	return nil
 }
 
-func MonsterKeyCompare(o1, o2 flatbuffers.UOffsetT, buf []byte) bool {
-	var obj1, obj2 Monster
-	obj1.Init(buf, flatbuffers.UOffsetT(len(buf))-o1)
-	obj2.Init(buf, flatbuffers.UOffsetT(len(buf))-o2)
-	return string(obj1.Name()) < string(obj2.Name())
+func MonsterKeyCompare(o1_, o2_ flatbuffers.UOffsetT, buf_ []byte) bool {
+	var obj1_, obj2_ Monster
+	obj1_.Init(buf_, flatbuffers.UOffsetT(len(buf_))-o1_)
+	obj2_.Init(buf_, flatbuffers.UOffsetT(len(buf_))-o2_)
+	return string(obj1_.Name()) < string(obj2_.Name())
 }
 
-func (rcv *Monster) LookupByKey(key string, vectorLocation flatbuffers.UOffsetT, buf []byte) bool {
-	span := flatbuffers.GetUOffsetT(buf[vectorLocation-4:])
-	start := flatbuffers.UOffsetT(0)
-	bKey := []byte(key)
-	for span != 0 {
-		middle := span / 2
-		tableOffset := flatbuffers.GetIndirectOffset(buf, vectorLocation+4*(start+middle))
-		var obj Monster
-		obj.Init(buf, tableOffset)
-		comp := bytes.Compare(obj.Name(), bKey)
-		if comp > 0 {
-			span = middle
-		} else if comp < 0 {
-			middle += 1
-			start += middle
-			span -= middle
+func (rcv_ *Monster) LookupByKey(key_ string, vectorLocation_ flatbuffers.UOffsetT, buf_ []byte) bool {
+	span_ := flatbuffers.GetUOffsetT(buf_[vectorLocation_-4:])
+	start_ := flatbuffers.UOffsetT(0)
+	bKey_ := []byte(key_)
+	for span_ != 0 {
+		middle_ := span_ / 2
+		tableOffset_ := flatbuffers.GetIndirectOffset(buf_, vectorLocation_+4*(start_+middle_))
+		var obj_ Monster
+		obj_.Init(buf_, tableOffset_)
+		comp_ := bytes.Compare(obj_.Name(), bKey_)
+		if comp_ > 0 {
+			span_ = middle_
+		} else if comp_ < 0 {
+			middle_ += 1
+			start_ += middle_
+			span_ -= middle_
 		} else {
-			rcv.Init(buf, tableOffset)
+			rcv_.Init(buf_, tableOffset_)
 			return true
 		}
 	}
 	return false
 }
 
-func (rcv *Monster) Inventory(j int) byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return rcv._tab.GetByte(a + flatbuffers.UOffsetT(j*1))
+func (rcv_ *Monster) Inventory(j_ int) byte {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(14))
+	if o_ != 0 {
+		a_ := rcv_._tab.Vector(o_)
+		return rcv_._tab.GetByte(a_ + flatbuffers.UOffsetT(j_*1))
 	}
 	return 0
 }
 
-func (rcv *Monster) InventoryLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
+func (rcv_ *Monster) InventoryLength() int {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(14))
+	if o_ != 0 {
+		return rcv_._tab.VectorLen(o_)
 	}
 	return 0
 }
 
-func (rcv *Monster) InventoryBytes() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
-	if o != 0 {
-		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+func (rcv_ *Monster) InventoryBytes() []byte {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(14))
+	if o_ != 0 {
+		return rcv_._tab.ByteVector(o_ + rcv_._tab.Pos)
 	}
 	return nil
 }
 
-func (rcv *Monster) MutateInventory(j int, n byte) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return rcv._tab.MutateByte(a+flatbuffers.UOffsetT(j*1), n)
+func (rcv_ *Monster) MutateInventory(j_ int, n_ byte) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(14))
+	if o_ != 0 {
+		a_ := rcv_._tab.Vector(o_)
+		return rcv_._tab.MutateByte(a_+flatbuffers.UOffsetT(j_*1), n_)
 	}
 	return false
 }
 
-func (rcv *Monster) Color() Color {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
-	if o != 0 {
-		return Color(rcv._tab.GetByte(o + rcv._tab.Pos))
+func (rcv_ *Monster) Color() Color {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(16))
+	if o_ != 0 {
+		return Color(rcv_._tab.GetByte(o_ + rcv_._tab.Pos))
 	}
 	return 8
 }
 
-func (rcv *Monster) MutateColor(n Color) bool {
-	return rcv._tab.MutateByteSlot(16, byte(n))
+func (rcv_ *Monster) MutateColor(n_ Color) bool {
+	return rcv_._tab.MutateByteSlot(16, byte(n_))
 }
 
-func (rcv *Monster) TestType() Any {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
-	if o != 0 {
-		return Any(rcv._tab.GetByte(o + rcv._tab.Pos))
+func (rcv_ *Monster) TestType() Any {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(18))
+	if o_ != 0 {
+		return Any(rcv_._tab.GetByte(o_ + rcv_._tab.Pos))
 	}
 	return 0
 }
 
-func (rcv *Monster) MutateTestType(n Any) bool {
-	return rcv._tab.MutateByteSlot(18, byte(n))
+func (rcv_ *Monster) MutateTestType(n_ Any) bool {
+	return rcv_._tab.MutateByteSlot(18, byte(n_))
 }
 
-func (rcv *Monster) Test(obj *flatbuffers.Table) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
-	if o != 0 {
-		rcv._tab.Union(obj, o)
+func (rcv_ *Monster) Test(obj_ *flatbuffers.Table) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(20))
+	if o_ != 0 {
+		rcv_._tab.Union(obj_, o_)
 		return true
 	}
 	return false
 }
 
-func (rcv *Monster) Test4(obj *Test, j int) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
-	if o != 0 {
-		x := rcv._tab.Vector(o)
-		x += flatbuffers.UOffsetT(j) * 4
-		obj.Init(rcv._tab.Bytes, x)
+func (rcv_ *Monster) Test4(obj_ *Test, j_ int) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(22))
+	if o_ != 0 {
+		x_ := rcv_._tab.Vector(o_)
+		x_ += flatbuffers.UOffsetT(j_) * 4
+		obj_.Init(rcv_._tab.Bytes, x_)
 		return true
 	}
 	return false
 }
 
-func (rcv *Monster) Test4Length() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
+func (rcv_ *Monster) Test4Length() int {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(22))
+	if o_ != 0 {
+		return rcv_._tab.VectorLen(o_)
 	}
 	return 0
 }
 
-func (rcv *Monster) Testarrayofstring(j int) []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return rcv._tab.ByteVector(a + flatbuffers.UOffsetT(j*4))
+func (rcv_ *Monster) Testarrayofstring(j_ int) []byte {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(24))
+	if o_ != 0 {
+		a_ := rcv_._tab.Vector(o_)
+		return rcv_._tab.ByteVector(a_ + flatbuffers.UOffsetT(j_*4))
 	}
 	return nil
 }
 
-func (rcv *Monster) TestarrayofstringLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
+func (rcv_ *Monster) TestarrayofstringLength() int {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(24))
+	if o_ != 0 {
+		return rcv_._tab.VectorLen(o_)
 	}
 	return 0
 }
 
 // / an example documentation comment: this will end up in the generated code
 // / multiline too
-func (rcv *Monster) Testarrayoftables(obj *Monster, j int) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
-	if o != 0 {
-		x := rcv._tab.Vector(o)
-		x += flatbuffers.UOffsetT(j) * 4
-		x = rcv._tab.Indirect(x)
-		obj.Init(rcv._tab.Bytes, x)
+func (rcv_ *Monster) Testarrayoftables(obj_ *Monster, j_ int) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(26))
+	if o_ != 0 {
+		x_ := rcv_._tab.Vector(o_)
+		x_ += flatbuffers.UOffsetT(j_) * 4
+		x_ = rcv_._tab.Indirect(x_)
+		obj_.Init(rcv_._tab.Bytes, x_)
 		return true
 	}
 	return false
 }
 
-func (rcv *Monster) TestarrayoftablesByKey(obj *Monster, key string) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
-	if o != 0 {
-		x := rcv._tab.Vector(o)
-		return obj.LookupByKey(key, x, rcv._tab.Bytes)
+func (rcv_ *Monster) TestarrayoftablesByKey(obj_ *Monster, key_ string) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(26))
+	if o_ != 0 {
+		x_ := rcv_._tab.Vector(o_)
+		return obj_.LookupByKey(key_, x_, rcv_._tab.Bytes)
 	}
 	return false
 }
 
-func (rcv *Monster) TestarrayoftablesLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
+func (rcv_ *Monster) TestarrayoftablesLength() int {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(26))
+	if o_ != 0 {
+		return rcv_._tab.VectorLen(o_)
 	}
 	return 0
 }
 
 // / an example documentation comment: this will end up in the generated code
 // / multiline too
-func (rcv *Monster) Enemy(obj *Monster) *Monster {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(28))
-	if o != 0 {
-		x := rcv._tab.Indirect(o + rcv._tab.Pos)
-		if obj == nil {
-			obj = new(Monster)
+func (rcv_ *Monster) Enemy(obj_ *Monster) *Monster {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(28))
+	if o_ != 0 {
+		x_ := rcv_._tab.Indirect(o_ + rcv_._tab.Pos)
+		if obj_ == nil {
+			obj_ = new(Monster)
 		}
-		obj.Init(rcv._tab.Bytes, x)
-		return obj
+		obj_.Init(rcv_._tab.Bytes, x_)
+		return obj_
 	}
 	return nil
 }
 
-func (rcv *Monster) Testnestedflatbuffer(j int) byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(30))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return rcv._tab.GetByte(a + flatbuffers.UOffsetT(j*1))
+func (rcv_ *Monster) Testnestedflatbuffer(j_ int) byte {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(30))
+	if o_ != 0 {
+		a_ := rcv_._tab.Vector(o_)
+		return rcv_._tab.GetByte(a_ + flatbuffers.UOffsetT(j_*1))
 	}
 	return 0
 }
 
-func (rcv *Monster) TestnestedflatbufferLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(30))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
+func (rcv_ *Monster) TestnestedflatbufferLength() int {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(30))
+	if o_ != 0 {
+		return rcv_._tab.VectorLen(o_)
 	}
 	return 0
 }
 
-func (rcv *Monster) TestnestedflatbufferBytes() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(30))
-	if o != 0 {
-		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+func (rcv_ *Monster) TestnestedflatbufferBytes() []byte {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(30))
+	if o_ != 0 {
+		return rcv_._tab.ByteVector(o_ + rcv_._tab.Pos)
 	}
 	return nil
 }
 
-func (rcv *Monster) MutateTestnestedflatbuffer(j int, n byte) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(30))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return rcv._tab.MutateByte(a+flatbuffers.UOffsetT(j*1), n)
+func (rcv_ *Monster) MutateTestnestedflatbuffer(j_ int, n_ byte) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(30))
+	if o_ != 0 {
+		a_ := rcv_._tab.Vector(o_)
+		return rcv_._tab.MutateByte(a_+flatbuffers.UOffsetT(j_*1), n_)
 	}
 	return false
 }
 
-func (rcv *Monster) Testempty(obj *Stat) *Stat {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(32))
-	if o != 0 {
-		x := rcv._tab.Indirect(o + rcv._tab.Pos)
-		if obj == nil {
-			obj = new(Stat)
+func (rcv_ *Monster) Testempty(obj_ *Stat) *Stat {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(32))
+	if o_ != 0 {
+		x_ := rcv_._tab.Indirect(o_ + rcv_._tab.Pos)
+		if obj_ == nil {
+			obj_ = new(Stat)
 		}
-		obj.Init(rcv._tab.Bytes, x)
-		return obj
+		obj_.Init(rcv_._tab.Bytes, x_)
+		return obj_
 	}
 	return nil
 }
 
-func (rcv *Monster) Testbool() bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(34))
-	if o != 0 {
-		return rcv._tab.GetBool(o + rcv._tab.Pos)
+func (rcv_ *Monster) Testbool() bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(34))
+	if o_ != 0 {
+		return rcv_._tab.GetBool(o_ + rcv_._tab.Pos)
 	}
 	return false
 }
 
-func (rcv *Monster) MutateTestbool(n bool) bool {
-	return rcv._tab.MutateBoolSlot(34, n)
+func (rcv_ *Monster) MutateTestbool(n_ bool) bool {
+	return rcv_._tab.MutateBoolSlot(34, n_)
 }
 
-func (rcv *Monster) Testhashs32Fnv1() int32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(36))
-	if o != 0 {
-		return rcv._tab.GetInt32(o + rcv._tab.Pos)
+func (rcv_ *Monster) Testhashs32Fnv1() int32 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(36))
+	if o_ != 0 {
+		return rcv_._tab.GetInt32(o_ + rcv_._tab.Pos)
 	}
 	return 0
 }
 
-func (rcv *Monster) MutateTesthashs32Fnv1(n int32) bool {
-	return rcv._tab.MutateInt32Slot(36, n)
+func (rcv_ *Monster) MutateTesthashs32Fnv1(n_ int32) bool {
+	return rcv_._tab.MutateInt32Slot(36, n_)
 }
 
-func (rcv *Monster) Testhashu32Fnv1() uint32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(38))
-	if o != 0 {
-		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+func (rcv_ *Monster) Testhashu32Fnv1() uint32 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(38))
+	if o_ != 0 {
+		return rcv_._tab.GetUint32(o_ + rcv_._tab.Pos)
 	}
 	return 0
 }
 
-func (rcv *Monster) MutateTesthashu32Fnv1(n uint32) bool {
-	return rcv._tab.MutateUint32Slot(38, n)
+func (rcv_ *Monster) MutateTesthashu32Fnv1(n_ uint32) bool {
+	return rcv_._tab.MutateUint32Slot(38, n_)
 }
 
-func (rcv *Monster) Testhashs64Fnv1() int64 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(40))
-	if o != 0 {
-		return rcv._tab.GetInt64(o + rcv._tab.Pos)
+func (rcv_ *Monster) Testhashs64Fnv1() int64 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(40))
+	if o_ != 0 {
+		return rcv_._tab.GetInt64(o_ + rcv_._tab.Pos)
 	}
 	return 0
 }
 
-func (rcv *Monster) MutateTesthashs64Fnv1(n int64) bool {
-	return rcv._tab.MutateInt64Slot(40, n)
+func (rcv_ *Monster) MutateTesthashs64Fnv1(n_ int64) bool {
+	return rcv_._tab.MutateInt64Slot(40, n_)
 }
 
-func (rcv *Monster) Testhashu64Fnv1() uint64 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(42))
-	if o != 0 {
-		return rcv._tab.GetUint64(o + rcv._tab.Pos)
+func (rcv_ *Monster) Testhashu64Fnv1() uint64 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(42))
+	if o_ != 0 {
+		return rcv_._tab.GetUint64(o_ + rcv_._tab.Pos)
 	}
 	return 0
 }
 
-func (rcv *Monster) MutateTesthashu64Fnv1(n uint64) bool {
-	return rcv._tab.MutateUint64Slot(42, n)
+func (rcv_ *Monster) MutateTesthashu64Fnv1(n_ uint64) bool {
+	return rcv_._tab.MutateUint64Slot(42, n_)
 }
 
-func (rcv *Monster) Testhashs32Fnv1a() int32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(44))
-	if o != 0 {
-		return rcv._tab.GetInt32(o + rcv._tab.Pos)
+func (rcv_ *Monster) Testhashs32Fnv1a() int32 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(44))
+	if o_ != 0 {
+		return rcv_._tab.GetInt32(o_ + rcv_._tab.Pos)
 	}
 	return 0
 }
 
-func (rcv *Monster) MutateTesthashs32Fnv1a(n int32) bool {
-	return rcv._tab.MutateInt32Slot(44, n)
+func (rcv_ *Monster) MutateTesthashs32Fnv1a(n_ int32) bool {
+	return rcv_._tab.MutateInt32Slot(44, n_)
 }
 
-func (rcv *Monster) Testhashu32Fnv1a() uint32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(46))
-	if o != 0 {
-		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+func (rcv_ *Monster) Testhashu32Fnv1a() uint32 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(46))
+	if o_ != 0 {
+		return rcv_._tab.GetUint32(o_ + rcv_._tab.Pos)
 	}
 	return 0
 }
 
-func (rcv *Monster) MutateTesthashu32Fnv1a(n uint32) bool {
-	return rcv._tab.MutateUint32Slot(46, n)
+func (rcv_ *Monster) MutateTesthashu32Fnv1a(n_ uint32) bool {
+	return rcv_._tab.MutateUint32Slot(46, n_)
 }
 
-func (rcv *Monster) Testhashs64Fnv1a() int64 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(48))
-	if o != 0 {
-		return rcv._tab.GetInt64(o + rcv._tab.Pos)
+func (rcv_ *Monster) Testhashs64Fnv1a() int64 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(48))
+	if o_ != 0 {
+		return rcv_._tab.GetInt64(o_ + rcv_._tab.Pos)
 	}
 	return 0
 }
 
-func (rcv *Monster) MutateTesthashs64Fnv1a(n int64) bool {
-	return rcv._tab.MutateInt64Slot(48, n)
+func (rcv_ *Monster) MutateTesthashs64Fnv1a(n_ int64) bool {
+	return rcv_._tab.MutateInt64Slot(48, n_)
 }
 
-func (rcv *Monster) Testhashu64Fnv1a() uint64 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(50))
-	if o != 0 {
-		return rcv._tab.GetUint64(o + rcv._tab.Pos)
+func (rcv_ *Monster) Testhashu64Fnv1a() uint64 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(50))
+	if o_ != 0 {
+		return rcv_._tab.GetUint64(o_ + rcv_._tab.Pos)
 	}
 	return 0
 }
 
-func (rcv *Monster) MutateTesthashu64Fnv1a(n uint64) bool {
-	return rcv._tab.MutateUint64Slot(50, n)
+func (rcv_ *Monster) MutateTesthashu64Fnv1a(n_ uint64) bool {
+	return rcv_._tab.MutateUint64Slot(50, n_)
 }
 
-func (rcv *Monster) Testarrayofbools(j int) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(52))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return rcv._tab.GetBool(a + flatbuffers.UOffsetT(j*1))
+func (rcv_ *Monster) Testarrayofbools(j_ int) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(52))
+	if o_ != 0 {
+		a_ := rcv_._tab.Vector(o_)
+		return rcv_._tab.GetBool(a_ + flatbuffers.UOffsetT(j_*1))
 	}
 	return false
 }
 
-func (rcv *Monster) TestarrayofboolsLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(52))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
+func (rcv_ *Monster) TestarrayofboolsLength() int {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(52))
+	if o_ != 0 {
+		return rcv_._tab.VectorLen(o_)
 	}
 	return 0
 }
 
-func (rcv *Monster) MutateTestarrayofbools(j int, n bool) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(52))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return rcv._tab.MutateBool(a+flatbuffers.UOffsetT(j*1), n)
+func (rcv_ *Monster) MutateTestarrayofbools(j_ int, n_ bool) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(52))
+	if o_ != 0 {
+		a_ := rcv_._tab.Vector(o_)
+		return rcv_._tab.MutateBool(a_+flatbuffers.UOffsetT(j_*1), n_)
 	}
 	return false
 }
 
-func (rcv *Monster) Testf() float32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(54))
-	if o != 0 {
-		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+func (rcv_ *Monster) Testf() float32 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(54))
+	if o_ != 0 {
+		return rcv_._tab.GetFloat32(o_ + rcv_._tab.Pos)
 	}
 	return 3.14159
 }
 
-func (rcv *Monster) MutateTestf(n float32) bool {
-	return rcv._tab.MutateFloat32Slot(54, n)
+func (rcv_ *Monster) MutateTestf(n_ float32) bool {
+	return rcv_._tab.MutateFloat32Slot(54, n_)
 }
 
-func (rcv *Monster) Testf2() float32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(56))
-	if o != 0 {
-		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+func (rcv_ *Monster) Testf2() float32 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(56))
+	if o_ != 0 {
+		return rcv_._tab.GetFloat32(o_ + rcv_._tab.Pos)
 	}
 	return 3.0
 }
 
-func (rcv *Monster) MutateTestf2(n float32) bool {
-	return rcv._tab.MutateFloat32Slot(56, n)
+func (rcv_ *Monster) MutateTestf2(n_ float32) bool {
+	return rcv_._tab.MutateFloat32Slot(56, n_)
 }
 
-func (rcv *Monster) Testf3() float32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(58))
-	if o != 0 {
-		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+func (rcv_ *Monster) Testf3() float32 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(58))
+	if o_ != 0 {
+		return rcv_._tab.GetFloat32(o_ + rcv_._tab.Pos)
 	}
 	return 0.0
 }
 
-func (rcv *Monster) MutateTestf3(n float32) bool {
-	return rcv._tab.MutateFloat32Slot(58, n)
+func (rcv_ *Monster) MutateTestf3(n_ float32) bool {
+	return rcv_._tab.MutateFloat32Slot(58, n_)
 }
 
-func (rcv *Monster) Testarrayofstring2(j int) []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(60))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return rcv._tab.ByteVector(a + flatbuffers.UOffsetT(j*4))
+func (rcv_ *Monster) Testarrayofstring2(j_ int) []byte {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(60))
+	if o_ != 0 {
+		a_ := rcv_._tab.Vector(o_)
+		return rcv_._tab.ByteVector(a_ + flatbuffers.UOffsetT(j_*4))
 	}
 	return nil
 }
 
-func (rcv *Monster) Testarrayofstring2Length() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(60))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
+func (rcv_ *Monster) Testarrayofstring2Length() int {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(60))
+	if o_ != 0 {
+		return rcv_._tab.VectorLen(o_)
 	}
 	return 0
 }
 
-func (rcv *Monster) Testarrayofsortedstruct(obj *Ability, j int) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(62))
-	if o != 0 {
-		x := rcv._tab.Vector(o)
-		x += flatbuffers.UOffsetT(j) * 8
-		obj.Init(rcv._tab.Bytes, x)
+func (rcv_ *Monster) Testarrayofsortedstruct(obj_ *Ability, j_ int) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(62))
+	if o_ != 0 {
+		x_ := rcv_._tab.Vector(o_)
+		x_ += flatbuffers.UOffsetT(j_) * 8
+		obj_.Init(rcv_._tab.Bytes, x_)
 		return true
 	}
 	return false
 }
 
-func (rcv *Monster) TestarrayofsortedstructLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(62))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
+func (rcv_ *Monster) TestarrayofsortedstructLength() int {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(62))
+	if o_ != 0 {
+		return rcv_._tab.VectorLen(o_)
 	}
 	return 0
 }
 
-func (rcv *Monster) Flex(j int) byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(64))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return rcv._tab.GetByte(a + flatbuffers.UOffsetT(j*1))
+func (rcv_ *Monster) Flex(j_ int) byte {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(64))
+	if o_ != 0 {
+		a_ := rcv_._tab.Vector(o_)
+		return rcv_._tab.GetByte(a_ + flatbuffers.UOffsetT(j_*1))
 	}
 	return 0
 }
 
-func (rcv *Monster) FlexLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(64))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
+func (rcv_ *Monster) FlexLength() int {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(64))
+	if o_ != 0 {
+		return rcv_._tab.VectorLen(o_)
 	}
 	return 0
 }
 
-func (rcv *Monster) FlexBytes() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(64))
-	if o != 0 {
-		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+func (rcv_ *Monster) FlexBytes() []byte {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(64))
+	if o_ != 0 {
+		return rcv_._tab.ByteVector(o_ + rcv_._tab.Pos)
 	}
 	return nil
 }
 
-func (rcv *Monster) MutateFlex(j int, n byte) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(64))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return rcv._tab.MutateByte(a+flatbuffers.UOffsetT(j*1), n)
+func (rcv_ *Monster) MutateFlex(j_ int, n_ byte) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(64))
+	if o_ != 0 {
+		a_ := rcv_._tab.Vector(o_)
+		return rcv_._tab.MutateByte(a_+flatbuffers.UOffsetT(j_*1), n_)
 	}
 	return false
 }
 
-func (rcv *Monster) Test5(obj *Test, j int) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(66))
-	if o != 0 {
-		x := rcv._tab.Vector(o)
-		x += flatbuffers.UOffsetT(j) * 4
-		obj.Init(rcv._tab.Bytes, x)
+func (rcv_ *Monster) Test5(obj_ *Test, j_ int) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(66))
+	if o_ != 0 {
+		x_ := rcv_._tab.Vector(o_)
+		x_ += flatbuffers.UOffsetT(j_) * 4
+		obj_.Init(rcv_._tab.Bytes, x_)
 		return true
 	}
 	return false
 }
 
-func (rcv *Monster) Test5Length() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(66))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
+func (rcv_ *Monster) Test5Length() int {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(66))
+	if o_ != 0 {
+		return rcv_._tab.VectorLen(o_)
 	}
 	return 0
 }
 
-func (rcv *Monster) VectorOfLongs(j int) int64 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(68))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return rcv._tab.GetInt64(a + flatbuffers.UOffsetT(j*8))
+func (rcv_ *Monster) VectorOfLongs(j_ int) int64 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(68))
+	if o_ != 0 {
+		a_ := rcv_._tab.Vector(o_)
+		return rcv_._tab.GetInt64(a_ + flatbuffers.UOffsetT(j_*8))
 	}
 	return 0
 }
 
-func (rcv *Monster) VectorOfLongsLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(68))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
+func (rcv_ *Monster) VectorOfLongsLength() int {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(68))
+	if o_ != 0 {
+		return rcv_._tab.VectorLen(o_)
 	}
 	return 0
 }
 
-func (rcv *Monster) MutateVectorOfLongs(j int, n int64) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(68))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return rcv._tab.MutateInt64(a+flatbuffers.UOffsetT(j*8), n)
+func (rcv_ *Monster) MutateVectorOfLongs(j_ int, n_ int64) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(68))
+	if o_ != 0 {
+		a_ := rcv_._tab.Vector(o_)
+		return rcv_._tab.MutateInt64(a_+flatbuffers.UOffsetT(j_*8), n_)
 	}
 	return false
 }
 
-func (rcv *Monster) VectorOfDoubles(j int) float64 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(70))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return rcv._tab.GetFloat64(a + flatbuffers.UOffsetT(j*8))
+func (rcv_ *Monster) VectorOfDoubles(j_ int) float64 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(70))
+	if o_ != 0 {
+		a_ := rcv_._tab.Vector(o_)
+		return rcv_._tab.GetFloat64(a_ + flatbuffers.UOffsetT(j_*8))
 	}
 	return 0
 }
 
-func (rcv *Monster) VectorOfDoublesLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(70))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
+func (rcv_ *Monster) VectorOfDoublesLength() int {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(70))
+	if o_ != 0 {
+		return rcv_._tab.VectorLen(o_)
 	}
 	return 0
 }
 
-func (rcv *Monster) MutateVectorOfDoubles(j int, n float64) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(70))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return rcv._tab.MutateFloat64(a+flatbuffers.UOffsetT(j*8), n)
+func (rcv_ *Monster) MutateVectorOfDoubles(j_ int, n_ float64) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(70))
+	if o_ != 0 {
+		a_ := rcv_._tab.Vector(o_)
+		return rcv_._tab.MutateFloat64(a_+flatbuffers.UOffsetT(j_*8), n_)
 	}
 	return false
 }
 
-func (rcv *Monster) ParentNamespaceTest(obj *MyGame.InParentNamespace) *MyGame.InParentNamespace {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(72))
-	if o != 0 {
-		x := rcv._tab.Indirect(o + rcv._tab.Pos)
-		if obj == nil {
-			obj = new(MyGame.InParentNamespace)
+func (rcv_ *Monster) ParentNamespaceTest(obj_ *MyGame.InParentNamespace) *MyGame.InParentNamespace {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(72))
+	if o_ != 0 {
+		x_ := rcv_._tab.Indirect(o_ + rcv_._tab.Pos)
+		if obj_ == nil {
+			obj_ = new(MyGame.InParentNamespace)
 		}
-		obj.Init(rcv._tab.Bytes, x)
-		return obj
+		obj_.Init(rcv_._tab.Bytes, x_)
+		return obj_
 	}
 	return nil
 }
 
-func (rcv *Monster) VectorOfReferrables(obj *Referrable, j int) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(74))
-	if o != 0 {
-		x := rcv._tab.Vector(o)
-		x += flatbuffers.UOffsetT(j) * 4
-		x = rcv._tab.Indirect(x)
-		obj.Init(rcv._tab.Bytes, x)
+func (rcv_ *Monster) VectorOfReferrables(obj_ *Referrable, j_ int) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(74))
+	if o_ != 0 {
+		x_ := rcv_._tab.Vector(o_)
+		x_ += flatbuffers.UOffsetT(j_) * 4
+		x_ = rcv_._tab.Indirect(x_)
+		obj_.Init(rcv_._tab.Bytes, x_)
 		return true
 	}
 	return false
 }
 
-func (rcv *Monster) VectorOfReferrablesByKey(obj *Referrable, key uint64) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(74))
-	if o != 0 {
-		x := rcv._tab.Vector(o)
-		return obj.LookupByKey(key, x, rcv._tab.Bytes)
+func (rcv_ *Monster) VectorOfReferrablesByKey(obj_ *Referrable, key_ uint64) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(74))
+	if o_ != 0 {
+		x_ := rcv_._tab.Vector(o_)
+		return obj_.LookupByKey(key_, x_, rcv_._tab.Bytes)
 	}
 	return false
 }
 
-func (rcv *Monster) VectorOfReferrablesLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(74))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
+func (rcv_ *Monster) VectorOfReferrablesLength() int {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(74))
+	if o_ != 0 {
+		return rcv_._tab.VectorLen(o_)
 	}
 	return 0
 }
 
-func (rcv *Monster) SingleWeakReference() uint64 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(76))
-	if o != 0 {
-		return rcv._tab.GetUint64(o + rcv._tab.Pos)
+func (rcv_ *Monster) SingleWeakReference() uint64 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(76))
+	if o_ != 0 {
+		return rcv_._tab.GetUint64(o_ + rcv_._tab.Pos)
 	}
 	return 0
 }
 
-func (rcv *Monster) MutateSingleWeakReference(n uint64) bool {
-	return rcv._tab.MutateUint64Slot(76, n)
+func (rcv_ *Monster) MutateSingleWeakReference(n_ uint64) bool {
+	return rcv_._tab.MutateUint64Slot(76, n_)
 }
 
-func (rcv *Monster) VectorOfWeakReferences(j int) uint64 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(78))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return rcv._tab.GetUint64(a + flatbuffers.UOffsetT(j*8))
+func (rcv_ *Monster) VectorOfWeakReferences(j_ int) uint64 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(78))
+	if o_ != 0 {
+		a_ := rcv_._tab.Vector(o_)
+		return rcv_._tab.GetUint64(a_ + flatbuffers.UOffsetT(j_*8))
 	}
 	return 0
 }
 
-func (rcv *Monster) VectorOfWeakReferencesLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(78))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
+func (rcv_ *Monster) VectorOfWeakReferencesLength() int {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(78))
+	if o_ != 0 {
+		return rcv_._tab.VectorLen(o_)
 	}
 	return 0
 }
 
-func (rcv *Monster) MutateVectorOfWeakReferences(j int, n uint64) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(78))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return rcv._tab.MutateUint64(a+flatbuffers.UOffsetT(j*8), n)
+func (rcv_ *Monster) MutateVectorOfWeakReferences(j_ int, n_ uint64) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(78))
+	if o_ != 0 {
+		a_ := rcv_._tab.Vector(o_)
+		return rcv_._tab.MutateUint64(a_+flatbuffers.UOffsetT(j_*8), n_)
 	}
 	return false
 }
 
-func (rcv *Monster) VectorOfStrongReferrables(obj *Referrable, j int) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(80))
-	if o != 0 {
-		x := rcv._tab.Vector(o)
-		x += flatbuffers.UOffsetT(j) * 4
-		x = rcv._tab.Indirect(x)
-		obj.Init(rcv._tab.Bytes, x)
+func (rcv_ *Monster) VectorOfStrongReferrables(obj_ *Referrable, j_ int) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(80))
+	if o_ != 0 {
+		x_ := rcv_._tab.Vector(o_)
+		x_ += flatbuffers.UOffsetT(j_) * 4
+		x_ = rcv_._tab.Indirect(x_)
+		obj_.Init(rcv_._tab.Bytes, x_)
 		return true
 	}
 	return false
 }
 
-func (rcv *Monster) VectorOfStrongReferrablesByKey(obj *Referrable, key uint64) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(80))
-	if o != 0 {
-		x := rcv._tab.Vector(o)
-		return obj.LookupByKey(key, x, rcv._tab.Bytes)
+func (rcv_ *Monster) VectorOfStrongReferrablesByKey(obj_ *Referrable, key_ uint64) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(80))
+	if o_ != 0 {
+		x_ := rcv_._tab.Vector(o_)
+		return obj_.LookupByKey(key_, x_, rcv_._tab.Bytes)
 	}
 	return false
 }
 
-func (rcv *Monster) VectorOfStrongReferrablesLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(80))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
+func (rcv_ *Monster) VectorOfStrongReferrablesLength() int {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(80))
+	if o_ != 0 {
+		return rcv_._tab.VectorLen(o_)
 	}
 	return 0
 }
 
-func (rcv *Monster) CoOwningReference() uint64 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(82))
-	if o != 0 {
-		return rcv._tab.GetUint64(o + rcv._tab.Pos)
+func (rcv_ *Monster) CoOwningReference() uint64 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(82))
+	if o_ != 0 {
+		return rcv_._tab.GetUint64(o_ + rcv_._tab.Pos)
 	}
 	return 0
 }
 
-func (rcv *Monster) MutateCoOwningReference(n uint64) bool {
-	return rcv._tab.MutateUint64Slot(82, n)
+func (rcv_ *Monster) MutateCoOwningReference(n_ uint64) bool {
+	return rcv_._tab.MutateUint64Slot(82, n_)
 }
 
-func (rcv *Monster) VectorOfCoOwningReferences(j int) uint64 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(84))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return rcv._tab.GetUint64(a + flatbuffers.UOffsetT(j*8))
+func (rcv_ *Monster) VectorOfCoOwningReferences(j_ int) uint64 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(84))
+	if o_ != 0 {
+		a_ := rcv_._tab.Vector(o_)
+		return rcv_._tab.GetUint64(a_ + flatbuffers.UOffsetT(j_*8))
 	}
 	return 0
 }
 
-func (rcv *Monster) VectorOfCoOwningReferencesLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(84))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
+func (rcv_ *Monster) VectorOfCoOwningReferencesLength() int {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(84))
+	if o_ != 0 {
+		return rcv_._tab.VectorLen(o_)
 	}
 	return 0
 }
 
-func (rcv *Monster) MutateVectorOfCoOwningReferences(j int, n uint64) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(84))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return rcv._tab.MutateUint64(a+flatbuffers.UOffsetT(j*8), n)
+func (rcv_ *Monster) MutateVectorOfCoOwningReferences(j_ int, n_ uint64) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(84))
+	if o_ != 0 {
+		a_ := rcv_._tab.Vector(o_)
+		return rcv_._tab.MutateUint64(a_+flatbuffers.UOffsetT(j_*8), n_)
 	}
 	return false
 }
 
-func (rcv *Monster) NonOwningReference() uint64 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(86))
-	if o != 0 {
-		return rcv._tab.GetUint64(o + rcv._tab.Pos)
+func (rcv_ *Monster) NonOwningReference() uint64 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(86))
+	if o_ != 0 {
+		return rcv_._tab.GetUint64(o_ + rcv_._tab.Pos)
 	}
 	return 0
 }
 
-func (rcv *Monster) MutateNonOwningReference(n uint64) bool {
-	return rcv._tab.MutateUint64Slot(86, n)
+func (rcv_ *Monster) MutateNonOwningReference(n_ uint64) bool {
+	return rcv_._tab.MutateUint64Slot(86, n_)
 }
 
-func (rcv *Monster) VectorOfNonOwningReferences(j int) uint64 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(88))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return rcv._tab.GetUint64(a + flatbuffers.UOffsetT(j*8))
+func (rcv_ *Monster) VectorOfNonOwningReferences(j_ int) uint64 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(88))
+	if o_ != 0 {
+		a_ := rcv_._tab.Vector(o_)
+		return rcv_._tab.GetUint64(a_ + flatbuffers.UOffsetT(j_*8))
 	}
 	return 0
 }
 
-func (rcv *Monster) VectorOfNonOwningReferencesLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(88))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
+func (rcv_ *Monster) VectorOfNonOwningReferencesLength() int {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(88))
+	if o_ != 0 {
+		return rcv_._tab.VectorLen(o_)
 	}
 	return 0
 }
 
-func (rcv *Monster) MutateVectorOfNonOwningReferences(j int, n uint64) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(88))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return rcv._tab.MutateUint64(a+flatbuffers.UOffsetT(j*8), n)
+func (rcv_ *Monster) MutateVectorOfNonOwningReferences(j_ int, n_ uint64) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(88))
+	if o_ != 0 {
+		a_ := rcv_._tab.Vector(o_)
+		return rcv_._tab.MutateUint64(a_+flatbuffers.UOffsetT(j_*8), n_)
 	}
 	return false
 }
 
-func (rcv *Monster) AnyUniqueType() AnyUniqueAliases {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(90))
-	if o != 0 {
-		return AnyUniqueAliases(rcv._tab.GetByte(o + rcv._tab.Pos))
+func (rcv_ *Monster) AnyUniqueType() AnyUniqueAliases {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(90))
+	if o_ != 0 {
+		return AnyUniqueAliases(rcv_._tab.GetByte(o_ + rcv_._tab.Pos))
 	}
 	return 0
 }
 
-func (rcv *Monster) MutateAnyUniqueType(n AnyUniqueAliases) bool {
-	return rcv._tab.MutateByteSlot(90, byte(n))
+func (rcv_ *Monster) MutateAnyUniqueType(n_ AnyUniqueAliases) bool {
+	return rcv_._tab.MutateByteSlot(90, byte(n_))
 }
 
-func (rcv *Monster) AnyUnique(obj *flatbuffers.Table) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(92))
-	if o != 0 {
-		rcv._tab.Union(obj, o)
+func (rcv_ *Monster) AnyUnique(obj_ *flatbuffers.Table) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(92))
+	if o_ != 0 {
+		rcv_._tab.Union(obj_, o_)
 		return true
 	}
 	return false
 }
 
-func (rcv *Monster) AnyAmbiguousType() AnyAmbiguousAliases {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(94))
-	if o != 0 {
-		return AnyAmbiguousAliases(rcv._tab.GetByte(o + rcv._tab.Pos))
+func (rcv_ *Monster) AnyAmbiguousType() AnyAmbiguousAliases {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(94))
+	if o_ != 0 {
+		return AnyAmbiguousAliases(rcv_._tab.GetByte(o_ + rcv_._tab.Pos))
 	}
 	return 0
 }
 
-func (rcv *Monster) MutateAnyAmbiguousType(n AnyAmbiguousAliases) bool {
-	return rcv._tab.MutateByteSlot(94, byte(n))
+func (rcv_ *Monster) MutateAnyAmbiguousType(n_ AnyAmbiguousAliases) bool {
+	return rcv_._tab.MutateByteSlot(94, byte(n_))
 }
 
-func (rcv *Monster) AnyAmbiguous(obj *flatbuffers.Table) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(96))
-	if o != 0 {
-		rcv._tab.Union(obj, o)
+func (rcv_ *Monster) AnyAmbiguous(obj_ *flatbuffers.Table) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(96))
+	if o_ != 0 {
+		rcv_._tab.Union(obj_, o_)
 		return true
 	}
 	return false
 }
 
-func (rcv *Monster) VectorOfEnums(j int) Color {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(98))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return Color(rcv._tab.GetByte(a + flatbuffers.UOffsetT(j*1)))
+func (rcv_ *Monster) VectorOfEnums(j_ int) Color {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(98))
+	if o_ != 0 {
+		a_ := rcv_._tab.Vector(o_)
+		return Color(rcv_._tab.GetByte(a_ + flatbuffers.UOffsetT(j_*1)))
 	}
 	return 0
 }
 
-func (rcv *Monster) VectorOfEnumsLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(98))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
+func (rcv_ *Monster) VectorOfEnumsLength() int {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(98))
+	if o_ != 0 {
+		return rcv_._tab.VectorLen(o_)
 	}
 	return 0
 }
 
-func (rcv *Monster) VectorOfEnumsBytes() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(98))
-	if o != 0 {
-		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+func (rcv_ *Monster) VectorOfEnumsBytes() []byte {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(98))
+	if o_ != 0 {
+		return rcv_._tab.ByteVector(o_ + rcv_._tab.Pos)
 	}
 	return nil
 }
 
-func (rcv *Monster) MutateVectorOfEnums(j int, n Color) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(98))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return rcv._tab.MutateByte(a+flatbuffers.UOffsetT(j*1), byte(n))
+func (rcv_ *Monster) MutateVectorOfEnums(j_ int, n_ Color) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(98))
+	if o_ != 0 {
+		a_ := rcv_._tab.Vector(o_)
+		return rcv_._tab.MutateByte(a_+flatbuffers.UOffsetT(j_*1), byte(n_))
 	}
 	return false
 }
 
-func (rcv *Monster) SignedEnum() Race {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(100))
-	if o != 0 {
-		return Race(rcv._tab.GetInt8(o + rcv._tab.Pos))
+func (rcv_ *Monster) SignedEnum() Race {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(100))
+	if o_ != 0 {
+		return Race(rcv_._tab.GetInt8(o_ + rcv_._tab.Pos))
 	}
 	return -1
 }
 
-func (rcv *Monster) MutateSignedEnum(n Race) bool {
-	return rcv._tab.MutateInt8Slot(100, int8(n))
+func (rcv_ *Monster) MutateSignedEnum(n_ Race) bool {
+	return rcv_._tab.MutateInt8Slot(100, int8(n_))
 }
 
-func (rcv *Monster) Testrequirednestedflatbuffer(j int) byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(102))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return rcv._tab.GetByte(a + flatbuffers.UOffsetT(j*1))
+func (rcv_ *Monster) Testrequirednestedflatbuffer(j_ int) byte {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(102))
+	if o_ != 0 {
+		a_ := rcv_._tab.Vector(o_)
+		return rcv_._tab.GetByte(a_ + flatbuffers.UOffsetT(j_*1))
 	}
 	return 0
 }
 
-func (rcv *Monster) TestrequirednestedflatbufferLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(102))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
+func (rcv_ *Monster) TestrequirednestedflatbufferLength() int {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(102))
+	if o_ != 0 {
+		return rcv_._tab.VectorLen(o_)
 	}
 	return 0
 }
 
-func (rcv *Monster) TestrequirednestedflatbufferBytes() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(102))
-	if o != 0 {
-		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+func (rcv_ *Monster) TestrequirednestedflatbufferBytes() []byte {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(102))
+	if o_ != 0 {
+		return rcv_._tab.ByteVector(o_ + rcv_._tab.Pos)
 	}
 	return nil
 }
 
-func (rcv *Monster) MutateTestrequirednestedflatbuffer(j int, n byte) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(102))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return rcv._tab.MutateByte(a+flatbuffers.UOffsetT(j*1), n)
+func (rcv_ *Monster) MutateTestrequirednestedflatbuffer(j_ int, n_ byte) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(102))
+	if o_ != 0 {
+		a_ := rcv_._tab.Vector(o_)
+		return rcv_._tab.MutateByte(a_+flatbuffers.UOffsetT(j_*1), n_)
 	}
 	return false
 }
 
-func (rcv *Monster) ScalarKeySortedTables(obj *Stat, j int) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(104))
-	if o != 0 {
-		x := rcv._tab.Vector(o)
-		x += flatbuffers.UOffsetT(j) * 4
-		x = rcv._tab.Indirect(x)
-		obj.Init(rcv._tab.Bytes, x)
+func (rcv_ *Monster) ScalarKeySortedTables(obj_ *Stat, j_ int) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(104))
+	if o_ != 0 {
+		x_ := rcv_._tab.Vector(o_)
+		x_ += flatbuffers.UOffsetT(j_) * 4
+		x_ = rcv_._tab.Indirect(x_)
+		obj_.Init(rcv_._tab.Bytes, x_)
 		return true
 	}
 	return false
 }
 
-func (rcv *Monster) ScalarKeySortedTablesByKey(obj *Stat, key uint16) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(104))
-	if o != 0 {
-		x := rcv._tab.Vector(o)
-		return obj.LookupByKey(key, x, rcv._tab.Bytes)
+func (rcv_ *Monster) ScalarKeySortedTablesByKey(obj_ *Stat, key_ uint16) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(104))
+	if o_ != 0 {
+		x_ := rcv_._tab.Vector(o_)
+		return obj_.LookupByKey(key_, x_, rcv_._tab.Bytes)
 	}
 	return false
 }
 
-func (rcv *Monster) ScalarKeySortedTablesLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(104))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
+func (rcv_ *Monster) ScalarKeySortedTablesLength() int {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(104))
+	if o_ != 0 {
+		return rcv_._tab.VectorLen(o_)
 	}
 	return 0
 }
 
-func (rcv *Monster) NativeInline(obj *Test) *Test {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(106))
-	if o != 0 {
-		x := o + rcv._tab.Pos
-		if obj == nil {
-			obj = new(Test)
+func (rcv_ *Monster) NativeInline(obj_ *Test) *Test {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(106))
+	if o_ != 0 {
+		x_ := o_ + rcv_._tab.Pos
+		if obj_ == nil {
+			obj_ = new(Test)
 		}
-		obj.Init(rcv._tab.Bytes, x)
-		return obj
+		obj_.Init(rcv_._tab.Bytes, x_)
+		return obj_
 	}
 	return nil
 }
 
-func (rcv *Monster) LongEnumNonEnumDefault() LongEnum {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(108))
-	if o != 0 {
-		return LongEnum(rcv._tab.GetUint64(o + rcv._tab.Pos))
+func (rcv_ *Monster) LongEnumNonEnumDefault() LongEnum {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(108))
+	if o_ != 0 {
+		return LongEnum(rcv_._tab.GetUint64(o_ + rcv_._tab.Pos))
 	}
 	return 0
 }
 
-func (rcv *Monster) MutateLongEnumNonEnumDefault(n LongEnum) bool {
-	return rcv._tab.MutateUint64Slot(108, uint64(n))
+func (rcv_ *Monster) MutateLongEnumNonEnumDefault(n_ LongEnum) bool {
+	return rcv_._tab.MutateUint64Slot(108, uint64(n_))
 }
 
-func (rcv *Monster) LongEnumNormalDefault() LongEnum {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(110))
-	if o != 0 {
-		return LongEnum(rcv._tab.GetUint64(o + rcv._tab.Pos))
+func (rcv_ *Monster) LongEnumNormalDefault() LongEnum {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(110))
+	if o_ != 0 {
+		return LongEnum(rcv_._tab.GetUint64(o_ + rcv_._tab.Pos))
 	}
 	return 2
 }
 
-func (rcv *Monster) MutateLongEnumNormalDefault(n LongEnum) bool {
-	return rcv._tab.MutateUint64Slot(110, uint64(n))
+func (rcv_ *Monster) MutateLongEnumNormalDefault(n_ LongEnum) bool {
+	return rcv_._tab.MutateUint64Slot(110, uint64(n_))
 }
 
-func (rcv *Monster) NanDefault() float32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(112))
-	if o != 0 {
-		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+func (rcv_ *Monster) NanDefault() float32 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(112))
+	if o_ != 0 {
+		return rcv_._tab.GetFloat32(o_ + rcv_._tab.Pos)
 	}
 	return float32(math.NaN())
 }
 
-func (rcv *Monster) MutateNanDefault(n float32) bool {
-	return rcv._tab.MutateFloat32Slot(112, n)
+func (rcv_ *Monster) MutateNanDefault(n_ float32) bool {
+	return rcv_._tab.MutateFloat32Slot(112, n_)
 }
 
-func (rcv *Monster) InfDefault() float32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(114))
-	if o != 0 {
-		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+func (rcv_ *Monster) InfDefault() float32 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(114))
+	if o_ != 0 {
+		return rcv_._tab.GetFloat32(o_ + rcv_._tab.Pos)
 	}
 	return float32(math.Inf(1))
 }
 
-func (rcv *Monster) MutateInfDefault(n float32) bool {
-	return rcv._tab.MutateFloat32Slot(114, n)
+func (rcv_ *Monster) MutateInfDefault(n_ float32) bool {
+	return rcv_._tab.MutateFloat32Slot(114, n_)
 }
 
-func (rcv *Monster) PositiveInfDefault() float32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(116))
-	if o != 0 {
-		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+func (rcv_ *Monster) PositiveInfDefault() float32 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(116))
+	if o_ != 0 {
+		return rcv_._tab.GetFloat32(o_ + rcv_._tab.Pos)
 	}
 	return float32(math.Inf(1))
 }
 
-func (rcv *Monster) MutatePositiveInfDefault(n float32) bool {
-	return rcv._tab.MutateFloat32Slot(116, n)
+func (rcv_ *Monster) MutatePositiveInfDefault(n_ float32) bool {
+	return rcv_._tab.MutateFloat32Slot(116, n_)
 }
 
-func (rcv *Monster) InfinityDefault() float32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(118))
-	if o != 0 {
-		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+func (rcv_ *Monster) InfinityDefault() float32 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(118))
+	if o_ != 0 {
+		return rcv_._tab.GetFloat32(o_ + rcv_._tab.Pos)
 	}
 	return float32(math.Inf(1))
 }
 
-func (rcv *Monster) MutateInfinityDefault(n float32) bool {
-	return rcv._tab.MutateFloat32Slot(118, n)
+func (rcv_ *Monster) MutateInfinityDefault(n_ float32) bool {
+	return rcv_._tab.MutateFloat32Slot(118, n_)
 }
 
-func (rcv *Monster) PositiveInfinityDefault() float32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(120))
-	if o != 0 {
-		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+func (rcv_ *Monster) PositiveInfinityDefault() float32 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(120))
+	if o_ != 0 {
+		return rcv_._tab.GetFloat32(o_ + rcv_._tab.Pos)
 	}
 	return float32(math.Inf(1))
 }
 
-func (rcv *Monster) MutatePositiveInfinityDefault(n float32) bool {
-	return rcv._tab.MutateFloat32Slot(120, n)
+func (rcv_ *Monster) MutatePositiveInfinityDefault(n_ float32) bool {
+	return rcv_._tab.MutateFloat32Slot(120, n_)
 }
 
-func (rcv *Monster) NegativeInfDefault() float32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(122))
-	if o != 0 {
-		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+func (rcv_ *Monster) NegativeInfDefault() float32 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(122))
+	if o_ != 0 {
+		return rcv_._tab.GetFloat32(o_ + rcv_._tab.Pos)
 	}
 	return float32(math.Inf(-1))
 }
 
-func (rcv *Monster) MutateNegativeInfDefault(n float32) bool {
-	return rcv._tab.MutateFloat32Slot(122, n)
+func (rcv_ *Monster) MutateNegativeInfDefault(n_ float32) bool {
+	return rcv_._tab.MutateFloat32Slot(122, n_)
 }
 
-func (rcv *Monster) NegativeInfinityDefault() float32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(124))
-	if o != 0 {
-		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+func (rcv_ *Monster) NegativeInfinityDefault() float32 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(124))
+	if o_ != 0 {
+		return rcv_._tab.GetFloat32(o_ + rcv_._tab.Pos)
 	}
 	return float32(math.Inf(-1))
 }
 
-func (rcv *Monster) MutateNegativeInfinityDefault(n float32) bool {
-	return rcv._tab.MutateFloat32Slot(124, n)
+func (rcv_ *Monster) MutateNegativeInfinityDefault(n_ float32) bool {
+	return rcv_._tab.MutateFloat32Slot(124, n_)
 }
 
-func (rcv *Monster) DoubleInfDefault() float64 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(126))
-	if o != 0 {
-		return rcv._tab.GetFloat64(o + rcv._tab.Pos)
+func (rcv_ *Monster) DoubleInfDefault() float64 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(126))
+	if o_ != 0 {
+		return rcv_._tab.GetFloat64(o_ + rcv_._tab.Pos)
 	}
 	return float64(math.Inf(1))
 }
 
-func (rcv *Monster) MutateDoubleInfDefault(n float64) bool {
-	return rcv._tab.MutateFloat64Slot(126, n)
+func (rcv_ *Monster) MutateDoubleInfDefault(n_ float64) bool {
+	return rcv_._tab.MutateFloat64Slot(126, n_)
 }
 
-func MonsterStart(builder *flatbuffers.Builder) {
-	builder.StartObject(62)
+func MonsterStart(builder_ *flatbuffers.Builder) {
+	builder_.StartObject(62)
 }
-func MonsterAddPos(builder *flatbuffers.Builder, pos flatbuffers.UOffsetT) {
-	builder.PrependStructSlot(0, flatbuffers.UOffsetT(pos), 0)
+func MonsterAddPos(builder_ *flatbuffers.Builder, pos_ flatbuffers.UOffsetT) {
+	builder_.PrependStructSlot(0, flatbuffers.UOffsetT(pos_), 0)
 }
-func MonsterAddMana(builder *flatbuffers.Builder, mana int16) {
-	builder.PrependInt16Slot(1, mana, 150)
+func MonsterAddMana(builder_ *flatbuffers.Builder, mana_ int16) {
+	builder_.PrependInt16Slot(1, mana_, 150)
 }
-func MonsterAddHp(builder *flatbuffers.Builder, hp int16) {
-	builder.PrependInt16Slot(2, hp, 100)
+func MonsterAddHp(builder_ *flatbuffers.Builder, hp_ int16) {
+	builder_.PrependInt16Slot(2, hp_, 100)
 }
-func MonsterAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(name), 0)
+func MonsterAddName(builder_ *flatbuffers.Builder, name_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(name_), 0)
 }
-func MonsterAddInventory(builder *flatbuffers.Builder, inventory flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(5, flatbuffers.UOffsetT(inventory), 0)
+func MonsterAddInventory(builder_ *flatbuffers.Builder, inventory_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(5, flatbuffers.UOffsetT(inventory_), 0)
 }
-func MonsterStartInventoryVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(1, numElems, 1)
+func MonsterStartInventoryVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
+	return builder_.StartVector(1, numElems_, 1)
 }
-func MonsterAddColor(builder *flatbuffers.Builder, color Color) {
-	builder.PrependByteSlot(6, byte(color), 8)
+func MonsterAddColor(builder_ *flatbuffers.Builder, color_ Color) {
+	builder_.PrependByteSlot(6, byte(color_), 8)
 }
-func MonsterAddTestType(builder *flatbuffers.Builder, testType Any) {
-	builder.PrependByteSlot(7, byte(testType), 0)
+func MonsterAddTestType(builder_ *flatbuffers.Builder, testType_ Any) {
+	builder_.PrependByteSlot(7, byte(testType_), 0)
 }
-func MonsterAddTest(builder *flatbuffers.Builder, test flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(8, flatbuffers.UOffsetT(test), 0)
+func MonsterAddTest(builder_ *flatbuffers.Builder, test_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(8, flatbuffers.UOffsetT(test_), 0)
 }
-func MonsterAddTest4(builder *flatbuffers.Builder, test4 flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(9, flatbuffers.UOffsetT(test4), 0)
+func MonsterAddTest4(builder_ *flatbuffers.Builder, test4_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(9, flatbuffers.UOffsetT(test4_), 0)
 }
-func MonsterStartTest4Vector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(4, numElems, 2)
+func MonsterStartTest4Vector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
+	return builder_.StartVector(4, numElems_, 2)
 }
-func MonsterAddTestarrayofstring(builder *flatbuffers.Builder, testarrayofstring flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(10, flatbuffers.UOffsetT(testarrayofstring), 0)
+func MonsterAddTestarrayofstring(builder_ *flatbuffers.Builder, testarrayofstring_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(10, flatbuffers.UOffsetT(testarrayofstring_), 0)
 }
-func MonsterStartTestarrayofstringVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(4, numElems, 4)
+func MonsterStartTestarrayofstringVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
+	return builder_.StartVector(4, numElems_, 4)
 }
-func MonsterAddTestarrayoftables(builder *flatbuffers.Builder, testarrayoftables flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(11, flatbuffers.UOffsetT(testarrayoftables), 0)
+func MonsterAddTestarrayoftables(builder_ *flatbuffers.Builder, testarrayoftables_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(11, flatbuffers.UOffsetT(testarrayoftables_), 0)
 }
-func MonsterStartTestarrayoftablesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(4, numElems, 4)
+func MonsterStartTestarrayoftablesVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
+	return builder_.StartVector(4, numElems_, 4)
 }
-func MonsterAddEnemy(builder *flatbuffers.Builder, enemy flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(12, flatbuffers.UOffsetT(enemy), 0)
+func MonsterAddEnemy(builder_ *flatbuffers.Builder, enemy_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(12, flatbuffers.UOffsetT(enemy_), 0)
 }
-func MonsterAddTestnestedflatbuffer(builder *flatbuffers.Builder, testnestedflatbuffer flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(13, flatbuffers.UOffsetT(testnestedflatbuffer), 0)
+func MonsterAddTestnestedflatbuffer(builder_ *flatbuffers.Builder, testnestedflatbuffer_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(13, flatbuffers.UOffsetT(testnestedflatbuffer_), 0)
 }
-func MonsterStartTestnestedflatbufferVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(1, numElems, 1)
+func MonsterStartTestnestedflatbufferVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
+	return builder_.StartVector(1, numElems_, 1)
 }
-func MonsterAddTestempty(builder *flatbuffers.Builder, testempty flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(14, flatbuffers.UOffsetT(testempty), 0)
+func MonsterAddTestempty(builder_ *flatbuffers.Builder, testempty_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(14, flatbuffers.UOffsetT(testempty_), 0)
 }
-func MonsterAddTestbool(builder *flatbuffers.Builder, testbool bool) {
-	builder.PrependBoolSlot(15, testbool, false)
+func MonsterAddTestbool(builder_ *flatbuffers.Builder, testbool_ bool) {
+	builder_.PrependBoolSlot(15, testbool_, false)
 }
-func MonsterAddTesthashs32Fnv1(builder *flatbuffers.Builder, testhashs32Fnv1 int32) {
-	builder.PrependInt32Slot(16, testhashs32Fnv1, 0)
+func MonsterAddTesthashs32Fnv1(builder_ *flatbuffers.Builder, testhashs32Fnv1_ int32) {
+	builder_.PrependInt32Slot(16, testhashs32Fnv1_, 0)
 }
-func MonsterAddTesthashu32Fnv1(builder *flatbuffers.Builder, testhashu32Fnv1 uint32) {
-	builder.PrependUint32Slot(17, testhashu32Fnv1, 0)
+func MonsterAddTesthashu32Fnv1(builder_ *flatbuffers.Builder, testhashu32Fnv1_ uint32) {
+	builder_.PrependUint32Slot(17, testhashu32Fnv1_, 0)
 }
-func MonsterAddTesthashs64Fnv1(builder *flatbuffers.Builder, testhashs64Fnv1 int64) {
-	builder.PrependInt64Slot(18, testhashs64Fnv1, 0)
+func MonsterAddTesthashs64Fnv1(builder_ *flatbuffers.Builder, testhashs64Fnv1_ int64) {
+	builder_.PrependInt64Slot(18, testhashs64Fnv1_, 0)
 }
-func MonsterAddTesthashu64Fnv1(builder *flatbuffers.Builder, testhashu64Fnv1 uint64) {
-	builder.PrependUint64Slot(19, testhashu64Fnv1, 0)
+func MonsterAddTesthashu64Fnv1(builder_ *flatbuffers.Builder, testhashu64Fnv1_ uint64) {
+	builder_.PrependUint64Slot(19, testhashu64Fnv1_, 0)
 }
-func MonsterAddTesthashs32Fnv1a(builder *flatbuffers.Builder, testhashs32Fnv1a int32) {
-	builder.PrependInt32Slot(20, testhashs32Fnv1a, 0)
+func MonsterAddTesthashs32Fnv1a(builder_ *flatbuffers.Builder, testhashs32Fnv1a_ int32) {
+	builder_.PrependInt32Slot(20, testhashs32Fnv1a_, 0)
 }
-func MonsterAddTesthashu32Fnv1a(builder *flatbuffers.Builder, testhashu32Fnv1a uint32) {
-	builder.PrependUint32Slot(21, testhashu32Fnv1a, 0)
+func MonsterAddTesthashu32Fnv1a(builder_ *flatbuffers.Builder, testhashu32Fnv1a_ uint32) {
+	builder_.PrependUint32Slot(21, testhashu32Fnv1a_, 0)
 }
-func MonsterAddTesthashs64Fnv1a(builder *flatbuffers.Builder, testhashs64Fnv1a int64) {
-	builder.PrependInt64Slot(22, testhashs64Fnv1a, 0)
+func MonsterAddTesthashs64Fnv1a(builder_ *flatbuffers.Builder, testhashs64Fnv1a_ int64) {
+	builder_.PrependInt64Slot(22, testhashs64Fnv1a_, 0)
 }
-func MonsterAddTesthashu64Fnv1a(builder *flatbuffers.Builder, testhashu64Fnv1a uint64) {
-	builder.PrependUint64Slot(23, testhashu64Fnv1a, 0)
+func MonsterAddTesthashu64Fnv1a(builder_ *flatbuffers.Builder, testhashu64Fnv1a_ uint64) {
+	builder_.PrependUint64Slot(23, testhashu64Fnv1a_, 0)
 }
-func MonsterAddTestarrayofbools(builder *flatbuffers.Builder, testarrayofbools flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(24, flatbuffers.UOffsetT(testarrayofbools), 0)
+func MonsterAddTestarrayofbools(builder_ *flatbuffers.Builder, testarrayofbools_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(24, flatbuffers.UOffsetT(testarrayofbools_), 0)
 }
-func MonsterStartTestarrayofboolsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(1, numElems, 1)
+func MonsterStartTestarrayofboolsVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
+	return builder_.StartVector(1, numElems_, 1)
 }
-func MonsterAddTestf(builder *flatbuffers.Builder, testf float32) {
-	builder.PrependFloat32Slot(25, testf, 3.14159)
+func MonsterAddTestf(builder_ *flatbuffers.Builder, testf_ float32) {
+	builder_.PrependFloat32Slot(25, testf_, 3.14159)
 }
-func MonsterAddTestf2(builder *flatbuffers.Builder, testf2 float32) {
-	builder.PrependFloat32Slot(26, testf2, 3.0)
+func MonsterAddTestf2(builder_ *flatbuffers.Builder, testf2_ float32) {
+	builder_.PrependFloat32Slot(26, testf2_, 3.0)
 }
-func MonsterAddTestf3(builder *flatbuffers.Builder, testf3 float32) {
-	builder.PrependFloat32Slot(27, testf3, 0.0)
+func MonsterAddTestf3(builder_ *flatbuffers.Builder, testf3_ float32) {
+	builder_.PrependFloat32Slot(27, testf3_, 0.0)
 }
-func MonsterAddTestarrayofstring2(builder *flatbuffers.Builder, testarrayofstring2 flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(28, flatbuffers.UOffsetT(testarrayofstring2), 0)
+func MonsterAddTestarrayofstring2(builder_ *flatbuffers.Builder, testarrayofstring2_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(28, flatbuffers.UOffsetT(testarrayofstring2_), 0)
 }
-func MonsterStartTestarrayofstring2Vector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(4, numElems, 4)
+func MonsterStartTestarrayofstring2Vector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
+	return builder_.StartVector(4, numElems_, 4)
 }
-func MonsterAddTestarrayofsortedstruct(builder *flatbuffers.Builder, testarrayofsortedstruct flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(29, flatbuffers.UOffsetT(testarrayofsortedstruct), 0)
+func MonsterAddTestarrayofsortedstruct(builder_ *flatbuffers.Builder, testarrayofsortedstruct_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(29, flatbuffers.UOffsetT(testarrayofsortedstruct_), 0)
 }
-func MonsterStartTestarrayofsortedstructVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(8, numElems, 4)
+func MonsterStartTestarrayofsortedstructVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
+	return builder_.StartVector(8, numElems_, 4)
 }
-func MonsterAddFlex(builder *flatbuffers.Builder, flex flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(30, flatbuffers.UOffsetT(flex), 0)
+func MonsterAddFlex(builder_ *flatbuffers.Builder, flex_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(30, flatbuffers.UOffsetT(flex_), 0)
 }
-func MonsterStartFlexVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(1, numElems, 1)
+func MonsterStartFlexVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
+	return builder_.StartVector(1, numElems_, 1)
 }
-func MonsterAddTest5(builder *flatbuffers.Builder, test5 flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(31, flatbuffers.UOffsetT(test5), 0)
+func MonsterAddTest5(builder_ *flatbuffers.Builder, test5_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(31, flatbuffers.UOffsetT(test5_), 0)
 }
-func MonsterStartTest5Vector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(4, numElems, 2)
+func MonsterStartTest5Vector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
+	return builder_.StartVector(4, numElems_, 2)
 }
-func MonsterAddVectorOfLongs(builder *flatbuffers.Builder, vectorOfLongs flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(32, flatbuffers.UOffsetT(vectorOfLongs), 0)
+func MonsterAddVectorOfLongs(builder_ *flatbuffers.Builder, vectorOfLongs_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(32, flatbuffers.UOffsetT(vectorOfLongs_), 0)
 }
-func MonsterStartVectorOfLongsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(8, numElems, 8)
+func MonsterStartVectorOfLongsVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
+	return builder_.StartVector(8, numElems_, 8)
 }
-func MonsterAddVectorOfDoubles(builder *flatbuffers.Builder, vectorOfDoubles flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(33, flatbuffers.UOffsetT(vectorOfDoubles), 0)
+func MonsterAddVectorOfDoubles(builder_ *flatbuffers.Builder, vectorOfDoubles_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(33, flatbuffers.UOffsetT(vectorOfDoubles_), 0)
 }
-func MonsterStartVectorOfDoublesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(8, numElems, 8)
+func MonsterStartVectorOfDoublesVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
+	return builder_.StartVector(8, numElems_, 8)
 }
-func MonsterAddParentNamespaceTest(builder *flatbuffers.Builder, parentNamespaceTest flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(34, flatbuffers.UOffsetT(parentNamespaceTest), 0)
+func MonsterAddParentNamespaceTest(builder_ *flatbuffers.Builder, parentNamespaceTest_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(34, flatbuffers.UOffsetT(parentNamespaceTest_), 0)
 }
-func MonsterAddVectorOfReferrables(builder *flatbuffers.Builder, vectorOfReferrables flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(35, flatbuffers.UOffsetT(vectorOfReferrables), 0)
+func MonsterAddVectorOfReferrables(builder_ *flatbuffers.Builder, vectorOfReferrables_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(35, flatbuffers.UOffsetT(vectorOfReferrables_), 0)
 }
-func MonsterStartVectorOfReferrablesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(4, numElems, 4)
+func MonsterStartVectorOfReferrablesVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
+	return builder_.StartVector(4, numElems_, 4)
 }
-func MonsterAddSingleWeakReference(builder *flatbuffers.Builder, singleWeakReference uint64) {
-	builder.PrependUint64Slot(36, singleWeakReference, 0)
+func MonsterAddSingleWeakReference(builder_ *flatbuffers.Builder, singleWeakReference_ uint64) {
+	builder_.PrependUint64Slot(36, singleWeakReference_, 0)
 }
-func MonsterAddVectorOfWeakReferences(builder *flatbuffers.Builder, vectorOfWeakReferences flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(37, flatbuffers.UOffsetT(vectorOfWeakReferences), 0)
+func MonsterAddVectorOfWeakReferences(builder_ *flatbuffers.Builder, vectorOfWeakReferences_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(37, flatbuffers.UOffsetT(vectorOfWeakReferences_), 0)
 }
-func MonsterStartVectorOfWeakReferencesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(8, numElems, 8)
+func MonsterStartVectorOfWeakReferencesVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
+	return builder_.StartVector(8, numElems_, 8)
 }
-func MonsterAddVectorOfStrongReferrables(builder *flatbuffers.Builder, vectorOfStrongReferrables flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(38, flatbuffers.UOffsetT(vectorOfStrongReferrables), 0)
+func MonsterAddVectorOfStrongReferrables(builder_ *flatbuffers.Builder, vectorOfStrongReferrables_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(38, flatbuffers.UOffsetT(vectorOfStrongReferrables_), 0)
 }
-func MonsterStartVectorOfStrongReferrablesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(4, numElems, 4)
+func MonsterStartVectorOfStrongReferrablesVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
+	return builder_.StartVector(4, numElems_, 4)
 }
-func MonsterAddCoOwningReference(builder *flatbuffers.Builder, coOwningReference uint64) {
-	builder.PrependUint64Slot(39, coOwningReference, 0)
+func MonsterAddCoOwningReference(builder_ *flatbuffers.Builder, coOwningReference_ uint64) {
+	builder_.PrependUint64Slot(39, coOwningReference_, 0)
 }
-func MonsterAddVectorOfCoOwningReferences(builder *flatbuffers.Builder, vectorOfCoOwningReferences flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(40, flatbuffers.UOffsetT(vectorOfCoOwningReferences), 0)
+func MonsterAddVectorOfCoOwningReferences(builder_ *flatbuffers.Builder, vectorOfCoOwningReferences_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(40, flatbuffers.UOffsetT(vectorOfCoOwningReferences_), 0)
 }
-func MonsterStartVectorOfCoOwningReferencesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(8, numElems, 8)
+func MonsterStartVectorOfCoOwningReferencesVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
+	return builder_.StartVector(8, numElems_, 8)
 }
-func MonsterAddNonOwningReference(builder *flatbuffers.Builder, nonOwningReference uint64) {
-	builder.PrependUint64Slot(41, nonOwningReference, 0)
+func MonsterAddNonOwningReference(builder_ *flatbuffers.Builder, nonOwningReference_ uint64) {
+	builder_.PrependUint64Slot(41, nonOwningReference_, 0)
 }
-func MonsterAddVectorOfNonOwningReferences(builder *flatbuffers.Builder, vectorOfNonOwningReferences flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(42, flatbuffers.UOffsetT(vectorOfNonOwningReferences), 0)
+func MonsterAddVectorOfNonOwningReferences(builder_ *flatbuffers.Builder, vectorOfNonOwningReferences_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(42, flatbuffers.UOffsetT(vectorOfNonOwningReferences_), 0)
 }
-func MonsterStartVectorOfNonOwningReferencesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(8, numElems, 8)
+func MonsterStartVectorOfNonOwningReferencesVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
+	return builder_.StartVector(8, numElems_, 8)
 }
-func MonsterAddAnyUniqueType(builder *flatbuffers.Builder, anyUniqueType AnyUniqueAliases) {
-	builder.PrependByteSlot(43, byte(anyUniqueType), 0)
+func MonsterAddAnyUniqueType(builder_ *flatbuffers.Builder, anyUniqueType_ AnyUniqueAliases) {
+	builder_.PrependByteSlot(43, byte(anyUniqueType_), 0)
 }
-func MonsterAddAnyUnique(builder *flatbuffers.Builder, anyUnique flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(44, flatbuffers.UOffsetT(anyUnique), 0)
+func MonsterAddAnyUnique(builder_ *flatbuffers.Builder, anyUnique_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(44, flatbuffers.UOffsetT(anyUnique_), 0)
 }
-func MonsterAddAnyAmbiguousType(builder *flatbuffers.Builder, anyAmbiguousType AnyAmbiguousAliases) {
-	builder.PrependByteSlot(45, byte(anyAmbiguousType), 0)
+func MonsterAddAnyAmbiguousType(builder_ *flatbuffers.Builder, anyAmbiguousType_ AnyAmbiguousAliases) {
+	builder_.PrependByteSlot(45, byte(anyAmbiguousType_), 0)
 }
-func MonsterAddAnyAmbiguous(builder *flatbuffers.Builder, anyAmbiguous flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(46, flatbuffers.UOffsetT(anyAmbiguous), 0)
+func MonsterAddAnyAmbiguous(builder_ *flatbuffers.Builder, anyAmbiguous_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(46, flatbuffers.UOffsetT(anyAmbiguous_), 0)
 }
-func MonsterAddVectorOfEnums(builder *flatbuffers.Builder, vectorOfEnums flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(47, flatbuffers.UOffsetT(vectorOfEnums), 0)
+func MonsterAddVectorOfEnums(builder_ *flatbuffers.Builder, vectorOfEnums_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(47, flatbuffers.UOffsetT(vectorOfEnums_), 0)
 }
-func MonsterStartVectorOfEnumsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(1, numElems, 1)
+func MonsterStartVectorOfEnumsVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
+	return builder_.StartVector(1, numElems_, 1)
 }
-func MonsterAddSignedEnum(builder *flatbuffers.Builder, signedEnum Race) {
-	builder.PrependInt8Slot(48, int8(signedEnum), -1)
+func MonsterAddSignedEnum(builder_ *flatbuffers.Builder, signedEnum_ Race) {
+	builder_.PrependInt8Slot(48, int8(signedEnum_), -1)
 }
-func MonsterAddTestrequirednestedflatbuffer(builder *flatbuffers.Builder, testrequirednestedflatbuffer flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(49, flatbuffers.UOffsetT(testrequirednestedflatbuffer), 0)
+func MonsterAddTestrequirednestedflatbuffer(builder_ *flatbuffers.Builder, testrequirednestedflatbuffer_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(49, flatbuffers.UOffsetT(testrequirednestedflatbuffer_), 0)
 }
-func MonsterStartTestrequirednestedflatbufferVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(1, numElems, 1)
+func MonsterStartTestrequirednestedflatbufferVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
+	return builder_.StartVector(1, numElems_, 1)
 }
-func MonsterAddScalarKeySortedTables(builder *flatbuffers.Builder, scalarKeySortedTables flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(50, flatbuffers.UOffsetT(scalarKeySortedTables), 0)
+func MonsterAddScalarKeySortedTables(builder_ *flatbuffers.Builder, scalarKeySortedTables_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(50, flatbuffers.UOffsetT(scalarKeySortedTables_), 0)
 }
-func MonsterStartScalarKeySortedTablesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(4, numElems, 4)
+func MonsterStartScalarKeySortedTablesVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
+	return builder_.StartVector(4, numElems_, 4)
 }
-func MonsterAddNativeInline(builder *flatbuffers.Builder, nativeInline flatbuffers.UOffsetT) {
-	builder.PrependStructSlot(51, flatbuffers.UOffsetT(nativeInline), 0)
+func MonsterAddNativeInline(builder_ *flatbuffers.Builder, nativeInline_ flatbuffers.UOffsetT) {
+	builder_.PrependStructSlot(51, flatbuffers.UOffsetT(nativeInline_), 0)
 }
-func MonsterAddLongEnumNonEnumDefault(builder *flatbuffers.Builder, longEnumNonEnumDefault LongEnum) {
-	builder.PrependUint64Slot(52, uint64(longEnumNonEnumDefault), 0)
+func MonsterAddLongEnumNonEnumDefault(builder_ *flatbuffers.Builder, longEnumNonEnumDefault_ LongEnum) {
+	builder_.PrependUint64Slot(52, uint64(longEnumNonEnumDefault_), 0)
 }
-func MonsterAddLongEnumNormalDefault(builder *flatbuffers.Builder, longEnumNormalDefault LongEnum) {
-	builder.PrependUint64Slot(53, uint64(longEnumNormalDefault), 2)
+func MonsterAddLongEnumNormalDefault(builder_ *flatbuffers.Builder, longEnumNormalDefault_ LongEnum) {
+	builder_.PrependUint64Slot(53, uint64(longEnumNormalDefault_), 2)
 }
-func MonsterAddNanDefault(builder *flatbuffers.Builder, nanDefault float32) {
-	builder.PrependFloat32Slot(54, nanDefault, float32(math.NaN()))
+func MonsterAddNanDefault(builder_ *flatbuffers.Builder, nanDefault_ float32) {
+	builder_.PrependFloat32Slot(54, nanDefault_, float32(math.NaN()))
 }
-func MonsterAddInfDefault(builder *flatbuffers.Builder, infDefault float32) {
-	builder.PrependFloat32Slot(55, infDefault, float32(math.Inf(1)))
+func MonsterAddInfDefault(builder_ *flatbuffers.Builder, infDefault_ float32) {
+	builder_.PrependFloat32Slot(55, infDefault_, float32(math.Inf(1)))
 }
-func MonsterAddPositiveInfDefault(builder *flatbuffers.Builder, positiveInfDefault float32) {
-	builder.PrependFloat32Slot(56, positiveInfDefault, float32(math.Inf(1)))
+func MonsterAddPositiveInfDefault(builder_ *flatbuffers.Builder, positiveInfDefault_ float32) {
+	builder_.PrependFloat32Slot(56, positiveInfDefault_, float32(math.Inf(1)))
 }
-func MonsterAddInfinityDefault(builder *flatbuffers.Builder, infinityDefault float32) {
-	builder.PrependFloat32Slot(57, infinityDefault, float32(math.Inf(1)))
+func MonsterAddInfinityDefault(builder_ *flatbuffers.Builder, infinityDefault_ float32) {
+	builder_.PrependFloat32Slot(57, infinityDefault_, float32(math.Inf(1)))
 }
-func MonsterAddPositiveInfinityDefault(builder *flatbuffers.Builder, positiveInfinityDefault float32) {
-	builder.PrependFloat32Slot(58, positiveInfinityDefault, float32(math.Inf(1)))
+func MonsterAddPositiveInfinityDefault(builder_ *flatbuffers.Builder, positiveInfinityDefault_ float32) {
+	builder_.PrependFloat32Slot(58, positiveInfinityDefault_, float32(math.Inf(1)))
 }
-func MonsterAddNegativeInfDefault(builder *flatbuffers.Builder, negativeInfDefault float32) {
-	builder.PrependFloat32Slot(59, negativeInfDefault, float32(math.Inf(-1)))
+func MonsterAddNegativeInfDefault(builder_ *flatbuffers.Builder, negativeInfDefault_ float32) {
+	builder_.PrependFloat32Slot(59, negativeInfDefault_, float32(math.Inf(-1)))
 }
-func MonsterAddNegativeInfinityDefault(builder *flatbuffers.Builder, negativeInfinityDefault float32) {
-	builder.PrependFloat32Slot(60, negativeInfinityDefault, float32(math.Inf(-1)))
+func MonsterAddNegativeInfinityDefault(builder_ *flatbuffers.Builder, negativeInfinityDefault_ float32) {
+	builder_.PrependFloat32Slot(60, negativeInfinityDefault_, float32(math.Inf(-1)))
 }
-func MonsterAddDoubleInfDefault(builder *flatbuffers.Builder, doubleInfDefault float64) {
-	builder.PrependFloat64Slot(61, doubleInfDefault, float64(math.Inf(1)))
+func MonsterAddDoubleInfDefault(builder_ *flatbuffers.Builder, doubleInfDefault_ float64) {
+	builder_.PrependFloat64Slot(61, doubleInfDefault_, float64(math.Inf(1)))
 }
-func MonsterEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	return builder.EndObject()
+func MonsterEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder_.EndObject()
 }

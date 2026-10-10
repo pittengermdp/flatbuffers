@@ -32,11 +32,11 @@ var EnumValuesAny = map[string]Any{
 	"MyGame_Example2_Monster": AnyMyGame_Example2_Monster,
 }
 
-func (v Any) String() string {
-	if s, ok := EnumNamesAny[v]; ok {
-		return s
+func (v_ Any) String() string {
+	if s_, ok_ := EnumNamesAny[v_]; ok_ {
+		return s_
 	}
-	return "Any(" + strconv.FormatInt(int64(v), 10) + ")"
+	return "Any(" + strconv.FormatInt(int64(v_), 10) + ")"
 }
 
 type AnyT struct {
@@ -44,35 +44,35 @@ type AnyT struct {
 	Value interface{}
 }
 
-func (t *AnyT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *AnyT) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	switch t.Type {
+	switch t_.Type {
 	case AnyMonster:
-		return t.Value.(*MonsterT).Pack(builder)
+		return t_.Value.(*MonsterT).Pack(builder_)
 	case AnyTestSimpleTableWithEnum:
-		return t.Value.(*TestSimpleTableWithEnumT).Pack(builder)
+		return t_.Value.(*TestSimpleTableWithEnumT).Pack(builder_)
 	case AnyMyGame_Example2_Monster:
-		return t.Value.(*MyGame__Example2.MonsterT).Pack(builder)
+		return t_.Value.(*MyGame__Example2.MonsterT).Pack(builder_)
 	}
 	return 0
 }
 
-func (rcv Any) UnPack(table flatbuffers.Table) *AnyT {
-	switch rcv {
+func (rcv_ Any) UnPack(table_ flatbuffers.Table) *AnyT {
+	switch rcv_ {
 	case AnyMonster:
-		var x Monster
-		x.Init(table.Bytes, table.Pos)
-		return &AnyT{Type: AnyMonster, Value: x.UnPack()}
+		var x_ Monster
+		x_.Init(table_.Bytes, table_.Pos)
+		return &AnyT{Type: AnyMonster, Value: x_.UnPack()}
 	case AnyTestSimpleTableWithEnum:
-		var x TestSimpleTableWithEnum
-		x.Init(table.Bytes, table.Pos)
-		return &AnyT{Type: AnyTestSimpleTableWithEnum, Value: x.UnPack()}
+		var x_ TestSimpleTableWithEnum
+		x_.Init(table_.Bytes, table_.Pos)
+		return &AnyT{Type: AnyTestSimpleTableWithEnum, Value: x_.UnPack()}
 	case AnyMyGame_Example2_Monster:
-		var x MyGame__Example2.Monster
-		x.Init(table.Bytes, table.Pos)
-		return &AnyT{Type: AnyMyGame_Example2_Monster, Value: x.UnPack()}
+		var x_ MyGame__Example2.Monster
+		x_.Init(table_.Bytes, table_.Pos)
+		return &AnyT{Type: AnyMyGame_Example2_Monster, Value: x_.UnPack()}
 	}
 	return nil
 }
@@ -80,26 +80,26 @@ func (rcv Any) UnPack(table flatbuffers.Table) *AnyT {
 // Match dispatches to the appropriate callback based on the union variant.
 // Each callback receives the correctly typed value. If the variant is NONE
 // or unrecognized, no callback is invoked.
-func (u *AnyT) Match(
-	onMonster func(*MonsterT),
-	onTestSimpleTableWithEnum func(*TestSimpleTableWithEnumT),
-	onMyGame_Example2_Monster func(*MyGame__Example2.MonsterT),
+func (t_ *AnyT) Match(
+	onMonster_ func(*MonsterT),
+	onTestSimpleTableWithEnum_ func(*TestSimpleTableWithEnumT),
+	onMyGame_Example2_Monster_ func(*MyGame__Example2.MonsterT),
 ) {
-	if u == nil {
+	if t_ == nil {
 		return
 	}
-	switch u.Type {
+	switch t_.Type {
 	case AnyMonster:
-		if v, ok := u.Value.(*MonsterT); ok {
-			onMonster(v)
+		if v_, ok_ := t_.Value.(*MonsterT); ok_ {
+			onMonster_(v_)
 		}
 	case AnyTestSimpleTableWithEnum:
-		if v, ok := u.Value.(*TestSimpleTableWithEnumT); ok {
-			onTestSimpleTableWithEnum(v)
+		if v_, ok_ := t_.Value.(*TestSimpleTableWithEnumT); ok_ {
+			onTestSimpleTableWithEnum_(v_)
 		}
 	case AnyMyGame_Example2_Monster:
-		if v, ok := u.Value.(*MyGame__Example2.MonsterT); ok {
-			onMyGame_Example2_Monster(v)
+		if v_, ok_ := t_.Value.(*MyGame__Example2.MonsterT); ok_ {
+			onMyGame_Example2_Monster_(v_)
 		}
 	}
 }

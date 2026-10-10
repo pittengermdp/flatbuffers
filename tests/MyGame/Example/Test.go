@@ -11,57 +11,57 @@ type TestT struct {
 	B int8  `json:"b,omitempty"`
 }
 
-func (t *TestT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *TestT) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	return CreateTest(builder, t.A, t.B)
+	return CreateTest(builder_, t_.A, t_.B)
 }
-func (rcv *Test) UnPackTo(t *TestT) {
-	t.A = rcv.A()
-	t.B = rcv.B()
+func (rcv_ *Test) UnPackTo(t_ *TestT) {
+	t_.A = rcv_.A()
+	t_.B = rcv_.B()
 }
 
-func (rcv *Test) UnPack() *TestT {
-	if rcv == nil {
+func (rcv_ *Test) UnPack() *TestT {
+	if rcv_ == nil {
 		return nil
 	}
-	t := &TestT{}
-	rcv.UnPackTo(t)
-	return t
+	t_ := &TestT{}
+	rcv_.UnPackTo(t_)
+	return t_
 }
 
 type Test struct {
 	_tab flatbuffers.Struct
 }
 
-func (rcv *Test) Init(buf []byte, i flatbuffers.UOffsetT) {
-	rcv._tab.Bytes = buf
-	rcv._tab.Pos = i
+func (rcv_ *Test) Init(buf_ []byte, i_ flatbuffers.UOffsetT) {
+	rcv_._tab.Bytes = buf_
+	rcv_._tab.Pos = i_
 }
 
-func (rcv *Test) Table() flatbuffers.Table {
-	return rcv._tab.Table
+func (rcv_ *Test) Table() flatbuffers.Table {
+	return rcv_._tab.Table
 }
 
-func (rcv *Test) A() int16 {
-	return rcv._tab.GetInt16(rcv._tab.Pos + flatbuffers.UOffsetT(0))
+func (rcv_ *Test) A() int16 {
+	return rcv_._tab.GetInt16(rcv_._tab.Pos + flatbuffers.UOffsetT(0))
 }
-func (rcv *Test) MutateA(n int16) bool {
-	return rcv._tab.MutateInt16(rcv._tab.Pos+flatbuffers.UOffsetT(0), n)
-}
-
-func (rcv *Test) B() int8 {
-	return rcv._tab.GetInt8(rcv._tab.Pos + flatbuffers.UOffsetT(2))
-}
-func (rcv *Test) MutateB(n int8) bool {
-	return rcv._tab.MutateInt8(rcv._tab.Pos+flatbuffers.UOffsetT(2), n)
+func (rcv_ *Test) MutateA(n_ int16) bool {
+	return rcv_._tab.MutateInt16(rcv_._tab.Pos+flatbuffers.UOffsetT(0), n_)
 }
 
-func CreateTest(builder *flatbuffers.Builder, a int16, b int8) flatbuffers.UOffsetT {
-	builder.Prep(2, 4)
-	builder.Pad(1)
-	builder.PrependInt8(b)
-	builder.PrependInt16(a)
-	return builder.Offset()
+func (rcv_ *Test) B() int8 {
+	return rcv_._tab.GetInt8(rcv_._tab.Pos + flatbuffers.UOffsetT(2))
+}
+func (rcv_ *Test) MutateB(n_ int8) bool {
+	return rcv_._tab.MutateInt8(rcv_._tab.Pos+flatbuffers.UOffsetT(2), n_)
+}
+
+func CreateTest(builder_ *flatbuffers.Builder, a_ int16, b_ int8) flatbuffers.UOffsetT {
+	builder_.Prep(2, 4)
+	builder_.Pad(1)
+	builder_.PrependInt8(b_)
+	builder_.PrependInt16(a_)
+	return builder_.Offset()
 }

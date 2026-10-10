@@ -30,11 +30,11 @@ var EnumValuesAnyAmbiguousAliases = map[string]AnyAmbiguousAliases{
 	"M3":   AnyAmbiguousAliasesM3,
 }
 
-func (v AnyAmbiguousAliases) String() string {
-	if s, ok := EnumNamesAnyAmbiguousAliases[v]; ok {
-		return s
+func (v_ AnyAmbiguousAliases) String() string {
+	if s_, ok_ := EnumNamesAnyAmbiguousAliases[v_]; ok_ {
+		return s_
 	}
-	return "AnyAmbiguousAliases(" + strconv.FormatInt(int64(v), 10) + ")"
+	return "AnyAmbiguousAliases(" + strconv.FormatInt(int64(v_), 10) + ")"
 }
 
 type AnyAmbiguousAliasesT struct {
@@ -42,35 +42,35 @@ type AnyAmbiguousAliasesT struct {
 	Value interface{}
 }
 
-func (t *AnyAmbiguousAliasesT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *AnyAmbiguousAliasesT) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	switch t.Type {
+	switch t_.Type {
 	case AnyAmbiguousAliasesM1:
-		return t.Value.(*MonsterT).Pack(builder)
+		return t_.Value.(*MonsterT).Pack(builder_)
 	case AnyAmbiguousAliasesM2:
-		return t.Value.(*MonsterT).Pack(builder)
+		return t_.Value.(*MonsterT).Pack(builder_)
 	case AnyAmbiguousAliasesM3:
-		return t.Value.(*MonsterT).Pack(builder)
+		return t_.Value.(*MonsterT).Pack(builder_)
 	}
 	return 0
 }
 
-func (rcv AnyAmbiguousAliases) UnPack(table flatbuffers.Table) *AnyAmbiguousAliasesT {
-	switch rcv {
+func (rcv_ AnyAmbiguousAliases) UnPack(table_ flatbuffers.Table) *AnyAmbiguousAliasesT {
+	switch rcv_ {
 	case AnyAmbiguousAliasesM1:
-		var x Monster
-		x.Init(table.Bytes, table.Pos)
-		return &AnyAmbiguousAliasesT{Type: AnyAmbiguousAliasesM1, Value: x.UnPack()}
+		var x_ Monster
+		x_.Init(table_.Bytes, table_.Pos)
+		return &AnyAmbiguousAliasesT{Type: AnyAmbiguousAliasesM1, Value: x_.UnPack()}
 	case AnyAmbiguousAliasesM2:
-		var x Monster
-		x.Init(table.Bytes, table.Pos)
-		return &AnyAmbiguousAliasesT{Type: AnyAmbiguousAliasesM2, Value: x.UnPack()}
+		var x_ Monster
+		x_.Init(table_.Bytes, table_.Pos)
+		return &AnyAmbiguousAliasesT{Type: AnyAmbiguousAliasesM2, Value: x_.UnPack()}
 	case AnyAmbiguousAliasesM3:
-		var x Monster
-		x.Init(table.Bytes, table.Pos)
-		return &AnyAmbiguousAliasesT{Type: AnyAmbiguousAliasesM3, Value: x.UnPack()}
+		var x_ Monster
+		x_.Init(table_.Bytes, table_.Pos)
+		return &AnyAmbiguousAliasesT{Type: AnyAmbiguousAliasesM3, Value: x_.UnPack()}
 	}
 	return nil
 }
@@ -78,26 +78,26 @@ func (rcv AnyAmbiguousAliases) UnPack(table flatbuffers.Table) *AnyAmbiguousAlia
 // Match dispatches to the appropriate callback based on the union variant.
 // Each callback receives the correctly typed value. If the variant is NONE
 // or unrecognized, no callback is invoked.
-func (u *AnyAmbiguousAliasesT) Match(
-	onM1 func(*MonsterT),
-	onM2 func(*MonsterT),
-	onM3 func(*MonsterT),
+func (t_ *AnyAmbiguousAliasesT) Match(
+	onM1_ func(*MonsterT),
+	onM2_ func(*MonsterT),
+	onM3_ func(*MonsterT),
 ) {
-	if u == nil {
+	if t_ == nil {
 		return
 	}
-	switch u.Type {
+	switch t_.Type {
 	case AnyAmbiguousAliasesM1:
-		if v, ok := u.Value.(*MonsterT); ok {
-			onM1(v)
+		if v_, ok_ := t_.Value.(*MonsterT); ok_ {
+			onM1_(v_)
 		}
 	case AnyAmbiguousAliasesM2:
-		if v, ok := u.Value.(*MonsterT); ok {
-			onM2(v)
+		if v_, ok_ := t_.Value.(*MonsterT); ok_ {
+			onM2_(v_)
 		}
 	case AnyAmbiguousAliasesM3:
-		if v, ok := u.Value.(*MonsterT); ok {
-			onM3(v)
+		if v_, ok_ := t_.Value.(*MonsterT); ok_ {
+			onM3_(v_)
 		}
 	}
 }

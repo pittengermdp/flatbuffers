@@ -9,105 +9,105 @@ import (
 type InParentNamespaceT struct {
 }
 
-func (t *InParentNamespaceT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *InParentNamespaceT) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	InParentNamespaceStart(builder)
-	return InParentNamespaceEnd(builder)
+	InParentNamespaceStart(builder_)
+	return InParentNamespaceEnd(builder_)
 }
 
-func (rcv *InParentNamespace) UnPackTo(t *InParentNamespaceT) {
+func (rcv_ *InParentNamespace) UnPackTo(t_ *InParentNamespaceT) {
 }
 
-func (rcv *InParentNamespace) UnPack() *InParentNamespaceT {
-	if rcv == nil {
+func (rcv_ *InParentNamespace) UnPack() *InParentNamespaceT {
+	if rcv_ == nil {
 		return nil
 	}
-	t := &InParentNamespaceT{}
-	rcv.UnPackTo(t)
-	return t
+	t_ := &InParentNamespaceT{}
+	rcv_.UnPackTo(t_)
+	return t_
 }
 
 // UnpackFields returns a partial *InParentNamespaceT with only the named fields populated.
 // Fields not in the list are left at their zero/default values.
 // This avoids materializing the entire table tree. Pass the
 // generated InParentNamespaceField* constants rather than raw strings.
-func (rcv *InParentNamespace) UnpackFields(fields ...string) *InParentNamespaceT {
-	t := &InParentNamespaceT{}
-	fieldSet := make(map[string]bool, len(fields))
-	for _, f := range fields {
-		fieldSet[f] = true
+func (rcv_ *InParentNamespace) UnpackFields(fields_ ...string) *InParentNamespaceT {
+	t_ := &InParentNamespaceT{}
+	fieldSet_ := make(map[string]bool, len(fields_))
+	for _, f_ := range fields_ {
+		fieldSet_[f_] = true
 	}
-	return t
+	return t_
 }
 
 type InParentNamespace struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsInParentNamespace(buf []byte, offset flatbuffers.UOffsetT) *InParentNamespace {
-	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &InParentNamespace{}
-	x.Init(buf, n+offset)
-	return x
+func GetRootAsInParentNamespace(buf_ []byte, offset_ flatbuffers.UOffsetT) *InParentNamespace {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_:])
+	x_ := &InParentNamespace{}
+	x_.Init(buf_, n_+offset_)
+	return x_
 }
 
-func FinishInParentNamespaceBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.Finish(offset)
+func FinishInParentNamespaceBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.Finish(offset_)
 }
 
-func GetSizePrefixedRootAsInParentNamespace(buf []byte, offset flatbuffers.UOffsetT) *InParentNamespace {
-	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &InParentNamespace{}
-	x.Init(buf, n+offset+flatbuffers.SizeUint32)
-	return x
+func GetSizePrefixedRootAsInParentNamespace(buf_ []byte, offset_ flatbuffers.UOffsetT) *InParentNamespace {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_+flatbuffers.SizeUint32:])
+	x_ := &InParentNamespace{}
+	x_.Init(buf_, n_+offset_+flatbuffers.SizeUint32)
+	return x_
 }
 
-func FinishSizePrefixedInParentNamespaceBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.FinishSizePrefixed(offset)
+func FinishSizePrefixedInParentNamespaceBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.FinishSizePrefixed(offset_)
 }
 
-func VerifyRootAsInParentNamespace(buf []byte, opts *flatbuffers.VerifierOptions) error {
-	v := flatbuffers.NewVerifier(buf, opts)
-	tablePos, err := v.CheckUOffsetT(0)
-	if err != nil {
-		return err
+func VerifyRootAsInParentNamespace(buf_ []byte, opts_ *flatbuffers.VerifierOptions) error {
+	v_ := flatbuffers.NewVerifier(buf_, opts_)
+	tablePos_, err_ := v_.CheckUOffsetT(0)
+	if err_ != nil {
+		return err_
 	}
-	return verifyInParentNamespace(v, int(tablePos))
+	return verifyInParentNamespace(v_, int(tablePos_))
 }
 
-func VerifyInParentNamespace(v *flatbuffers.Verifier, tablePos int) error {
-	return verifyInParentNamespace(v, tablePos)
+func VerifyInParentNamespace(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	return verifyInParentNamespace(v_, tablePos_)
 }
 
-func verifyInParentNamespace(v *flatbuffers.Verifier, tablePos int) error {
-	if err := v.CheckTable(tablePos); err != nil {
-		return err
+func verifyInParentNamespace(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	if err_ := v_.CheckTable(tablePos_); err_ != nil {
+		return err_
 	}
-	if err := v.CountTable(); err != nil {
-		return err
+	if err_ := v_.CountTable(); err_ != nil {
+		return err_
 	}
-	if err := v.PushDepth(); err != nil {
-		return err
+	if err_ := v_.PushDepth(); err_ != nil {
+		return err_
 	}
-	defer v.PopDepth()
+	defer v_.PopDepth()
 
 	return nil
 }
 
-func (rcv *InParentNamespace) Init(buf []byte, i flatbuffers.UOffsetT) {
-	rcv._tab.Bytes = buf
-	rcv._tab.Pos = i
+func (rcv_ *InParentNamespace) Init(buf_ []byte, i_ flatbuffers.UOffsetT) {
+	rcv_._tab.Bytes = buf_
+	rcv_._tab.Pos = i_
 }
 
-func (rcv *InParentNamespace) Table() flatbuffers.Table {
-	return rcv._tab
+func (rcv_ *InParentNamespace) Table() flatbuffers.Table {
+	return rcv_._tab
 }
 
-func InParentNamespaceStart(builder *flatbuffers.Builder) {
-	builder.StartObject(0)
+func InParentNamespaceStart(builder_ *flatbuffers.Builder) {
+	builder_.StartObject(0)
 }
-func InParentNamespaceEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	return builder.EndObject()
+func InParentNamespaceEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder_.EndObject()
 }
