@@ -242,10 +242,14 @@ set(FlatBuffers_Tests_SRCS
   tests/native_type_test_impl.cpp
   tests/alignment_test.h
   tests/alignment_test.cpp
+  tests/binary_annotator_test.h
+  tests/binary_annotator_test.cpp
   tests/64bit/offset64_test.h
   tests/64bit/offset64_test.cpp
   include/flatbuffers/code_generators.h
   src/code_generators.cpp
+  src/binary_annotator.h
+  src/binary_annotator.cpp
 )
 
 set(FlatBuffers_Tests_CPP17_SRCS
@@ -559,6 +563,7 @@ if(FLATBUFFERS_BUILD_TESTS)
   compile_schema_for_test(tests/64bit/evolution/v1.fbs "${FLATC_OPT_COMP}")
   compile_schema_for_test(tests/64bit/evolution/v2.fbs "${FLATC_OPT_COMP}")
   compile_schema_for_test(tests/union_underlying_type_test.fbs "${FLATC_OPT_SCOPED_ENUMS}")
+  compile_schema_for_test(tests/union_value_gap_test.fbs "${FLATC_OPT_COMP}")
   compile_schema_for_test(tests/cross_namespace_pack_test.fbs "${FLATC_OPT_COMP}")
   compile_schema_for_test(tests/map_set_test.fbs "${FLATC_OPT_COMP}")
 

@@ -1,0 +1,25 @@
+// Union members with explicit, non-consecutive values. A member's value is
+// not its position in the union's list of values (NONE, Alpha, Beta, Gamma):
+// Beta = 3 sits at position 2 and Gamma = 4 at position 3.
+namespace UnionValueGap;
+
+table Alpha {
+  a: int;
+}
+
+table Beta {
+  b: int;
+}
+
+table Gamma {
+  g: string (required);
+}
+
+union Gap { Alpha = 1, Beta = 3, Gamma = 4 }
+
+table Holder {
+  single: Gap;
+  many: [Gap];
+}
+
+root_type Holder;

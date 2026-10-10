@@ -1411,7 +1411,16 @@ std::string BinaryAnnotator::BuildUnion(const uint64_t union_offset,
   const reflection::Enum* next_enum =
       schema_->enums()->Get(field->type()->index());
 
-  const reflection::EnumVal* enum_val = next_enum->values()->Get(realized_type);
+  // Members are keyed by value, which need not be their position in values():
+  // in `union U { A = 1, B = 3 }`, B is values()[2].
+  const reflection::EnumVal* enum_val =
+      next_enum->values()->LookupByKey(realized_type);
+
+  // A type naming no member has nothing to annotate. Callers reject one with
+  // IsValidUnionValue first; this keeps BuildUnion safe on its own.
+  if (enum_val == nullptr) {
+    return std::to_string(realized_type);
+  }
 
   if (ContainsSection(union_offset)) {
     return enum_val->name()->c_str();
