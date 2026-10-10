@@ -187,7 +187,7 @@ class StubGenerator : public BaseGenerator {
       ss << "  def " << method->name << "(\n";
       ss << "      self,\n";
       if (ClientStreaming(method)) {
-        ss << "      request_iterator: typing.Iterator[" << request << "]\n";
+        ss << "      request_iterator: typing.Iterator[" << request << "],\n";
       } else {
         ss << "      request: " << request << ",\n";
       }
