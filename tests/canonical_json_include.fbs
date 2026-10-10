@@ -1,0 +1,11 @@
+// Types canonical_json_test.fbs refers to across a namespace and a file, so
+// the Go JSON methods and JSON Schema cross-file references are exercised.
+namespace CanonicalJsonInc;
+
+enum Flags : ubyte (bit_flags) { A, B, C }
+
+enum Mode : short { Off = 0, On = 7 }
+
+struct Pt { x: int; y: int; }
+
+table Leaf { id: ulong; note: string; }

@@ -1,6 +1,17 @@
-name: OSS-Fuzz
+name: Fuzz
 permissions: read-all
 
+# Builds this repository's libFuzzer targets (tests/fuzzer) with address and
+# undefined-behaviour sanitizers and runs each for a minute.
+#
+# This used to be OSS-Fuzz's CIFuzz action with oss-fuzz-project-name
+# 'flatbuffers'. CIFuzz builds an OSS-Fuzz project from that project's own
+# repository: it fetched refs/pull/<N>/merge from google/flatbuffers, so every
+# pull request here fuzzed upstream's pull request with the same number, never
+# this fork's code. (Fork PR #8 failed because upstream's 2014 PR #8 has a
+# build/ directory, which OSS-Fuzz's build.sh cannot mkdir.) The action
+# hard-codes its GitHub mode, in which project-src-path is ignored, so the
+# targets are built here directly, the way OSS-Fuzz's build.sh builds them.
 on:
   pull_request:
     branches:
@@ -10,25 +21,60 @@ on:
       - src/**
       - tests/**.cpp
       - tests/**.h
+      - tests/fuzzer/**
+      - .github/workflows/main.yml
 jobs:
- Fuzzing:
-   runs-on: ubuntu-latest
-   steps:
-   - name: Build Fuzzers
-     id: build
-     uses: google/oss-fuzz/infra/cifuzz/actions/build_fuzzers@master
-     with:
-       oss-fuzz-project-name: 'flatbuffers'
-       language: c++
-   - name: Run Fuzzers
-     uses: google/oss-fuzz/infra/cifuzz/actions/run_fuzzers@master
-     with:
-       oss-fuzz-project-name: 'flatbuffers'
-       language: c++
-       fuzz-seconds: 60
-   - name: Upload Crash
-     uses: actions/upload-artifact@v7
-     if: failure() && steps.build.outcome == 'success'
-     with:
-       name: artifacts
-       path: ./out/artifacts
+  Fuzzing:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install clang, lld and the libFuzzer runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-18 lld-18 libclang-rt-18-dev
+
+      - name: Build fuzzers
+        run: |
+          cmake -S tests/fuzzer -B build-fuzz -G "Unix Makefiles" \
+            -DCMAKE_C_COMPILER=clang-18 -DCMAKE_CXX_COMPILER=clang++-18 -DUSE_ASAN=ON
+          cmake --build build-fuzz -j "$(nproc)"
+
+      # Every target at once, for a minute each. A crash, leak, timeout or
+      # out-of-memory exits non-zero and saves its input in artifacts/.
+      - name: Run fuzzers
+        working-directory: build-fuzz
+        env:
+          UBSAN_OPTIONS: print_stacktrace=1
+        run: |
+          shopt -s nullglob
+          mkdir -p ../artifacts
+          pids=()
+          for fuzzer in ./*_fuzzer; do
+            name="${fuzzer#./}"
+            dict=()
+            for d in "${GITHUB_WORKSPACE}/tests/fuzzer/${name%_fuzzer}"*.dict; do
+              dict=("-dict=${d}")
+            done
+            mkdir -p "corpus/${name}"
+            "${fuzzer}" "corpus/${name}" "${dict[@]}" -max_total_time=60 -timeout=10 \
+              -rss_limit_mb=2560 -artifact_prefix="../artifacts/${name}-" > "${name}.log" 2>&1 &
+            pids+=("$!")
+          done
+          status=0
+          for pid in "${pids[@]}"; do
+            wait "${pid}" || status=1
+          done
+          for log in ./*_fuzzer.log; do
+            echo "::group::${log#./}"
+            tail -n 40 "${log}"
+            echo "::endgroup::"
+          done
+          exit "${status}"
+
+      - name: Upload crash inputs
+        uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: artifacts
+          path: artifacts

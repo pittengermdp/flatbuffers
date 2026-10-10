@@ -1,0 +1,8 @@
+// A 64-bit-offset vector, which canonical JSON does not support: schema
+// reflection must refuse it rather than drop it. (flatc --go-json refuses to
+// generate code for it.)
+namespace CanonicalJsonV64;
+
+table Big { a: int; big: [ubyte] (vector64); b: int; }
+
+root_type Big;

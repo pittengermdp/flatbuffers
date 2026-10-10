@@ -27,7 +27,17 @@ go_src=${go_path}/src
 ../flatc -g --gen-object-api -o "${go_src}" shared_union_type.fbs
 # go_map_set_test imports this package as github.com/google/flatbuffers/MapSetTest,
 # so emit it under that import path.
-../flatc -g --gen-object-api -o "${go_src}/github.com/google/flatbuffers" map_set_test.fbs
+../flatc -g --gen-object-api --go-json -o "${go_src}/github.com/google/flatbuffers" map_set_test.fbs
+# Canonical JSON (--go-json): optional_scalars again, now with JSON methods,
+# the canonical_json_test schemas, and the reflection schemas
+# go_canonical_json_test compares the generated methods against.
+../flatc -g --gen-object-api --go-json -o "${go_src}" optional_scalars.fbs
+../flatc -g --gen-object-api --go-json --json-int64-as-string -o "${go_src}" \
+    canonical_json_test.fbs canonical_json_include.fbs \
+    canonical_json_edge.fbs canonical_json_edge_value.fbs
+../flatc --binary --schema --bfbs-builtins -o "${go_src}/go_canonical_json_test" \
+    canonical_json_test.fbs canonical_json_edge.fbs canonical_json_v64.fbs \
+    map_set_test.fbs optional_scalars.fbs
 
 # Go requires a particular layout of files in order to link multiple packages.
 # Copy flatbuffer Go files to their own package directories to compile the
@@ -35,10 +45,12 @@ go_src=${go_path}/src
 mkdir -p "${go_src}/github.com/google/flatbuffers/go"
 mkdir -p "${go_src}/flatbuffers_test"
 mkdir -p "${go_src}/go_map_set_test"
+mkdir -p "${go_src}/go_canonical_json_test"
 
 cp -a ../go/* ./go_gen/src/github.com/google/flatbuffers/go
 cp -a ./go_test.go ./go_gen/src/flatbuffers_test/
 cp -a ./go_map_set_test/*.go ./go_gen/src/go_map_set_test/
+cp -a ./go_canonical_json_test/*.go ./go_gen/src/go_canonical_json_test/
 
 # This layout needs GOPATH mode, so go modules are turned off for these go
 # commands only (https://stackoverflow.com/a/63545857/7024978). `go env -w`
@@ -65,6 +77,8 @@ GO111MODULE=off GOPATH=${go_path} go test flatbuffers_test \
 
 # The flags above are defined by go_test.go, so this package runs on its own.
 GO111MODULE=off GOPATH=${go_path} go test go_map_set_test || GO_TEST_RESULT=$?
+GO111MODULE=off GOPATH=${go_path} go test go_canonical_json_test \
+    --flatc="${test_dir}/../flatc" --schemas="${test_dir}" || GO_TEST_RESULT=$?
 
 rm -rf "${go_path:?}"/{pkg,src}
 if [[ $GO_TEST_RESULT == 0 ]]; then

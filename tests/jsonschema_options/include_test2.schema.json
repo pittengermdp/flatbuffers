@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "include_test2.schema.json",
+  "$defs": {
+    "MyGame_OtherNameSpace_FromInclude" : {
+      "type" : "string",
+      "enum": ["IncludeVal"]
+    },
+    "MyGame_OtherNameSpace_Unused" : {
+      "type" : "object",
+      "properties" : {
+        "a" : {
+                "type" : "integer", "minimum" : -2147483648, "maximum" : 2147483647
+              }
+      },
+      "required" : ["a"],
+      "additionalProperties" : false
+    },
+    "MyGame_OtherNameSpace_TableB" : {
+      "type" : "object",
+      "properties" : {
+        "a" : {
+                "$ref" : "include_test1.schema.json#/$defs/TableA"
+              }
+      },
+      "additionalProperties" : false
+    }
+  }
+}
