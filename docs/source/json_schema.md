@@ -16,7 +16,7 @@ flatc --jsonschema myschema.fbs        # writes myschema.schema.json
 | --- | --- | --- |
 | integer | number | `integer` bounded to the type's width |
 | 64-bit integer, with `--json-int64-as-string` | quoted decimal string (number also read) | number up to ±(2^53 − 1), **or** string matching an exact-range pattern |
-| float, double | number | `number` bounded to the type's largest finite value |
+| float, double | number; with `--strict-json`, a NaN or infinity prints quoted (`"nan"`, `"inf"`, `"-inf"`), which the parser reads back | `number` bounded to the type's largest finite value (so no NaN or infinity) |
 | bool | `true` / `false` | `boolean` |
 | optional scalar (`= null`) | the value, `null`, or absent | the type or `null` |
 | enum | variant name | string from the variant names |
