@@ -1,6 +1,9 @@
 package flatbuffers
 
-import "sort"
+import (
+	"math"
+	"sort"
+)
 
 // Builder is a state machine for creating FlatBuffer objects.
 // Use a Builder to construct object(s) starting from leaf nodes.
@@ -543,9 +546,11 @@ func (b *Builder) PrependInt64Slot(o int, x, d int64) {
 
 // PrependFloat32Slot prepends a float32 onto the object at vtable slot `o`.
 // If value `x` equals default `d`, then the slot will be set to zero and no
-// other data will be written.
+// other data will be written. A NaN equals a NaN default: NaN compares
+// unequal even to itself, so otherwise a NaN-defaulted field would always be
+// written, and print where an unset one should not.
 func (b *Builder) PrependFloat32Slot(o int, x, d float32) {
-	if x != d {
+	if x != d && !(math.IsNaN(float64(x)) && math.IsNaN(float64(d))) {
 		b.PrependFloat32(x)
 		b.Slot(o)
 	}
@@ -553,9 +558,11 @@ func (b *Builder) PrependFloat32Slot(o int, x, d float32) {
 
 // PrependFloat64Slot prepends a float64 onto the object at vtable slot `o`.
 // If value `x` equals default `d`, then the slot will be set to zero and no
-// other data will be written.
+// other data will be written. A NaN equals a NaN default: NaN compares
+// unequal even to itself, so otherwise a NaN-defaulted field would always be
+// written, and print where an unset one should not.
 func (b *Builder) PrependFloat64Slot(o int, x, d float64) {
-	if x != d {
+	if x != d && !(math.IsNaN(x) && math.IsNaN(d)) {
 		b.PrependFloat64(x)
 		b.Slot(o)
 	}
