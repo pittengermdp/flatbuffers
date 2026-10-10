@@ -99,14 +99,22 @@ inline const Table* GetAnyRoot(const uint8_t* const flatbuf) {
   return GetRoot<Table>(flatbuf);
 }
 
-// Get the root of a size-prefixed buffer, regardless of what type it is.
-// SizeT is the width of the size prefix, as for VerifySizePrefixed().
-template <typename SizeT = uoffset_t>
+inline Table* GetAnySizePrefixedRoot(uint8_t* const flatbuf) {
+  return GetMutableSizePrefixedRoot<Table>(flatbuf);
+}
+
+inline const Table* GetAnySizePrefixedRoot(const uint8_t* const flatbuf) {
+  return GetSizePrefixedRoot<Table>(flatbuf);
+}
+
+// As above, where SizeT is the width of the size prefix, as for
+// VerifySizePrefixed<SizeT>().
+template <typename SizeT>
 inline Table* GetAnySizePrefixedRoot(uint8_t* const flatbuf) {
   return GetMutableSizePrefixedRoot<Table, SizeT>(flatbuf);
 }
 
-template <typename SizeT = uoffset_t>
+template <typename SizeT>
 inline const Table* GetAnySizePrefixedRoot(const uint8_t* const flatbuf) {
   return GetSizePrefixedRoot<Table, SizeT>(flatbuf);
 }
@@ -521,8 +529,8 @@ Offset<const Table*> CopyTable(FlatBufferBuilder& fbb,
 // buf should point to the start of flatbuffer data.
 // length specifies the size of the flatbuffer data.
 // It checks what the generated Verify<Root>Buffer() checks, except the file
-// identifier. A length at or above max_size (FLATBUFFERS_MAX_BUFFER_SIZE
-// unless given in opts) fails.
+// identifier and the contents of nested flatbuffers. A length at or above
+// max_size (FLATBUFFERS_MAX_BUFFER_SIZE unless given in opts) fails.
 bool Verify(const reflection::Schema& schema, const reflection::Object& root,
             const uint8_t* buf, size_t length, uoffset_t max_depth = 64,
             uoffset_t max_tables = 1000000);

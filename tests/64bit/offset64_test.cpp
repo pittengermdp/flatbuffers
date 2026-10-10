@@ -712,6 +712,11 @@ void Offset64ReflectionVerifySizePrefixed() {
   // The root it verified is the one the generated accessor reads.
   TEST_EQ(GetAnySizePrefixedRoot<uoffset64_t>(buf.data()),
           reinterpret_cast<const Table*>(GetSizePrefixedRootTable(buf.data())));
+  // Without a width, the accessor still resolves to the 32-bit overload, also
+  // through a function pointer.
+  const Table* (*const get_root_32)(const uint8_t*) = &GetAnySizePrefixedRoot;
+  TEST_EQ(get_root_32(buf.data()),
+          GetAnySizePrefixedRoot<uoffset_t>(buf.data()));
 
   // Read with a 32-bit prefix, the root offset is the prefix's high word: 0.
   TEST_EQ(flatbuffers::VerifySizePrefixed(schema, root, buf.data(), buf.size()),
