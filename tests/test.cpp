@@ -2172,6 +2172,7 @@ int FlatBufferTests(const std::string& tests_data_path) {
   EvolutionTest(tests_data_path);
   UnionDeprecationTest(tests_data_path);
   UnionVectorTest(tests_data_path);
+  ReflectionVerifyUnionVectorWithoutTypesTest(tests_data_path);
   GenerateTableTextTest(tests_data_path);
   TestEmbeddedBinarySchema(tests_data_path);
   JsonOptionalTest(tests_data_path, false);

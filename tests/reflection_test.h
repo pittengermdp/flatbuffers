@@ -13,6 +13,8 @@ void ReflectionTest(const std::string& tests_data_path, uint8_t* flatbuf,
 void ForAllFieldsReverseTest(const std::string& tests_data_path);
 void MiniReflectFixedLengthArrayTest();
 void MiniReflectFlatBuffersTest(uint8_t* flatbuf);
+void ReflectionVerifyUnionVectorWithoutTypesTest(
+    const std::string& tests_data_path);
 
 }  // namespace tests
 }  // namespace flatbuffers
