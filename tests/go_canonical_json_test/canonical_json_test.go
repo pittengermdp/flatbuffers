@@ -344,6 +344,16 @@ func TestOptionalScalars(t *testing.T) {
 		t.Fatalf("outputs differ:\ngenerated %s\nreflected %s", generated, reflected)
 	}
 
+	// The schema's root table gets the schema's file identifier.
+	built, err := flatbuffers.ReflectFromCanonicalJSON(schema, "optional_scalars.ScalarStuff", generated)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !flatbuffers.BufferHasIdentifier(built, "NULL") {
+		t.Fatalf("no NULL file identifier in %x", built[:8])
+	}
+	equalT(t, "reflection's reading of generated JSON", want, optional.GetRootAsScalarStuff(built, 0).UnPack())
+
 	var back optional.ScalarStuffT
 	if err := back.UnmarshalFlatJSON([]byte(`{"maybe_i8":null}`)); err != nil || back.MaybeI8 != nil || back.DefaultI8 != 42 {
 		t.Fatalf("null optional scalar: %v %+v", err, back)

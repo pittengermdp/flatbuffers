@@ -101,7 +101,13 @@ func ReflectFromCanonicalMap(schema *ReflectionSchema, typeName string, m map[st
 		return nil, err
 	}
 
-	b.Finish(root)
+	// The schema's root table carries the schema's file identifier, as a
+	// buffer from flatc or a generated Finish<Root>Buffer does.
+	if ident := schema.FileIdent(); ident != "" && schema.RootTable() != nil && schema.RootTable().Name() == typeName {
+		b.FinishWithFileIdentifier(root, []byte(ident))
+	} else {
+		b.Finish(root)
+	}
 
 	return b.FinishedBytes(), nil
 }
