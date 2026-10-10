@@ -2166,6 +2166,7 @@ int FlatBufferTests(const std::string& tests_data_path) {
   ParseAndGenerateTextTest(tests_data_path, true);
   FixedLengthArrayJsonTest(tests_data_path, false);
   FixedLengthArrayJsonTest(tests_data_path, true);
+  SetStringTest(tests_data_path);
   ReflectionTest(tests_data_path, flatbuf.data(), flatbuf.size());
   ForAllFieldsReverseTest(tests_data_path);
   ParseProtoTest(tests_data_path);
