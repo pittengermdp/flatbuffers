@@ -1435,9 +1435,12 @@ unsafe fn update_offset(
                 let union_type_offset = unsafe { Table::new(buf, table_loc) }
                     .vtable()
                     .get(union_type.offset());
-                // SAFETY: `table_loc + union_type_offset` lies inside the valid
-                // table at `table_loc`: its `_type` field, or its soffset when
-                // that field is absent.
+                // An absent `_type` reads as its default, NONE: no table to walk.
+                if union_type_offset == 0 {
+                    continue;
+                }
+                // SAFETY: `table_loc + union_type_offset` is the `_type` field
+                // of the valid table at `table_loc`.
                 let union_type_value =
                     unsafe { u8::follow(buf, table_loc.saturating_add(union_type_offset.into())) };
                 let union_enum_value = union_enum
@@ -1446,9 +1449,12 @@ unsafe fn update_offset(
                         value.key_compare_with_value(*key)
                     })
                     .unwrap();
-                let union_object = schema
-                    .objects()
-                    .get(union_enum_value.union_type().unwrap().index().try_into()?);
+                let union_value_type = union_enum_value.union_type().unwrap();
+                // NONE names no table to walk.
+                if union_value_type.base_type() == BaseType::None {
+                    continue;
+                }
+                let union_object = schema.objects().get(union_value_type.index().try_into()?);
                 // SAFETY: `field_value_loc` is the table the union value points
                 // to, read before any update, and `union_object` is the schema
                 // object its `_type` names.

@@ -1561,6 +1561,102 @@ fn test_buffer_set_string_to_empty_succeeds() {
 }
 
 #[test]
+fn test_buffer_set_string_skips_union_with_absent_type() {
+    // A union whose `_type` slot is absent reads as NONE, just as C++ reads an
+    // absent field as its default. Growing `name` walks the root table, and
+    // must skip that union rather than take a discriminant from the low byte
+    // of the table's vtable soffset.
+    let original = monster_with_union();
+    let original_bytes = pack_monster(&original);
+    let mut buffer = original_bytes.clone();
+    let schema_buffer = load_file_as_buffer("../monster_test.bfbs");
+    let schema = root_as_schema(schema_buffer.as_slice()).unwrap();
+    let string_field = get_schema_field(&schema_buffer, "name");
+    let test_type_field = get_schema_field(&schema_buffer, "test_type");
+    let table_loc = unsafe { get_any_root(&buffer) }.loc();
+    let soffset =
+        unsafe { flatbuffers::read_scalar_at::<flatbuffers::SOffsetT>(&buffer, table_loc) };
+    let vtable_loc = table_loc.checked_add_signed(-(soffset as isize)).unwrap();
+    let slot_loc = vtable_loc + usize::from(test_type_field.offset());
+    let test_type_slot =
+        unsafe { flatbuffers::read_scalar_at::<flatbuffers::VOffsetT>(&buffer, slot_loc) };
+    assert_ne!(test_type_slot, 0, "fixture must store test_type");
+    // Mark `test_type` absent, leaving the union value in place.
+    unsafe { flatbuffers::emplace_scalar::<flatbuffers::VOffsetT>(&mut buffer[slot_loc..], 0) };
+
+    let res = unsafe {
+        set_string(
+            &mut buffer,
+            table_loc,
+            &string_field,
+            "AStringWithSlightlyBiggerSize",
+            &schema,
+        )
+    };
+
+    assert_eq!(res, Ok(()));
+    // The vtable precedes the resized string, so it has not moved.
+    unsafe {
+        flatbuffers::emplace_scalar::<flatbuffers::VOffsetT>(
+            &mut buffer[slot_loc..],
+            test_type_slot,
+        )
+    };
+    assert_unpacks_to_original(&buffer, &original_bytes, |monster| {
+        assert_eq!(monster.name, "AStringWithSlightlyBiggerSize");
+        monster.name = original.name.clone();
+    });
+}
+
+#[test]
+fn test_buffer_set_string_skips_union_with_none_type() {
+    // A NONE discriminant names no table, so growing `name` must skip the
+    // union value rather than look up an object for NONE.
+    let original = monster_with_union();
+    let original_bytes = pack_monster(&original);
+    let mut buffer = original_bytes.clone();
+    let schema_buffer = load_file_as_buffer("../monster_test.bfbs");
+    let schema = root_as_schema(schema_buffer.as_slice()).unwrap();
+    let string_field = get_schema_field(&schema_buffer, "name");
+    let test_type_field = get_schema_field(&schema_buffer, "test_type");
+    let table_loc = unsafe { get_any_root(&buffer) }.loc();
+    let res = unsafe {
+        set_field::<u8>(
+            &mut buffer,
+            table_loc,
+            &test_type_field,
+            my_game::example::Any::NONE.0,
+        )
+    };
+    assert_eq!(res, Ok(()));
+
+    let res = unsafe {
+        set_string(
+            &mut buffer,
+            table_loc,
+            &string_field,
+            "AStringWithSlightlyBiggerSize",
+            &schema,
+        )
+    };
+
+    assert_eq!(res, Ok(()));
+    let res = unsafe {
+        set_field::<u8>(
+            &mut buffer,
+            table_loc,
+            &test_type_field,
+            my_game::example::Any::Monster.0,
+        )
+    };
+    assert_eq!(res, Ok(()));
+    assert_unpacks_to_original(&buffer, &original_bytes, |monster| {
+        assert_eq!(monster.name, "AStringWithSlightlyBiggerSize");
+        monster.name = original.name.clone();
+    });
+}
+
+#[test]
 fn test_create_safe_buffer_default_options_succeeds() {
     let buffer = create_test_buffer();
     let schema_buffer = load_file_as_buffer("../monster_test.bfbs");
@@ -2624,6 +2720,17 @@ fn pack_monster(monster: &my_game::example::MonsterT) -> Vec<u8> {
     let root = monster.pack(&mut builder);
     builder.finish(root, None);
     builder.finished_data().to_vec()
+}
+
+fn monster_with_union() -> my_game::example::MonsterT {
+    my_game::example::MonsterT {
+        name: String::from("Fred"),
+        test: my_game::example::AnyT::Monster(Box::new(my_game::example::MonsterT {
+            name: String::from("Inner"),
+            ..Default::default()
+        })),
+        ..Default::default()
+    }
 }
 
 /// Unpacks `buffer`, lets `restore` check the edited value and put the
