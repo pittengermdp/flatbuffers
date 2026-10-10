@@ -54,11 +54,15 @@ $ cp build/flatc .
 $ goldens/generate_goldens.py
 ```
 
-Re-generate other code files to see the effects of the changes:
+Re-generate the test, sample and example code, and the goldens, to see the
+effects of the changes:
 
 ```
 $ scripts/generate_code.py
 ```
+
+CI runs `scripts/check_generate_code.py`, which runs `generate_code.py` and fails
+if any committed file it regenerates comes out different.
 
 Run tests with [TestAll.sh](tests/TestAll.sh) in [tests](tests), or directly any of the sub-scripts run by it.
 
