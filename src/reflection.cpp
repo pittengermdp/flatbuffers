@@ -56,7 +56,8 @@ static bool VerifyVectorOfStructs(flatbuffers::Verifier& v,
     return false;
   }
 
-  return !p || v.VerifyVectorOrString(p, obj.bytesize());
+  return !p ||
+         v.VerifyVectorOrString(p, obj.bytesize(), nullptr, obj.minalign());
 }
 
 // forward declare to resolve cyclic deps between VerifyObject and VerifyVector
@@ -77,7 +78,8 @@ static bool VerifyUnion(flatbuffers::Verifier& v,
     case reflection::Obj: {
       auto elem_obj = schema.objects()->Get(elem_type->index());
       if (elem_obj->is_struct()) {
-        return v.VerifyFromPointer(elem, elem_obj->bytesize());
+        return v.VerifyFieldStruct(elem, 0, elem_obj->bytesize(),
+                                   elem_obj->minalign());
       } else {
         return VerifyObject(v, schema, *elem_obj,
                             reinterpret_cast<const flatbuffers::Table*>(elem),

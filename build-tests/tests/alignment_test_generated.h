@@ -24,6 +24,10 @@ struct BadAlignmentRoot;
 struct BadAlignmentRootBuilder;
 struct BadAlignmentRootT;
 
+struct LargeStructs;
+struct LargeStructsBuilder;
+struct LargeStructsT;
+
 struct EvenSmallStruct;
 
 struct OddSmallStruct;
@@ -40,6 +44,8 @@ bool operator==(const OuterLargeT &lhs, const OuterLargeT &rhs);
 bool operator!=(const OuterLargeT &lhs, const OuterLargeT &rhs);
 bool operator==(const BadAlignmentRootT &lhs, const BadAlignmentRootT &rhs);
 bool operator!=(const BadAlignmentRootT &lhs, const BadAlignmentRootT &rhs);
+bool operator==(const LargeStructsT &lhs, const LargeStructsT &rhs);
+bool operator!=(const LargeStructsT &lhs, const LargeStructsT &rhs);
 bool operator==(const EvenSmallStruct &lhs, const EvenSmallStruct &rhs);
 bool operator!=(const EvenSmallStruct &lhs, const EvenSmallStruct &rhs);
 bool operator==(const OddSmallStruct &lhs, const OddSmallStruct &rhs);
@@ -55,11 +61,125 @@ inline const ::flatbuffers::TypeTable *OuterLargeTypeTable();
 
 inline const ::flatbuffers::TypeTable *BadAlignmentRootTypeTable();
 
+inline const ::flatbuffers::TypeTable *LargeStructsTypeTable();
+
 inline const ::flatbuffers::TypeTable *EvenSmallStructTypeTable();
 
 inline const ::flatbuffers::TypeTable *OddSmallStructTypeTable();
 
 inline const ::flatbuffers::TypeTable *SmallStructsTypeTable();
+
+enum LargeStructUnion : uint8_t {
+  LargeStructUnion_NONE = 0,
+  LargeStructUnion_BadAlignmentLarge = 1,
+  LargeStructUnion_MIN = LargeStructUnion_NONE,
+  LargeStructUnion_MAX = LargeStructUnion_BadAlignmentLarge
+};
+
+inline const LargeStructUnion (&EnumValuesLargeStructUnion())[2] {
+  static const LargeStructUnion values[] = {
+    LargeStructUnion_NONE,
+    LargeStructUnion_BadAlignmentLarge
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesLargeStructUnion() {
+  static const char * const names[3] = {
+    "NONE",
+    "BadAlignmentLarge",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameLargeStructUnion(LargeStructUnion e) {
+  if (::flatbuffers::IsOutRange(e, LargeStructUnion_NONE, LargeStructUnion_BadAlignmentLarge)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesLargeStructUnion()[index];
+}
+
+template<typename T> struct LargeStructUnionTraits {
+  static const LargeStructUnion enum_value = LargeStructUnion_NONE;
+};
+
+template<> struct LargeStructUnionTraits<BadAlignmentLarge> {
+  static const LargeStructUnion enum_value = LargeStructUnion_BadAlignmentLarge;
+};
+
+template<typename T> struct LargeStructUnionUnionTraits {
+  static const LargeStructUnion enum_value = LargeStructUnion_NONE;
+};
+
+template<> struct LargeStructUnionUnionTraits<BadAlignmentLarge> {
+  static const LargeStructUnion enum_value = LargeStructUnion_BadAlignmentLarge;
+};
+
+struct LargeStructUnionUnion {
+  LargeStructUnion type;
+  void *value;
+
+  LargeStructUnionUnion() : type(LargeStructUnion_NONE), value(nullptr) {}
+  LargeStructUnionUnion(LargeStructUnionUnion&& u) FLATBUFFERS_NOEXCEPT :
+    type(LargeStructUnion_NONE), value(nullptr)
+    { std::swap(type, u.type); std::swap(value, u.value); }
+  LargeStructUnionUnion(const LargeStructUnionUnion &);
+  LargeStructUnionUnion &operator=(const LargeStructUnionUnion &u)
+    { LargeStructUnionUnion t(u); std::swap(type, t.type); std::swap(value, t.value); return *this; }
+  LargeStructUnionUnion &operator=(LargeStructUnionUnion &&u) FLATBUFFERS_NOEXCEPT
+    { std::swap(type, u.type); std::swap(value, u.value); return *this; }
+  ~LargeStructUnionUnion() { Reset(); }
+
+  void Reset();
+
+  template <typename T>
+  void Set(T&& val) {
+    typedef typename std::remove_reference<T>::type RT;
+    Reset();
+    type = LargeStructUnionUnionTraits<RT>::enum_value;
+    if (type != LargeStructUnion_NONE) {
+      value = new RT(std::forward<T>(val));
+    }
+  }
+
+  static void *UnPack(const void *obj, LargeStructUnion type, const ::flatbuffers::resolver_function_t *resolver);
+  ::flatbuffers::Offset<void> Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr) const;
+
+  BadAlignmentLarge *AsBadAlignmentLarge() {
+    return type == LargeStructUnion_BadAlignmentLarge ?
+      reinterpret_cast<BadAlignmentLarge *>(value) : nullptr;
+  }
+  const BadAlignmentLarge *AsBadAlignmentLarge() const {
+    return type == LargeStructUnion_BadAlignmentLarge ?
+      reinterpret_cast<const BadAlignmentLarge *>(value) : nullptr;
+  }
+};
+
+
+inline bool operator==(const LargeStructUnionUnion &lhs, const LargeStructUnionUnion &rhs) {
+  if (lhs.type != rhs.type) return false;
+  switch (lhs.type) {
+    case LargeStructUnion_NONE: {
+      return true;
+    }
+    case LargeStructUnion_BadAlignmentLarge: {
+      return *(reinterpret_cast<const BadAlignmentLarge *>(lhs.value)) ==
+             *(reinterpret_cast<const BadAlignmentLarge *>(rhs.value));
+    }
+    default: {
+      return false;
+    }
+  }
+}
+
+inline bool operator!=(const LargeStructUnionUnion &lhs, const LargeStructUnionUnion &rhs) {
+    return !(lhs == rhs);
+}
+
+template <bool B = false>
+bool VerifyLargeStructUnion(::flatbuffers::VerifierTemplate<B> &verifier, const void *obj, LargeStructUnion type);
+template <bool B = false>
+bool VerifyLargeStructUnionVector(::flatbuffers::VerifierTemplate<B> &verifier, const ::flatbuffers::Vector<::flatbuffers::Offset<void>> *values, const ::flatbuffers::Vector<uint8_t> *types);
 
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) BadAlignmentSmall FLATBUFFERS_FINAL_CLASS {
  private:
@@ -396,6 +516,120 @@ inline ::flatbuffers::Offset<BadAlignmentRoot> CreateBadAlignmentRootDirect(
 
 ::flatbuffers::Offset<BadAlignmentRoot> CreateBadAlignmentRoot(::flatbuffers::FlatBufferBuilder &_fbb, const BadAlignmentRootT *_o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
+struct LargeStructsT : public ::flatbuffers::NativeTable {
+  typedef LargeStructs TableType;
+  std::vector<BadAlignmentLarge> structs{};
+  LargeStructUnionUnion value{};
+};
+
+struct LargeStructs FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
+  typedef LargeStructsT NativeTableType;
+  typedef LargeStructsBuilder Builder;
+  static const ::flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return LargeStructsTypeTable();
+  }
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_STRUCTS = 4,
+    VT_VALUE_TYPE = 6,
+    VT_VALUE = 8
+  };
+  const ::flatbuffers::Vector<const BadAlignmentLarge *> *structs() const {
+    return GetPointer<const ::flatbuffers::Vector<const BadAlignmentLarge *> *>(VT_STRUCTS);
+  }
+  ::flatbuffers::Vector<const BadAlignmentLarge *> *mutable_structs() {
+    return GetPointer<::flatbuffers::Vector<const BadAlignmentLarge *> *>(VT_STRUCTS);
+  }
+  LargeStructUnion value_type() const {
+    return static_cast<LargeStructUnion>(GetField<uint8_t>(VT_VALUE_TYPE, 0));
+  }
+  const void *value() const {
+    return GetPointer<const void *>(VT_VALUE);
+  }
+  template<typename T> const T *value_as() const;
+  const BadAlignmentLarge *value_as_BadAlignmentLarge() const {
+    return value_type() == LargeStructUnion_BadAlignmentLarge ? static_cast<const BadAlignmentLarge *>(value()) : nullptr;
+  }
+  template<typename T> T *mutable_value_as();
+  BadAlignmentLarge *mutable_value_as_BadAlignmentLarge() {
+    return value_type() == LargeStructUnion_BadAlignmentLarge ? static_cast<BadAlignmentLarge *>(mutable_value()) : nullptr;
+  }
+  void *mutable_value() {
+    return GetPointer<void *>(VT_VALUE);
+  }
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_STRUCTS) &&
+           verifier.VerifyVector(structs()) &&
+           VerifyField<uint8_t>(verifier, VT_VALUE_TYPE, 1) &&
+           VerifyOffset(verifier, VT_VALUE) &&
+           VerifyLargeStructUnion(verifier, value(), value_type()) &&
+           verifier.EndTable();
+  }
+  LargeStructsT *UnPack(const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(LargeStructsT *_o, const ::flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static ::flatbuffers::Offset<LargeStructs> Pack(::flatbuffers::FlatBufferBuilder &_fbb, const LargeStructsT* _o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+template<> inline const BadAlignmentLarge *LargeStructs::value_as<BadAlignmentLarge>() const {
+  return value_as_BadAlignmentLarge();
+}
+
+template<> inline BadAlignmentLarge *LargeStructs::mutable_value_as<BadAlignmentLarge>() {
+  return mutable_value_as_BadAlignmentLarge();
+}
+
+struct LargeStructsBuilder {
+  typedef LargeStructs Table;
+  ::flatbuffers::FlatBufferBuilder &fbb_;
+  ::flatbuffers::uoffset_t start_;
+  void add_structs(::flatbuffers::Offset<::flatbuffers::Vector<const BadAlignmentLarge *>> structs) {
+    fbb_.AddOffset(LargeStructs::VT_STRUCTS, structs);
+  }
+  void add_value_type(LargeStructUnion value_type) {
+    fbb_.AddElement<uint8_t>(LargeStructs::VT_VALUE_TYPE, static_cast<uint8_t>(value_type), 0);
+  }
+  void add_value(::flatbuffers::Offset<void> value) {
+    fbb_.AddOffset(LargeStructs::VT_VALUE, value);
+  }
+  explicit LargeStructsBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  ::flatbuffers::Offset<LargeStructs> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = ::flatbuffers::Offset<LargeStructs>(end);
+    return o;
+  }
+};
+
+inline ::flatbuffers::Offset<LargeStructs> CreateLargeStructs(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    ::flatbuffers::Offset<::flatbuffers::Vector<const BadAlignmentLarge *>> structs = 0,
+    LargeStructUnion value_type = LargeStructUnion_NONE,
+    ::flatbuffers::Offset<void> value = 0) {
+  LargeStructsBuilder builder_(_fbb);
+  builder_.add_value(value);
+  builder_.add_structs(structs);
+  builder_.add_value_type(value_type);
+  return builder_.Finish();
+}
+
+inline ::flatbuffers::Offset<LargeStructs> CreateLargeStructsDirect(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    const std::vector<BadAlignmentLarge> *structs = nullptr,
+    LargeStructUnion value_type = LargeStructUnion_NONE,
+    ::flatbuffers::Offset<void> value = 0) {
+  auto structs__ = structs ? _fbb.CreateVectorOfStructs<BadAlignmentLarge>(*structs) : 0;
+  return CreateLargeStructs(
+      _fbb,
+      structs__,
+      value_type,
+      value);
+}
+
+::flatbuffers::Offset<LargeStructs> CreateLargeStructs(::flatbuffers::FlatBufferBuilder &_fbb, const LargeStructsT *_o, const ::flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
 struct SmallStructsT : public ::flatbuffers::NativeTable {
   typedef SmallStructs TableType;
   std::vector<EvenSmallStruct> even_structs{};
@@ -582,6 +816,50 @@ inline ::flatbuffers::Offset<BadAlignmentRoot> BadAlignmentRoot::Pack(::flatbuff
 }
 
 
+inline bool operator==(const LargeStructsT &lhs, const LargeStructsT &rhs) {
+  return
+      (lhs.structs == rhs.structs) &&
+      (lhs.value == rhs.value);
+}
+
+inline bool operator!=(const LargeStructsT &lhs, const LargeStructsT &rhs) {
+    return !(lhs == rhs);
+}
+
+
+inline LargeStructsT *LargeStructs::UnPack(const ::flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<LargeStructsT>(new LargeStructsT());
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void LargeStructs::UnPackTo(LargeStructsT *_o, const ::flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = structs(); if (_e) { _o->structs.resize(_e->size()); for (::flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->structs[_i] = *_e->Get(_i); } } else { _o->structs.resize(0); } }
+  { auto _e = value_type(); _o->value.type = _e; }
+  { auto _e = value(); if (_e) _o->value.value = LargeStructUnionUnion::UnPack(_e, value_type(), _resolver); }
+}
+
+inline ::flatbuffers::Offset<LargeStructs> CreateLargeStructs(::flatbuffers::FlatBufferBuilder &_fbb, const LargeStructsT *_o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  return LargeStructs::Pack(_fbb, _o, _rehasher);
+}
+
+inline ::flatbuffers::Offset<LargeStructs> LargeStructs::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const LargeStructsT* _o, const ::flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { ::flatbuffers::FlatBufferBuilder *__fbb; const LargeStructsT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _structs = _o->structs.size() ? _fbb.CreateVectorOfStructs(_o->structs) : 0;
+  auto _value_type = _o->value.type;
+  auto _value = _o->value.Pack(_fbb);
+  return CreateLargeStructs(
+      _fbb,
+      _structs,
+      _value_type,
+      _value);
+}
+
+
 inline bool operator==(const SmallStructsT &lhs, const SmallStructsT &rhs) {
   return
       (lhs.even_structs == rhs.even_structs) &&
@@ -620,6 +898,96 @@ inline ::flatbuffers::Offset<SmallStructs> SmallStructs::Pack(::flatbuffers::Fla
       _fbb,
       _even_structs,
       _odd_structs);
+}
+
+template <bool B>
+inline bool VerifyLargeStructUnion(::flatbuffers::VerifierTemplate<B> &verifier, const void *obj, LargeStructUnion type) {
+  switch (type) {
+    case LargeStructUnion_NONE: {
+      return true;
+    }
+    case LargeStructUnion_BadAlignmentLarge: {
+      return verifier.template VerifyField<BadAlignmentLarge>(static_cast<const uint8_t *>(obj), 0, 8);
+    }
+    default: return true;
+  }
+}
+
+template <bool B>
+inline bool VerifyLargeStructUnionVector(::flatbuffers::VerifierTemplate<B> &verifier, const ::flatbuffers::Vector<::flatbuffers::Offset<void>> *values, const ::flatbuffers::Vector<uint8_t> *types) {
+  if (!values || !types) return !values && !types;
+  if (values->size() != types->size()) return false;
+  for (::flatbuffers::uoffset_t i = 0; i < values->size(); ++i) {
+    if (!VerifyLargeStructUnion(
+        verifier,  values->Get(i), types->GetEnum<LargeStructUnion>(i))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+inline void *LargeStructUnionUnion::UnPack(const void *obj, LargeStructUnion type, const ::flatbuffers::resolver_function_t *resolver) {
+  (void)resolver;
+  switch (type) {
+    case LargeStructUnion_BadAlignmentLarge: {
+      auto ptr = reinterpret_cast<const BadAlignmentLarge *>(obj);
+      return new BadAlignmentLarge(*ptr);
+    }
+    default: return nullptr;
+  }
+}
+
+inline ::flatbuffers::Offset<void> LargeStructUnionUnion::Pack(::flatbuffers::FlatBufferBuilder &_fbb, const ::flatbuffers::rehasher_function_t *_rehasher) const {
+  (void)_rehasher;
+  switch (type) {
+    case LargeStructUnion_BadAlignmentLarge: {
+      auto ptr = reinterpret_cast<const BadAlignmentLarge *>(value);
+      return _fbb.CreateStruct(*ptr).Union();
+    }
+    default: return 0;
+  }
+}
+
+inline LargeStructUnionUnion::LargeStructUnionUnion(const LargeStructUnionUnion &u) : type(u.type), value(nullptr) {
+  switch (type) {
+    case LargeStructUnion_BadAlignmentLarge: {
+      value = new BadAlignmentLarge(*reinterpret_cast<BadAlignmentLarge *>(u.value));
+      break;
+    }
+    default:
+      break;
+  }
+}
+
+inline void LargeStructUnionUnion::Reset() {
+  switch (type) {
+    case LargeStructUnion_BadAlignmentLarge: {
+      auto ptr = reinterpret_cast<BadAlignmentLarge *>(value);
+      delete ptr;
+      break;
+    }
+    default: break;
+  }
+  value = nullptr;
+  type = LargeStructUnion_NONE;
+}
+
+inline const ::flatbuffers::TypeTable *LargeStructUnionTypeTable() {
+  static const ::flatbuffers::TypeCode type_codes[] = {
+    { ::flatbuffers::ET_SEQUENCE, 0, -1 },
+    { ::flatbuffers::ET_SEQUENCE, 0, 0 }
+  };
+  static const ::flatbuffers::TypeFunction type_refs[] = {
+    BadAlignmentLargeTypeTable
+  };
+  static const char * const names[] = {
+    "NONE",
+    "BadAlignmentLarge"
+  };
+  static const ::flatbuffers::TypeTable tt = {
+    ::flatbuffers::ST_UNION, 2, type_codes, type_refs, nullptr, nullptr, names
+  };
+  return &tt;
 }
 
 inline const ::flatbuffers::TypeTable *BadAlignmentSmallTypeTable() {
@@ -685,6 +1053,27 @@ inline const ::flatbuffers::TypeTable *BadAlignmentRootTypeTable() {
   };
   static const ::flatbuffers::TypeTable tt = {
     ::flatbuffers::ST_TABLE, 2, type_codes, type_refs, nullptr, nullptr, names
+  };
+  return &tt;
+}
+
+inline const ::flatbuffers::TypeTable *LargeStructsTypeTable() {
+  static const ::flatbuffers::TypeCode type_codes[] = {
+    { ::flatbuffers::ET_SEQUENCE, 1, 0 },
+    { ::flatbuffers::ET_UTYPE, 0, 1 },
+    { ::flatbuffers::ET_SEQUENCE, 0, 1 }
+  };
+  static const ::flatbuffers::TypeFunction type_refs[] = {
+    BadAlignmentLargeTypeTable,
+    LargeStructUnionTypeTable
+  };
+  static const char * const names[] = {
+    "structs",
+    "value_type",
+    "value"
+  };
+  static const ::flatbuffers::TypeTable tt = {
+    ::flatbuffers::ST_TABLE, 3, type_codes, type_refs, nullptr, nullptr, names
   };
   return &tt;
 }

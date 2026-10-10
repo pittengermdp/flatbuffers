@@ -21,6 +21,16 @@ table BadAlignmentRoot {
   small: [BadAlignmentSmall];
 }
 
+// The elements of a [BadAlignmentLarge], and a BadAlignmentLarge union value,
+// must be 8-aligned in the buffer; a 4-aligned length prefix or offset
+// leading to them does not make them so.
+union LargeStructUnion { BadAlignmentLarge }
+
+table LargeStructs {
+  structs: [BadAlignmentLarge];
+  value: LargeStructUnion;
+}
+
 // sizeof(EvenSmallStruct) == 2
 // alignof(EvenSmallStruct) == 1
 struct EvenSmallStruct {
