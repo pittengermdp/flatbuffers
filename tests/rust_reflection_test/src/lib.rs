@@ -1657,6 +1657,55 @@ fn test_buffer_set_string_skips_union_with_none_type() {
 }
 
 #[test]
+fn test_buffer_set_string_in_nested_table_succeeds() {
+    // Resizing a string moves everything after it, so an offset anywhere in
+    // the buffer may span it: here the root's `name`, which `pack` writes above
+    // the Stat that owns the resized `id`. The walk must start at the root, not
+    // at the Stat.
+    let original = my_game::example::MonsterT {
+        name: String::from("Root"),
+        testempty: Some(Box::new(my_game::example::StatT {
+            id: Some(String::from("Fred")),
+            ..Default::default()
+        })),
+        ..Default::default()
+    };
+    let original_bytes = pack_monster(&original);
+    let mut buffer = original_bytes.clone();
+    let schema_buffer = load_file_as_buffer("../monster_test.bfbs");
+    let schema = root_as_schema(schema_buffer.as_slice()).unwrap();
+    let id_field = get_object_field(&schema_buffer, "MyGame.Example.Stat", "id");
+    let testempty_field = get_schema_field(&schema_buffer, "testempty");
+    let root = unsafe { get_any_root(&original_bytes) };
+    let stat_loc = unsafe { get_field_table(&root, &testempty_field) }
+        .unwrap()
+        .unwrap()
+        .loc();
+    let monster = my_game::example::root_as_monster(&original_bytes).unwrap();
+    assert!(
+        monster.name().as_ptr() > monster.testempty().unwrap().id().unwrap().as_ptr(),
+        "fixture must place the root's name above the resized string"
+    );
+
+    let res = unsafe {
+        set_string(
+            &mut buffer,
+            stat_loc,
+            &id_field,
+            "AStringWithSlightlyBiggerSize",
+            &schema,
+        )
+    };
+
+    assert_eq!(res, Ok(()));
+    assert_unpacks_to_original(&buffer, &original_bytes, |monster| {
+        let stat = monster.testempty.as_mut().unwrap();
+        assert_eq!(stat.id.as_deref(), Some("AStringWithSlightlyBiggerSize"));
+        stat.id = Some(String::from("Fred"));
+    });
+}
+
+#[test]
 fn test_create_safe_buffer_default_options_succeeds() {
     let buffer = create_test_buffer();
     let schema_buffer = load_file_as_buffer("../monster_test.bfbs");
@@ -2751,6 +2800,24 @@ fn get_schema_field<'a>(schema_buffer: &'a Vec<u8>, field_name: &'a str) -> Fiel
     let root_table = schema.root_table().unwrap();
     let fields = root_table.fields();
     fields
+        .lookup_by_key(field_name, |field, key| field.key_compare_with_value(key))
+        .unwrap()
+}
+
+fn get_object_field<'a>(
+    schema_buffer: &'a [u8],
+    object_name: &'a str,
+    field_name: &'a str,
+) -> Field<'a> {
+    let schema = root_as_schema(schema_buffer).unwrap();
+    let object = schema
+        .objects()
+        .lookup_by_key(object_name, |object, key| {
+            object.key_compare_with_value(key)
+        })
+        .unwrap();
+    object
+        .fields()
         .lookup_by_key(field_name, |field, key| field.key_compare_with_value(key))
         .unwrap()
 }

@@ -744,6 +744,8 @@ pub unsafe fn set_field<T: EndianScalar>(
 
 /// Sets a string field to a new value. Returns error if the field is not originally set or is not of string type in which cases `buf` stays intact. Returns error if `buf` fails to be updated.
 ///
+/// `table_loc` is the table that holds `field`, at any depth below the root.
+///
 /// # Safety
 ///
 /// `buf` must contain a valid root table and valid offset to it and conform to the `schema`.
@@ -829,12 +831,16 @@ pub unsafe fn set_string(
         let mut visited_vec = vec![false; buf.len()];
 
         if offset != 0 {
-            // SAFETY: the caller guarantees `buf` conforms to `schema` and holds
-            // its root table at `table_loc`, which is the object passed here.
+            // Everything after the string moves, so an offset anywhere in the
+            // buffer may span it: walk from the root, not from `table_loc`.
+            // SAFETY: the caller guarantees `buf` holds a valid root table.
+            let root_loc = unsafe { get_any_root(buf) }.loc();
+            // SAFETY: the caller guarantees `buf` conforms to `schema`, so the
+            // table at `root_loc` is the schema's root table passed here.
             unsafe {
                 update_offset(
                     buf,
-                    table_loc,
+                    root_loc,
                     &mut visited_vec,
                     &schema.root_table().unwrap(),
                     schema,
