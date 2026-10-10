@@ -458,6 +458,15 @@ flatc(
 
 flatc(NO_INCL_OPTS + CPP_OPTS, schema=optional_scalars_schema)
 
+# JSON Schema for the same schema. Each `= null` field must admit JSON null as
+# well as its own type -- the JSON parser reads null as "not present" for
+# exactly those fields -- while every other scalar keeps rejecting null.
+flatc(["--jsonschema"], schema=optional_scalars_schema)
+
+# A schema with no root_type still gets its definitions, just no top-level
+# $ref. This one also has a union, so it pins the `type`/`type_type` pairing.
+flatc(["--jsonschema"], schema="keyword_test.fbs")
+
 # Type / field collsion
 type_field_collsion_schema = "type_field_collsion.fbs"
 

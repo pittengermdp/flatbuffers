@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "definitions": {
+    "KeywordTest_ABC" : {
+      "type" : "string",
+      "enum": ["void", "where", "stackalloc"]
+    },
+    "KeywordTest_public" : {
+      "type" : "string",
+      "enum": ["NONE"]
+    },
+    "KeywordTest_KeywordsInUnion" : {
+      "type" : "string",
+      "enum": ["NONE", "static", "internal"]
+    },
+    "KeywordTest_KeywordsInTable" : {
+      "type" : "object",
+      "properties" : {
+        "is" : {
+                "$ref" : "#/definitions/KeywordTest_ABC"
+              },
+        "private" : {
+                "$ref" : "#/definitions/KeywordTest_public"
+              },
+        "type" : {
+                "type" : "integer", "minimum" : -2147483648, "maximum" : 2147483647
+              },
+        "default" : {
+                "type" : "boolean"
+              }
+      },
+      "additionalProperties" : false
+    },
+    "KeywordTest_Table2" : {
+      "type" : "object",
+      "properties" : {
+        "type_type" : {
+                "$ref" : "#/definitions/KeywordTest_KeywordsInUnion"
+              },
+        "type" : {
+                "anyOf": [{ "$ref" : "#/definitions/KeywordTest_KeywordsInTable" },{ "$ref" : "#/definitions/KeywordTest_KeywordsInTable" }]
+              }
+      },
+      "dependentRequired" : { "type" : ["type_type"] },
+      "allOf" : [
+        { "if" : { "properties" : { "type_type" : { "const" : "NONE" } }, "required" : ["type_type"] }, "then" : { "not" : { "required" : ["type"] } } },
+        { "if" : { "properties" : { "type_type" : { "const" : "static" } }, "required" : ["type_type"] }, "then" : { "properties" : { "type" : { "$ref" : "#/definitions/KeywordTest_KeywordsInTable" } } } },
+        { "if" : { "properties" : { "type_type" : { "const" : "internal" } }, "required" : ["type_type"] }, "then" : { "properties" : { "type" : { "$ref" : "#/definitions/KeywordTest_KeywordsInTable" } } } }
+      ],
+      "additionalProperties" : false
+    }
+  }
+}

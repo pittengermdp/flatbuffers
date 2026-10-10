@@ -17,8 +17,9 @@
 #include "idl_gen_json_schema.h"
 
 #include <algorithm>
-#include <iostream>
 #include <limits>
+#include <string>
+#include <vector>
 
 #include "flatbuffers/code_generators.h"
 #include "flatbuffers/idl.h"
@@ -50,50 +51,96 @@ static std::string GenType(const std::string& name) {
   return "\"type\" : \"" + name + "\"";
 }
 
-static std::string GenType(BaseType type) {
+// The JSON Schema "type" name for a scalar or string base type, or nullptr for
+// any other base type.
+static const char* JsonTypeName(BaseType type) {
   switch (type) {
     case BASE_TYPE_BOOL:
-      return "\"type\" : \"boolean\"";
+      return "boolean";
     case BASE_TYPE_CHAR:
-      return "\"type\" : \"integer\", \"minimum\" : " +
+    case BASE_TYPE_UCHAR:
+    case BASE_TYPE_SHORT:
+    case BASE_TYPE_USHORT:
+    case BASE_TYPE_INT:
+    case BASE_TYPE_UINT:
+    case BASE_TYPE_LONG:
+    case BASE_TYPE_ULONG:
+      return "integer";
+    case BASE_TYPE_FLOAT:
+    case BASE_TYPE_DOUBLE:
+      return "number";
+    case BASE_TYPE_STRING:
+      return "string";
+    default:
+      return nullptr;
+  }
+}
+
+// The minimum/maximum keywords bounding an integer base type to its width,
+// each preceded by ", ". Empty for every non-integer base type.
+static std::string GenIntegerRange(BaseType type) {
+  switch (type) {
+    case BASE_TYPE_CHAR:
+      return ", \"minimum\" : " +
              NumToString(std::numeric_limits<int8_t>::min()) +
              ", \"maximum\" : " +
              NumToString(std::numeric_limits<int8_t>::max());
     case BASE_TYPE_UCHAR:
-      return "\"type\" : \"integer\", \"minimum\" : 0, \"maximum\" :" +
+      return ", \"minimum\" : 0, \"maximum\" :" +
              NumToString(std::numeric_limits<uint8_t>::max());
     case BASE_TYPE_SHORT:
-      return "\"type\" : \"integer\", \"minimum\" : " +
+      return ", \"minimum\" : " +
              NumToString(std::numeric_limits<int16_t>::min()) +
              ", \"maximum\" : " +
              NumToString(std::numeric_limits<int16_t>::max());
     case BASE_TYPE_USHORT:
-      return "\"type\" : \"integer\", \"minimum\" : 0, \"maximum\" : " +
+      return ", \"minimum\" : 0, \"maximum\" : " +
              NumToString(std::numeric_limits<uint16_t>::max());
     case BASE_TYPE_INT:
-      return "\"type\" : \"integer\", \"minimum\" : " +
+      return ", \"minimum\" : " +
              NumToString(std::numeric_limits<int32_t>::min()) +
              ", \"maximum\" : " +
              NumToString(std::numeric_limits<int32_t>::max());
     case BASE_TYPE_UINT:
-      return "\"type\" : \"integer\", \"minimum\" : 0, \"maximum\" : " +
+      return ", \"minimum\" : 0, \"maximum\" : " +
              NumToString(std::numeric_limits<uint32_t>::max());
     case BASE_TYPE_LONG:
-      return "\"type\" : \"integer\", \"minimum\" : " +
+      return ", \"minimum\" : " +
              NumToString(std::numeric_limits<int64_t>::min()) +
              ", \"maximum\" : " +
              NumToString(std::numeric_limits<int64_t>::max());
     case BASE_TYPE_ULONG:
-      return "\"type\" : \"integer\", \"minimum\" : 0, \"maximum\" : " +
+      return ", \"minimum\" : 0, \"maximum\" : " +
              NumToString(std::numeric_limits<uint64_t>::max());
-    case BASE_TYPE_FLOAT:
-    case BASE_TYPE_DOUBLE:
-      return "\"type\" : \"number\"";
-    case BASE_TYPE_STRING:
-      return "\"type\" : \"string\"";
     default:
       return "";
   }
+}
+
+static std::string GenType(BaseType type) {
+  const char* type_name = JsonTypeName(type);
+  if (type_name == nullptr) {
+    return "";
+  }
+  return GenType(std::string(type_name)) + GenIntegerRange(type);
+}
+
+// An optional scalar (`field: T = null`) has no default to fall back on, so
+// the JSON parser reads a null value for it as "not present", exactly like
+// omitting it. The schema admits null alongside the field's own type; the
+// integer range keywords constrain only numbers, so they leave null alone.
+static std::string GenOptionalScalarType(const Type& type) {
+  if (type.enum_def != nullptr) {
+    return "\"anyOf\" : [{ " + GenTypeRef(type.enum_def) + " }, { " +
+           GenType(std::string("null")) + " }]";
+  }
+  const char* type_name = JsonTypeName(type.base_type);
+  FLATBUFFERS_ASSERT(type_name != nullptr);  // the parser admits scalars only
+  if (type_name == nullptr) {
+    return "";
+  }
+  return "\"type\" : [\"" + std::string(type_name) + "\", \"null\"]" +
+         GenIntegerRange(type.base_type);
 }
 
 static std::string GenBaseType(const Type& type) {
@@ -104,6 +151,43 @@ static std::string GenBaseType(const Type& type) {
     return GenTypeRef(type.enum_def);
   }
   return GenType(type.base_type);
+}
+
+static std::string Join(const std::vector<std::string>& parts,
+                        const std::string& separator) {
+  std::string joined;
+  for (auto part = parts.cbegin(); part != parts.cend(); ++part) {
+    if (part != parts.cbegin()) {
+      joined += separator;
+    }
+    joined += *part;
+  }
+  return joined;
+}
+
+// The schema of one union variant's value, or "" for NONE, which has none.
+// Every other variant is a table or struct: string variants are an advanced
+// union feature, which the parser rejects when generating JSON Schema.
+static std::string GenUnionVariantType(const EnumVal& variant) {
+  if (variant.union_type.base_type != BASE_TYPE_STRUCT) {
+    return "";
+  }
+  return GenTypeRef(variant.union_type.struct_def);
+}
+
+// The schema of a union value without regard to its type field: any one of
+// the variants. Pairing the value with the variant its type field names is a
+// cross-member constraint, stated on the enclosing table instead.
+static std::string GenUnionValueType(const EnumDef& union_def) {
+  std::vector<std::string> variants;
+  for (auto variant = union_def.Vals().cbegin();
+       variant != union_def.Vals().cend(); ++variant) {
+    const std::string variant_type = GenUnionVariantType(**variant);
+    if (!variant_type.empty()) {
+      variants.push_back("{ " + variant_type + " }");
+    }
+  }
+  return "\"anyOf\": [" + Join(variants, ",") + "]";
 }
 
 static std::string GenArrayType(const Type& type) {
@@ -130,23 +214,7 @@ static std::string GenType(const Type& type) {
       return GenTypeRef(type.struct_def);
     }
     case BASE_TYPE_UNION: {
-      std::string union_type_string("\"anyOf\": [");
-      const auto& union_types = type.enum_def->Vals();
-      for (auto ut = union_types.cbegin(); ut < union_types.cend(); ++ut) {
-        const auto& union_type = *ut;
-        if (union_type->union_type.base_type == BASE_TYPE_NONE) {
-          continue;
-        }
-        if (union_type->union_type.base_type == BASE_TYPE_STRUCT) {
-          union_type_string.append(
-              "{ " + GenTypeRef(union_type->union_type.struct_def) + " }");
-        }
-        if (union_type != *type.enum_def->Vals().rbegin()) {
-          union_type_string.append(",");
-        }
-      }
-      union_type_string.append("]");
-      return union_type_string;
+      return GenUnionValueType(*type.enum_def);
     }
     case BASE_TYPE_UTYPE:
       return GenTypeRef(type.enum_def);
@@ -221,21 +289,64 @@ class JsonSchemaGenerator : public BaseGenerator {
     return "";
   }
 
+  // A union field is two JSON members: `<field>_type`, naming the variant, and
+  // `<field>`, holding its value. The JSON parser rejects a value with no type
+  // (it cannot tell what to parse), any value under NONE, and a value that
+  // does not parse as the variant the type names; it accepts a type with no
+  // value. Neither property schema can see the other member, so the pairing
+  // is stated on the enclosing table. Empty when the table has no union.
+  std::string GenUnionConstraints(const StructDef& structure) const {
+    std::vector<std::string> dependencies;
+    std::vector<std::string> conditions;
+    const auto& fields = structure.fields.vec;
+    for (auto f = fields.cbegin(); f != fields.cend(); ++f) {
+      const FieldDef& field = **f;
+      if (field.value.type.base_type != BASE_TYPE_UNION ||
+          field.sibling_union_field == nullptr) {
+        continue;
+      }
+      const std::string value_name = "\"" + field.name + "\"";
+      const std::string type_name =
+          "\"" + field.sibling_union_field->name + "\"";
+      dependencies.push_back(value_name + " : [" + type_name + "]");
+      const auto& variants = field.value.type.enum_def->Vals();
+      for (auto v = variants.cbegin(); v != variants.cend(); ++v) {
+        const EnumVal& variant = **v;
+        const std::string then =
+            variant.union_type.base_type == BASE_TYPE_NONE
+                ? "{ \"not\" : { \"required\" : [" + value_name + "] } }"
+                : "{ \"properties\" : { " + value_name + " : { " +
+                      GenUnionVariantType(variant) + " } } }";
+        conditions.push_back(Indent(4) + "{ \"if\" : { \"properties\" : { " +
+                             type_name + " : { \"const\" : \"" + variant.name +
+                             "\" } }, \"required\" : [" + type_name +
+                             "] }, \"then\" : " + then + " }");
+      }
+    }
+    if (dependencies.empty()) {
+      return "";
+    }
+    return Indent(3) + "\"dependentRequired\" : { " +
+           Join(dependencies, ", ") + " }," + NewLine() + Indent(3) +
+           "\"allOf\" : [" + NewLine() + Join(conditions, "," + NewLine()) +
+           NewLine() + Indent(3) + "]," + NewLine();
+  }
+
   bool generate() {
     code_ = "";
-    if (parser_.root_struct_def_ == nullptr) {
-      std::cerr << "Error: Binary schema not generated, no root struct found\n";
-      return false;
-    }
     code_ += "{" + NewLine();
     code_ += Indent(1) +
              "\"$schema\": \"https://json-schema.org/draft/2019-09/schema\"," +
              NewLine();
     code_ += Indent(1) + "\"definitions\": {" + NewLine();
+    // Collected and joined, so the last one carries no trailing comma whatever
+    // kind it is -- a schema of enums alone used to end in one.
+    std::vector<std::string> definitions;
     for (auto e = parser_.enums_.vec.cbegin(); e != parser_.enums_.vec.cend();
          ++e) {
-      code_ += Indent(2) + "\"" + GenFullName(*e) + "\" : {" + NewLine();
-      code_ += Indent(3) + GenType("string") + "," + NewLine();
+      std::string definition =
+          Indent(2) + "\"" + GenFullName(*e) + "\" : {" + NewLine();
+      definition += Indent(3) + GenType("string") + "," + NewLine();
       auto enumdef(Indent(3) + "\"enum\": [");
       for (auto enum_value = (*e)->Vals().begin();
            enum_value != (*e)->Vals().end(); ++enum_value) {
@@ -245,21 +356,24 @@ class JsonSchemaGenerator : public BaseGenerator {
         }
       }
       enumdef.append("]");
-      code_ += enumdef + NewLine();
-      code_ += Indent(2) + "}," + NewLine();  // close type
+      definition += enumdef + NewLine();
+      definition += Indent(2) + "}";  // close type
+      definitions.push_back(definition);
     }
     for (auto s = parser_.structs_.vec.cbegin();
          s != parser_.structs_.vec.cend(); ++s) {
       const auto& structure = *s;
-      code_ += Indent(2) + "\"" + GenFullName(structure) + "\" : {" + NewLine();
-      code_ += Indent(3) + GenType("object") + "," + NewLine();
+      std::string definition =
+          Indent(2) + "\"" + GenFullName(structure) + "\" : {" + NewLine();
+      definition += Indent(3) + GenType("object") + "," + NewLine();
       const auto& comment_lines = structure->doc_comment;
       auto comment = PrepareDescription(comment_lines);
       if (comment != "") {
-        code_ += Indent(3) + "\"description\" : " + comment + "," + NewLine();
+        definition +=
+            Indent(3) + "\"description\" : " + comment + "," + NewLine();
       }
 
-      code_ += Indent(3) + "\"properties\" : {" + NewLine();
+      definition += Indent(3) + "\"properties\" : {" + NewLine();
 
       const auto& properties = structure->fields.vec;
       for (auto prop = properties.cbegin(); prop != properties.cend(); ++prop) {
@@ -278,7 +392,9 @@ class JsonSchemaGenerator : public BaseGenerator {
         }
         std::string typeLine = Indent(4) + "\"" + property->name + "\"";
         typeLine += " : {" + NewLine() + Indent(8);
-        typeLine += GenType(property->value.type);
+        typeLine += property->IsScalarOptional()
+                        ? GenOptionalScalarType(property->value.type)
+                        : GenType(property->value.type);
         typeLine += arrayInfo;
         typeLine += deprecated_info;
         auto description = PrepareDescription(property->doc_comment);
@@ -291,14 +407,19 @@ class JsonSchemaGenerator : public BaseGenerator {
         if (property != properties.back()) {
           typeLine.append(",");
         }
-        code_ += typeLine + NewLine();
+        definition += typeLine + NewLine();
       }
-      code_ += Indent(3) + "}," + NewLine();  // close properties
+      definition += Indent(3) + "}," + NewLine();  // close properties
 
+      // A struct has no optional fields: the JSON parser rejects one with any
+      // field missing ("wrong number of initializers"), so all are required.
+      const bool is_struct = structure->fixed;
       std::vector<FieldDef*> requiredProperties;
       std::copy_if(properties.begin(), properties.end(),
                    back_inserter(requiredProperties),
-                   [](FieldDef const* prop) { return prop->IsRequired(); });
+                   [is_struct](FieldDef const* prop) {
+                     return is_struct || prop->IsRequired();
+                   });
       if (!requiredProperties.empty()) {
         auto required_string(Indent(3) + "\"required\" : [");
         for (auto req_prop = requiredProperties.cbegin();
@@ -309,20 +430,27 @@ class JsonSchemaGenerator : public BaseGenerator {
           }
         }
         required_string.append("],");
-        code_ += required_string + NewLine();
+        definition += required_string + NewLine();
       }
-      code_ += Indent(3) + "\"additionalProperties\" : false" + NewLine();
-      auto closeType(Indent(2) + "}");
-      if (*s != parser_.structs_.vec.back()) {
-        closeType.append(",");
-      }
-      code_ += closeType + NewLine();  // close type
+      definition += GenUnionConstraints(*structure);
+      definition += Indent(3) + "\"additionalProperties\" : false" + NewLine();
+      definition += Indent(2) + "}";  // close type
+      definitions.push_back(definition);
     }
-    code_ += Indent(1) + "}," + NewLine();  // close definitions
+    if (!definitions.empty()) {
+      code_ += Join(definitions, "," + NewLine()) + NewLine();
+    }
 
-    // mark root type
-    code_ += Indent(1) + "\"$ref\" : \"#/definitions/" +
-             GenFullName(parser_.root_struct_def_) + "\"" + NewLine();
+    // A schema without a root_type still defines types worth validating
+    // against; it just names no default document type, so consumers address a
+    // definition directly ("<file>.schema.json#/definitions/<Ns>_<Type>").
+    if (parser_.root_struct_def_ == nullptr) {
+      code_ += Indent(1) + "}" + NewLine();  // close definitions
+    } else {
+      code_ += Indent(1) + "}," + NewLine();  // close definitions
+      code_ += Indent(1) + "\"$ref\" : \"#/definitions/" +
+               GenFullName(parser_.root_struct_def_) + "\"" + NewLine();
+    }
 
     code_ += "}" + NewLine();  // close schema root
     return true;

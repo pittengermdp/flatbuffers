@@ -27,6 +27,7 @@
                 "maxItems": 2
               }
       },
+      "required" : ["a", "b", "c", "d"],
       "additionalProperties" : false
     },
     "MyGame_Example_ArrayStruct" : {
@@ -57,6 +58,7 @@
                 "maxItems": 2
               }
       },
+      "required" : ["a", "b", "c", "d", "e", "f"],
       "additionalProperties" : false
     },
     "MyGame_Example_LargeArrayStruct" : {
@@ -88,6 +90,7 @@
                 "maxItems": 64
               }
       },
+      "required" : ["d", "e", "f", "g", "h"],
       "additionalProperties" : false
     },
     "MyGame_Example_ArrayTable" : {
