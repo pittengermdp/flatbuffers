@@ -254,22 +254,6 @@ std::vector<uint8_t> ReaderWithSlot(const voffset_t slot,
   return buffer;
 }
 
-
-// The region whose comment has `type`, `name` and `index`, or null.
-const BinaryRegion* FindRegion(const Annotations& annotations,
-                               const BinaryRegionCommentType type,
-                               const std::string& name, const size_t index) {
-  for (const auto& section : annotations) {
-    for (const BinaryRegion& region : section.second.regions) {
-      if (region.comment.type == type && region.comment.name == name &&
-          region.comment.index == index) {
-        return &region;
-      }
-    }
-  }
-  return nullptr;
-}
-
 // The vtable slot annotated for the field `name` with `id`, or null. The text
 // output prints it as "offset to field `name` (id: N)".
 const BinaryRegion* FindSlot(const Annotations& annotations,
