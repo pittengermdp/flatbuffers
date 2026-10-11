@@ -8,6 +8,7 @@
 #include "monster_test_generated.h"
 #include "test_assert.h"
 #include "tests/arrays_test_generated.h"
+#include "tests/union_underlying_type_test_generated.h"
 
 namespace flatbuffers {
 namespace tests {
@@ -407,6 +408,45 @@ void MiniReflectFixedLengthArrayTest() {
       "}",
       s.c_str());
 #endif
+}
+
+// A union declared with an underlying type stores its types as that type:
+// `union ABC: int` makes test_union_type an int, and test_vector_of_union_type
+// a vector of ints. Mini reflection must read them, and find the members they
+// name, at that width, not as 1-byte UTypes.
+void MiniReflectUnionUnderlyingTypeTest() {
+  using namespace UnionUnderlyingType;
+  AT a;
+  a.a = 42;
+  BT b;
+  b.b = "foo";
+  CT c;
+  c.c = true;
+
+  DT single;
+  single.test_union.Set(a);
+  flatbuffers::FlatBufferBuilder single_fbb;
+  single_fbb.Finish(D::Pack(single_fbb, &single));
+  TEST_EQ_STR(flatbuffers::FlatBufferToString(single_fbb.GetBufferPointer(),
+                                              D::MiniReflectTypeTable())
+                  .c_str(),
+              "{ test_union_type: A, test_union: { a: 42 } }");
+
+  DT many;
+  many.test_union.Set(c);
+  many.test_vector_of_union.resize(3);
+  many.test_vector_of_union[0].Set(a);
+  many.test_vector_of_union[1].Set(b);
+  many.test_vector_of_union[2].Set(c);
+  flatbuffers::FlatBufferBuilder many_fbb;
+  many_fbb.Finish(D::Pack(many_fbb, &many));
+  TEST_EQ_STR(flatbuffers::FlatBufferToString(many_fbb.GetBufferPointer(),
+                                              D::MiniReflectTypeTable())
+                  .c_str(),
+              "{ test_union_type: C, test_union: { c: true }, "
+              "test_vector_of_union_type: [ A, B, C ], "
+              "test_vector_of_union: [ { a: 42 }, { b: \"foo\" }, "
+              "{ c: true } ] }");
 }
 
 }  // namespace tests
