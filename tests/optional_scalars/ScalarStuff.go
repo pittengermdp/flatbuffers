@@ -951,125 +951,125 @@ func (rcv_ *ScalarStuff) MutateDefaultEnum(n_ OptionalByte) bool {
 func ScalarStuffStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(36)
 }
-func ScalarStuffAddJustI8(builder_ *flatbuffers.Builder, justI8_ int8) {
-	builder_.PrependInt8Slot(0, justI8_, 0)
+func ScalarStuffAddJustI8(builder_ *flatbuffers.Builder, justI8Arg_ int8) {
+	builder_.PrependInt8Slot(0, justI8Arg_, 0)
 }
-func ScalarStuffAddMaybeI8(builder_ *flatbuffers.Builder, maybeI8_ int8) {
-	builder_.PrependInt8(maybeI8_)
+func ScalarStuffAddMaybeI8(builder_ *flatbuffers.Builder, maybeI8Arg_ int8) {
+	builder_.PrependInt8(maybeI8Arg_)
 	builder_.Slot(1)
 }
-func ScalarStuffAddDefaultI8(builder_ *flatbuffers.Builder, defaultI8_ int8) {
-	builder_.PrependInt8Slot(2, defaultI8_, 42)
+func ScalarStuffAddDefaultI8(builder_ *flatbuffers.Builder, defaultI8Arg_ int8) {
+	builder_.PrependInt8Slot(2, defaultI8Arg_, 42)
 }
-func ScalarStuffAddJustU8(builder_ *flatbuffers.Builder, justU8_ byte) {
-	builder_.PrependByteSlot(3, justU8_, 0)
+func ScalarStuffAddJustU8(builder_ *flatbuffers.Builder, justU8Arg_ byte) {
+	builder_.PrependByteSlot(3, justU8Arg_, 0)
 }
-func ScalarStuffAddMaybeU8(builder_ *flatbuffers.Builder, maybeU8_ byte) {
-	builder_.PrependByte(maybeU8_)
+func ScalarStuffAddMaybeU8(builder_ *flatbuffers.Builder, maybeU8Arg_ byte) {
+	builder_.PrependByte(maybeU8Arg_)
 	builder_.Slot(4)
 }
-func ScalarStuffAddDefaultU8(builder_ *flatbuffers.Builder, defaultU8_ byte) {
-	builder_.PrependByteSlot(5, defaultU8_, 42)
+func ScalarStuffAddDefaultU8(builder_ *flatbuffers.Builder, defaultU8Arg_ byte) {
+	builder_.PrependByteSlot(5, defaultU8Arg_, 42)
 }
-func ScalarStuffAddJustI16(builder_ *flatbuffers.Builder, justI16_ int16) {
-	builder_.PrependInt16Slot(6, justI16_, 0)
+func ScalarStuffAddJustI16(builder_ *flatbuffers.Builder, justI16Arg_ int16) {
+	builder_.PrependInt16Slot(6, justI16Arg_, 0)
 }
-func ScalarStuffAddMaybeI16(builder_ *flatbuffers.Builder, maybeI16_ int16) {
-	builder_.PrependInt16(maybeI16_)
+func ScalarStuffAddMaybeI16(builder_ *flatbuffers.Builder, maybeI16Arg_ int16) {
+	builder_.PrependInt16(maybeI16Arg_)
 	builder_.Slot(7)
 }
-func ScalarStuffAddDefaultI16(builder_ *flatbuffers.Builder, defaultI16_ int16) {
-	builder_.PrependInt16Slot(8, defaultI16_, 42)
+func ScalarStuffAddDefaultI16(builder_ *flatbuffers.Builder, defaultI16Arg_ int16) {
+	builder_.PrependInt16Slot(8, defaultI16Arg_, 42)
 }
-func ScalarStuffAddJustU16(builder_ *flatbuffers.Builder, justU16_ uint16) {
-	builder_.PrependUint16Slot(9, justU16_, 0)
+func ScalarStuffAddJustU16(builder_ *flatbuffers.Builder, justU16Arg_ uint16) {
+	builder_.PrependUint16Slot(9, justU16Arg_, 0)
 }
-func ScalarStuffAddMaybeU16(builder_ *flatbuffers.Builder, maybeU16_ uint16) {
-	builder_.PrependUint16(maybeU16_)
+func ScalarStuffAddMaybeU16(builder_ *flatbuffers.Builder, maybeU16Arg_ uint16) {
+	builder_.PrependUint16(maybeU16Arg_)
 	builder_.Slot(10)
 }
-func ScalarStuffAddDefaultU16(builder_ *flatbuffers.Builder, defaultU16_ uint16) {
-	builder_.PrependUint16Slot(11, defaultU16_, 42)
+func ScalarStuffAddDefaultU16(builder_ *flatbuffers.Builder, defaultU16Arg_ uint16) {
+	builder_.PrependUint16Slot(11, defaultU16Arg_, 42)
 }
-func ScalarStuffAddJustI32(builder_ *flatbuffers.Builder, justI32_ int32) {
-	builder_.PrependInt32Slot(12, justI32_, 0)
+func ScalarStuffAddJustI32(builder_ *flatbuffers.Builder, justI32Arg_ int32) {
+	builder_.PrependInt32Slot(12, justI32Arg_, 0)
 }
-func ScalarStuffAddMaybeI32(builder_ *flatbuffers.Builder, maybeI32_ int32) {
-	builder_.PrependInt32(maybeI32_)
+func ScalarStuffAddMaybeI32(builder_ *flatbuffers.Builder, maybeI32Arg_ int32) {
+	builder_.PrependInt32(maybeI32Arg_)
 	builder_.Slot(13)
 }
-func ScalarStuffAddDefaultI32(builder_ *flatbuffers.Builder, defaultI32_ int32) {
-	builder_.PrependInt32Slot(14, defaultI32_, 42)
+func ScalarStuffAddDefaultI32(builder_ *flatbuffers.Builder, defaultI32Arg_ int32) {
+	builder_.PrependInt32Slot(14, defaultI32Arg_, 42)
 }
-func ScalarStuffAddJustU32(builder_ *flatbuffers.Builder, justU32_ uint32) {
-	builder_.PrependUint32Slot(15, justU32_, 0)
+func ScalarStuffAddJustU32(builder_ *flatbuffers.Builder, justU32Arg_ uint32) {
+	builder_.PrependUint32Slot(15, justU32Arg_, 0)
 }
-func ScalarStuffAddMaybeU32(builder_ *flatbuffers.Builder, maybeU32_ uint32) {
-	builder_.PrependUint32(maybeU32_)
+func ScalarStuffAddMaybeU32(builder_ *flatbuffers.Builder, maybeU32Arg_ uint32) {
+	builder_.PrependUint32(maybeU32Arg_)
 	builder_.Slot(16)
 }
-func ScalarStuffAddDefaultU32(builder_ *flatbuffers.Builder, defaultU32_ uint32) {
-	builder_.PrependUint32Slot(17, defaultU32_, 42)
+func ScalarStuffAddDefaultU32(builder_ *flatbuffers.Builder, defaultU32Arg_ uint32) {
+	builder_.PrependUint32Slot(17, defaultU32Arg_, 42)
 }
-func ScalarStuffAddJustI64(builder_ *flatbuffers.Builder, justI64_ int64) {
-	builder_.PrependInt64Slot(18, justI64_, 0)
+func ScalarStuffAddJustI64(builder_ *flatbuffers.Builder, justI64Arg_ int64) {
+	builder_.PrependInt64Slot(18, justI64Arg_, 0)
 }
-func ScalarStuffAddMaybeI64(builder_ *flatbuffers.Builder, maybeI64_ int64) {
-	builder_.PrependInt64(maybeI64_)
+func ScalarStuffAddMaybeI64(builder_ *flatbuffers.Builder, maybeI64Arg_ int64) {
+	builder_.PrependInt64(maybeI64Arg_)
 	builder_.Slot(19)
 }
-func ScalarStuffAddDefaultI64(builder_ *flatbuffers.Builder, defaultI64_ int64) {
-	builder_.PrependInt64Slot(20, defaultI64_, 42)
+func ScalarStuffAddDefaultI64(builder_ *flatbuffers.Builder, defaultI64Arg_ int64) {
+	builder_.PrependInt64Slot(20, defaultI64Arg_, 42)
 }
-func ScalarStuffAddJustU64(builder_ *flatbuffers.Builder, justU64_ uint64) {
-	builder_.PrependUint64Slot(21, justU64_, 0)
+func ScalarStuffAddJustU64(builder_ *flatbuffers.Builder, justU64Arg_ uint64) {
+	builder_.PrependUint64Slot(21, justU64Arg_, 0)
 }
-func ScalarStuffAddMaybeU64(builder_ *flatbuffers.Builder, maybeU64_ uint64) {
-	builder_.PrependUint64(maybeU64_)
+func ScalarStuffAddMaybeU64(builder_ *flatbuffers.Builder, maybeU64Arg_ uint64) {
+	builder_.PrependUint64(maybeU64Arg_)
 	builder_.Slot(22)
 }
-func ScalarStuffAddDefaultU64(builder_ *flatbuffers.Builder, defaultU64_ uint64) {
-	builder_.PrependUint64Slot(23, defaultU64_, 42)
+func ScalarStuffAddDefaultU64(builder_ *flatbuffers.Builder, defaultU64Arg_ uint64) {
+	builder_.PrependUint64Slot(23, defaultU64Arg_, 42)
 }
-func ScalarStuffAddJustF32(builder_ *flatbuffers.Builder, justF32_ float32) {
-	builder_.PrependFloat32Slot(24, justF32_, 0.0)
+func ScalarStuffAddJustF32(builder_ *flatbuffers.Builder, justF32Arg_ float32) {
+	builder_.PrependFloat32Slot(24, justF32Arg_, 0.0)
 }
-func ScalarStuffAddMaybeF32(builder_ *flatbuffers.Builder, maybeF32_ float32) {
-	builder_.PrependFloat32(maybeF32_)
+func ScalarStuffAddMaybeF32(builder_ *flatbuffers.Builder, maybeF32Arg_ float32) {
+	builder_.PrependFloat32(maybeF32Arg_)
 	builder_.Slot(25)
 }
-func ScalarStuffAddDefaultF32(builder_ *flatbuffers.Builder, defaultF32_ float32) {
-	builder_.PrependFloat32Slot(26, defaultF32_, 42.0)
+func ScalarStuffAddDefaultF32(builder_ *flatbuffers.Builder, defaultF32Arg_ float32) {
+	builder_.PrependFloat32Slot(26, defaultF32Arg_, 42.0)
 }
-func ScalarStuffAddJustF64(builder_ *flatbuffers.Builder, justF64_ float64) {
-	builder_.PrependFloat64Slot(27, justF64_, 0.0)
+func ScalarStuffAddJustF64(builder_ *flatbuffers.Builder, justF64Arg_ float64) {
+	builder_.PrependFloat64Slot(27, justF64Arg_, 0.0)
 }
-func ScalarStuffAddMaybeF64(builder_ *flatbuffers.Builder, maybeF64_ float64) {
-	builder_.PrependFloat64(maybeF64_)
+func ScalarStuffAddMaybeF64(builder_ *flatbuffers.Builder, maybeF64Arg_ float64) {
+	builder_.PrependFloat64(maybeF64Arg_)
 	builder_.Slot(28)
 }
-func ScalarStuffAddDefaultF64(builder_ *flatbuffers.Builder, defaultF64_ float64) {
-	builder_.PrependFloat64Slot(29, defaultF64_, 42.0)
+func ScalarStuffAddDefaultF64(builder_ *flatbuffers.Builder, defaultF64Arg_ float64) {
+	builder_.PrependFloat64Slot(29, defaultF64Arg_, 42.0)
 }
-func ScalarStuffAddJustBool(builder_ *flatbuffers.Builder, justBool_ bool) {
-	builder_.PrependBoolSlot(30, justBool_, false)
+func ScalarStuffAddJustBool(builder_ *flatbuffers.Builder, justBoolArg_ bool) {
+	builder_.PrependBoolSlot(30, justBoolArg_, false)
 }
-func ScalarStuffAddMaybeBool(builder_ *flatbuffers.Builder, maybeBool_ bool) {
-	builder_.PrependBool(maybeBool_)
+func ScalarStuffAddMaybeBool(builder_ *flatbuffers.Builder, maybeBoolArg_ bool) {
+	builder_.PrependBool(maybeBoolArg_)
 	builder_.Slot(31)
 }
-func ScalarStuffAddDefaultBool(builder_ *flatbuffers.Builder, defaultBool_ bool) {
-	builder_.PrependBoolSlot(32, defaultBool_, true)
+func ScalarStuffAddDefaultBool(builder_ *flatbuffers.Builder, defaultBoolArg_ bool) {
+	builder_.PrependBoolSlot(32, defaultBoolArg_, true)
 }
-func ScalarStuffAddJustEnum(builder_ *flatbuffers.Builder, justEnum_ OptionalByte) {
-	builder_.PrependInt8Slot(33, int8(justEnum_), 0)
+func ScalarStuffAddJustEnum(builder_ *flatbuffers.Builder, justEnumArg_ OptionalByte) {
+	builder_.PrependInt8Slot(33, int8(justEnumArg_), 0)
 }
-func ScalarStuffAddMaybeEnum(builder_ *flatbuffers.Builder, maybeEnum_ OptionalByte) {
-	builder_.PrependInt8(int8(maybeEnum_))
+func ScalarStuffAddMaybeEnum(builder_ *flatbuffers.Builder, maybeEnumArg_ OptionalByte) {
+	builder_.PrependInt8(int8(maybeEnumArg_))
 	builder_.Slot(34)
 }
-func ScalarStuffAddDefaultEnum(builder_ *flatbuffers.Builder, defaultEnum_ OptionalByte) {
-	builder_.PrependInt8Slot(35, int8(defaultEnum_), 1)
+func ScalarStuffAddDefaultEnum(builder_ *flatbuffers.Builder, defaultEnumArg_ OptionalByte) {
+	builder_.PrependInt8Slot(35, int8(defaultEnumArg_), 1)
 }
 func ScalarStuffEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder_.EndObject()

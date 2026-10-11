@@ -141,8 +141,8 @@ func (rcv_ *SecondTableInA) ReferToC(obj_ *NamespaceC.TableInC) *NamespaceC.Tabl
 func SecondTableInAStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(1)
 }
-func SecondTableInAAddReferToC(builder_ *flatbuffers.Builder, referToC_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(referToC_), 0)
+func SecondTableInAAddReferToC(builder_ *flatbuffers.Builder, referToCArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(referToCArg_), 0)
 }
 func SecondTableInAEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder_.EndObject()

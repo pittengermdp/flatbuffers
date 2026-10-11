@@ -178,11 +178,11 @@ func (rcv_ *Root) Content(obj_ *flatbuffers.Table) bool {
 func RootStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(2)
 }
-func RootAddContentType(builder_ *flatbuffers.Builder, contentType_ Outer) {
-	builder_.PrependByteSlot(0, byte(contentType_), 0)
+func RootAddContentType(builder_ *flatbuffers.Builder, contentTypeArg_ Outer) {
+	builder_.PrependByteSlot(0, byte(contentTypeArg_), 0)
 }
-func RootAddContent(builder_ *flatbuffers.Builder, content_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(content_), 0)
+func RootAddContent(builder_ *flatbuffers.Builder, contentArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(contentArg_), 0)
 }
 func RootEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder_.EndObject()
