@@ -1,7 +1,7 @@
 #[allow(dead_code, unused_imports)]
 #[path = "../../optional_scalars/mod.rs"]
 mod optional_scalars_generated;
-use crate::optional_scalars_generated::optional_scalars::*;
+use self::optional_scalars_generated::optional_scalars::*;
 
 // There are 3 variants of scalars in tables - those specified with default=42,
 // optional scalars, and those with nothing specified (implicitly default=0).
@@ -39,7 +39,9 @@ macro_rules! make_test {
             assert_eq!(s.$maybe(), None);
 
             // Same for object API
-            let s = flatbuffers::root::<ScalarStuff>(builder.finished_data()).unwrap().unpack();
+            let s = flatbuffers::root::<ScalarStuff>(builder.finished_data())
+                .unwrap()
+                .unpack();
             assert_eq!(s.$just, $five);
             assert_eq!(s.$default, $five);
             assert_eq!(s.$maybe, Some($five));
@@ -59,9 +61,33 @@ make_test!(optional_i32, just_i32, default_i32, maybe_i32, 5, 0, 42);
 make_test!(optional_u32, just_u32, default_u32, maybe_u32, 5, 0, 42);
 make_test!(optional_i64, just_i64, default_i64, maybe_i64, 5, 0, 42);
 make_test!(optional_u64, just_u64, default_u64, maybe_u64, 5, 0, 42);
-make_test!(optional_f32, just_f32, default_f32, maybe_f32, 5.0, 0.0, 42.0);
-make_test!(optional_f64, just_f64, default_f64, maybe_f64, 5.0, 0.0, 42.0);
-make_test!(optional_bool, just_bool, default_bool, maybe_bool, true, false, true);
+make_test!(
+    optional_f32,
+    just_f32,
+    default_f32,
+    maybe_f32,
+    5.0,
+    0.0,
+    42.0
+);
+make_test!(
+    optional_f64,
+    just_f64,
+    default_f64,
+    maybe_f64,
+    5.0,
+    0.0,
+    42.0
+);
+make_test!(
+    optional_bool,
+    just_bool,
+    default_bool,
+    maybe_bool,
+    true,
+    false,
+    true
+);
 make_test!(
     optional_enum,
     just_enum,

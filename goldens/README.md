@@ -24,3 +24,8 @@ possible.
 ## Updating
 
 Just run the `generate_goldens.py` script and it should generate them all.
+
+`scripts/generate_code.py` runs it as well, so `scripts/check_generate_code.py`
+(the CI regeneration gate) fails when a golden no longer matches what `flatc`
+generates. Unlike the generated code under `tests/`, goldens are not run through
+any formatter: they are exactly what `flatc` writes.
