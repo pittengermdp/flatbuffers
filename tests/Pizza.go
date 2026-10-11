@@ -133,8 +133,8 @@ func (rcv_ *Pizza) MutateSize(n_ int32) bool {
 func PizzaStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(1)
 }
-func PizzaAddSize(builder_ *flatbuffers.Builder, size_ int32) {
-	builder_.PrependInt32Slot(0, size_, 0)
+func PizzaAddSize(builder_ *flatbuffers.Builder, sizeArg_ int32) {
+	builder_.PrependInt32Slot(0, sizeArg_, 0)
 }
 func PizzaEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder_.EndObject()
