@@ -12,10 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! A float is stored in 32 bits only when f32 holds it exactly, as C++
-//! `WidthF` decides. The comparison in `BitWidth::from(f64)` is exact on
-//! purpose: the margin clippy's pedantic `float_cmp` suggests would store
-//! `1.0 + f64::EPSILON` as the f32 `1.0`.
+//! `BitWidth::from(f64)` is exact; see the comment on that impl. A margin, as
+//! clippy's pedantic `float_cmp` suggests, would store `1.0 + f64::EPSILON` as
+//! the f32 `1.0`.
 
 use flexbuffers::BitWidth;
 

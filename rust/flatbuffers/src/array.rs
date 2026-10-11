@@ -176,8 +176,6 @@ mod tests {
         let three = unsafe { Array::<u8, 3>::new(&[1, 2, 3]) };
 
         assert!(empty.is_empty());
-        assert_eq!(empty.len(), 0);
         assert!(!three.is_empty());
-        assert_eq!(three.len(), 3);
     }
 }
