@@ -79,7 +79,7 @@ pub(crate) fn verify_with_options(
     let mut verifier = Verifier::new(opts, buffer);
     let mut buf_loc_to_obj_idx = HashMap::new();
     if let Some(table_object) = schema.root_table()
-        && let core::result::Result::Ok(table_pos) = verifier.get_uoffset(0)
+        && let Ok(table_pos) = verifier.get_uoffset(0)
     {
         buf_loc_to_obj_idx.insert(table_pos.try_into()?, -1);
         let mut verified = HashSet::with_capacity(opts.max_tables.min(4096));

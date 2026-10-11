@@ -423,8 +423,7 @@ pub unsafe fn get_field_table<'a>(
 /// `table` must be from a verified FlatBuffer whose layout matches `field`.
 /// Offsets inside the table must be valid for the declared field types.
 pub unsafe fn get_any_field_integer(table: &Table, field: &Field) -> FlatbufferResult<i64> {
-    // SAFETY: the caller guarantees `table` is verified, so its vtable is valid.
-    if let Some(field_loc) = unsafe { get_field_loc(table, field) } {
+    if let Some(field_loc) = get_field_loc(table, field) {
         // SAFETY: `field_loc` is a populated slot laid out as `field` describes.
         unsafe { get_any_value_integer(field.type_().base_type(), table.buf(), field_loc) }
     } else {
@@ -446,8 +445,7 @@ pub unsafe fn get_any_field_integer(table: &Table, field: &Field) -> FlatbufferR
 ///
 /// `table` must be from a verified FlatBuffer whose layout matches `field`.
 pub unsafe fn get_any_field_float(table: &Table, field: &Field) -> FlatbufferResult<f64> {
-    // SAFETY: the caller guarantees `table` is verified, so its vtable is valid.
-    if let Some(field_loc) = unsafe { get_field_loc(table, field) } {
+    if let Some(field_loc) = get_field_loc(table, field) {
         // SAFETY: `field_loc` is a populated slot laid out as `field` describes.
         unsafe { get_any_value_float(field.type_().base_type(), table.buf(), field_loc) }
     } else {
@@ -474,8 +472,7 @@ pub unsafe fn get_any_field_float(table: &Table, field: &Field) -> FlatbufferRes
 /// `table` must be from a verified FlatBuffer whose layout matches `field`.
 /// The `schema` must correspond to the same `.fbs` schema used to produce the buffer.
 pub unsafe fn get_any_field_string(table: &Table, field: &Field, schema: &Schema) -> String {
-    // SAFETY: the caller guarantees `table` is verified, so its vtable is valid.
-    if let Some(field_loc) = unsafe { get_field_loc(table, field) } {
+    if let Some(field_loc) = get_field_loc(table, field) {
         // SAFETY: `field_loc` is a populated slot laid out as `field` describes,
         // and the caller guarantees `schema` produced the buffer.
         unsafe {
@@ -622,8 +619,7 @@ pub unsafe fn set_any_field_integer(
     // SAFETY: the caller guarantees `buf` holds a valid table at `table_loc`.
     let table = unsafe { Table::follow(buf, table_loc) };
 
-    // SAFETY: `table` is valid, so its vtable is valid.
-    let Some(field_loc) = (unsafe { get_field_loc(&table, field) }) else {
+    let Some(field_loc) = get_field_loc(&table, field) else {
         return Err(FlatbufferError::SetValueNotSupported);
     };
 
@@ -649,8 +645,7 @@ pub unsafe fn set_any_field_float(
     // SAFETY: the caller guarantees `buf` holds a valid table at `table_loc`.
     let table = unsafe { Table::follow(buf, table_loc) };
 
-    // SAFETY: `table` is valid, so its vtable is valid.
-    let Some(field_loc) = (unsafe { get_field_loc(&table, field) }) else {
+    let Some(field_loc) = get_field_loc(&table, field) else {
         return Err(FlatbufferError::SetValueNotSupported);
     };
 
@@ -676,8 +671,7 @@ pub unsafe fn set_any_field_string(
     // SAFETY: the caller guarantees `buf` holds a valid table at `table_loc`.
     let table = unsafe { Table::follow(buf, table_loc) };
 
-    // SAFETY: `table` is valid, so its vtable is valid.
-    let Some(field_loc) = (unsafe { get_field_loc(&table, field) }) else {
+    let Some(field_loc) = get_field_loc(&table, field) else {
         return Err(FlatbufferError::SetValueNotSupported);
     };
 
@@ -714,8 +708,7 @@ pub unsafe fn set_field<T: EndianScalar>(
         ));
     }
 
-    // SAFETY: `table` is valid, so its vtable is valid.
-    let Some(field_loc) = (unsafe { get_field_loc(&table, field) }) else {
+    let Some(field_loc) = get_field_loc(&table, field) else {
         return Err(FlatbufferError::SetValueNotSupported);
     };
 
@@ -763,8 +756,7 @@ pub unsafe fn set_string(
     // SAFETY: the caller guarantees `buf` holds a valid table at `table_loc`.
     let table = unsafe { Table::follow(buf, table_loc) };
 
-    // SAFETY: `table` is valid, so its vtable is valid.
-    let Some(field_loc) = (unsafe { get_field_loc(&table, field) }) else {
+    let Some(field_loc) = get_field_loc(&table, field) else {
         return Err(FlatbufferError::SetValueNotSupported);
     };
 
@@ -780,8 +772,7 @@ pub unsafe fn set_string(
         ));
     }
 
-    // SAFETY: the buffer range was verified above.
-    let string_loc = unsafe { deref_uoffset(buf, field_loc)? };
+    let string_loc = deref_uoffset(buf, field_loc)?;
     if buf.len() < string_loc.saturating_add(SIZE_UOFFSET) {
         return Err(FlatbufferError::VerificationError(
             InvalidFlatbuffer::RangeOutOfBounds {
@@ -794,8 +785,7 @@ pub unsafe fn set_string(
         ));
     }
 
-    // SAFETY: the buffer range was verified above.
-    let len_old = unsafe { read_uoffset(buf, string_loc) };
+    let len_old = read_uoffset(buf, string_loc);
     if buf.len()
         < string_loc
             .saturating_add(SIZE_UOFFSET)
@@ -842,13 +832,12 @@ pub unsafe fn set_string(
             }
 
             // Sets the new length.
-            let len_new = len_new.try_into()?;
             // SAFETY: the slice is exactly `SIZE_UOFFSET` bytes, the width of
             // `SOffsetT`, and was bounds-checked above.
             unsafe {
                 emplace_scalar::<SOffsetT>(
                     &mut buf[string_loc..string_loc + SIZE_UOFFSET],
-                    len_new,
+                    len_new.try_into()?,
                 );
             }
         }
@@ -890,11 +879,7 @@ pub(crate) fn get_type_size(base_type: BaseType) -> usize {
 }
 
 /// Returns the absolute field location in the buffer and [None] if the field is not populated.
-///
-/// # Safety
-///
-/// [table] must contain a valid vtable.
-unsafe fn get_field_loc(table: &Table, field: &Field) -> Option<usize> {
+fn get_field_loc(table: &Table, field: &Field) -> Option<usize> {
     let field_offset = table.vtable().get(field.offset()) as usize;
     if field_offset == 0 {
         return None;
@@ -933,10 +918,12 @@ unsafe fn get_any_value_integer(
             _ => None, // Tables & vectors do not make sense.
         }
     };
-    value.ok_or(FlatbufferError::FieldTypeMismatch(
-        String::from("i64"),
-        base_type.variant_name().unwrap_or_default().to_string(),
-    ))
+    value.ok_or_else(|| {
+        FlatbufferError::FieldTypeMismatch(
+            String::from("i64"),
+            base_type.variant_name().unwrap_or_default().to_string(),
+        )
+    })
 }
 
 /// Reads value as a 64-bit floating point from the provided byte slice at the specified location. Returns error if the value cannot be parsed as float.
@@ -969,10 +956,12 @@ unsafe fn get_any_value_float(
             _ => None,
         }
     };
-    value.ok_or(FlatbufferError::FieldTypeMismatch(
-        String::from("f64"),
-        base_type.variant_name().unwrap_or_default().to_string(),
-    ))
+    value.ok_or_else(|| {
+        FlatbufferError::FieldTypeMismatch(
+            String::from("f64"),
+            base_type.variant_name().unwrap_or_default().to_string(),
+        )
+    })
 }
 
 /// Reads value as a string from the provided byte slice at the specified location.
@@ -1059,91 +1048,47 @@ fn set_any_value_integer(
     field_loc: usize,
     v: i64,
 ) -> FlatbufferResult<()> {
-    if buf.len() < field_loc.saturating_add(get_type_size(base_type)) {
+    let end = field_loc.saturating_add(get_type_size(base_type));
+    if buf.len() < end {
         return Err(FlatbufferError::VerificationError(
             InvalidFlatbuffer::RangeOutOfBounds {
-                range: core::ops::Range {
-                    start: field_loc,
-                    end: field_loc.saturating_add(get_type_size(base_type)),
-                },
+                range: field_loc..end,
                 error_trace: Default::default(),
             },
         ));
     }
     let buf = &mut buf[field_loc..];
-    let type_name = base_type.variant_name().unwrap_or_default().to_string();
 
-    macro_rules! try_emplace {
+    // Writes the converted value, or reports that `v` does not fit the field.
+    macro_rules! emplace {
         ($ty:ty, $value:expr) => {
-            if let Ok(v) = TryInto::<$ty>::try_into($value) {
-                // SAFETY: buffer size is verified at the beginning of this function.
-                unsafe { emplace_scalar::<$ty>(buf, v) };
-                Ok(())
-            } else {
-                Err(FlatbufferError::FieldTypeMismatch(
+            match $value {
+                Some(value) => {
+                    // SAFETY: the check above leaves room for a `base_type` value,
+                    // which is a `$ty`, at the start of `buf`.
+                    unsafe { emplace_scalar::<$ty>(buf, value) };
+                    Ok(())
+                }
+                None => Err(FlatbufferError::FieldTypeMismatch(
                     String::from("i64"),
-                    type_name,
-                ))
+                    base_type.variant_name().unwrap_or_default().to_string(),
+                )),
             }
         };
     }
 
     match base_type {
-        BaseType::UType | BaseType::UByte => {
-            try_emplace!(u8, v)
-        }
-        BaseType::Bool => {
-            // SAFETY: buffer size is verified at the beginning of this function.
-            unsafe { emplace_scalar::<bool>(buf, v != 0) };
-            Ok(())
-        }
-        BaseType::Byte => {
-            try_emplace!(i8, v)
-        }
-        BaseType::Short => {
-            try_emplace!(i16, v)
-        }
-        BaseType::UShort => {
-            try_emplace!(u16, v)
-        }
-        BaseType::Int => {
-            try_emplace!(i32, v)
-        }
-        BaseType::UInt => {
-            try_emplace!(u32, v)
-        }
-        BaseType::Long => {
-            // SAFETY: buffer size is verified at the beginning of this function.
-            unsafe { emplace_scalar::<i64>(buf, v) };
-            Ok(())
-        }
-        BaseType::ULong => {
-            try_emplace!(u64, v)
-        }
-        BaseType::Float => {
-            if let Some(value) = f32::from_i64(v) {
-                // SAFETY: buffer size is verified at the beginning of this function.
-                unsafe { emplace_scalar::<f32>(buf, value) };
-                Ok(())
-            } else {
-                Err(FlatbufferError::FieldTypeMismatch(
-                    String::from("i64"),
-                    type_name,
-                ))
-            }
-        }
-        BaseType::Double => {
-            if let Some(value) = f64::from_i64(v) {
-                // SAFETY: buffer size is verified at the beginning of this function.
-                unsafe { emplace_scalar::<f64>(buf, value) };
-                Ok(())
-            } else {
-                Err(FlatbufferError::FieldTypeMismatch(
-                    String::from("i64"),
-                    type_name,
-                ))
-            }
-        }
+        BaseType::UType | BaseType::UByte => emplace!(u8, u8::try_from(v).ok()),
+        BaseType::Bool => emplace!(bool, Some(v != 0)),
+        BaseType::Byte => emplace!(i8, i8::try_from(v).ok()),
+        BaseType::Short => emplace!(i16, i16::try_from(v).ok()),
+        BaseType::UShort => emplace!(u16, u16::try_from(v).ok()),
+        BaseType::Int => emplace!(i32, i32::try_from(v).ok()),
+        BaseType::UInt => emplace!(u32, u32::try_from(v).ok()),
+        BaseType::Long => emplace!(i64, Some(v)),
+        BaseType::ULong => emplace!(u64, u64::try_from(v).ok()),
+        BaseType::Float => emplace!(f32, f32::from_i64(v)),
+        BaseType::Double => emplace!(f64, f64::from_i64(v)),
         _ => Err(FlatbufferError::SetValueNotSupported),
     }
 }
@@ -1155,103 +1100,53 @@ fn set_any_value_float(
     field_loc: usize,
     v: f64,
 ) -> FlatbufferResult<()> {
-    if buf.len() < field_loc.saturating_add(get_type_size(base_type)) {
+    let end = field_loc.saturating_add(get_type_size(base_type));
+    if buf.len() < end {
         return Err(FlatbufferError::VerificationError(
             InvalidFlatbuffer::RangeOutOfBounds {
-                range: core::ops::Range {
-                    start: field_loc,
-                    end: field_loc.saturating_add(get_type_size(base_type)),
-                },
+                range: field_loc..end,
                 error_trace: Default::default(),
             },
         ));
     }
     let buf = &mut buf[field_loc..];
-    let type_name = base_type.variant_name().unwrap_or_default().to_string();
+
+    // Writes the converted value, or reports that `v` does not fit the field.
+    macro_rules! emplace {
+        ($ty:ty, $value:expr) => {
+            match $value {
+                Some(value) => {
+                    // SAFETY: the check above leaves room for a `base_type` value,
+                    // which is a `$ty`, at the start of `buf`.
+                    unsafe { emplace_scalar::<$ty>(buf, value) };
+                    Ok(())
+                }
+                None => Err(FlatbufferError::FieldTypeMismatch(
+                    String::from("f64"),
+                    base_type.variant_name().unwrap_or_default().to_string(),
+                )),
+            }
+        };
+    }
 
     match base_type {
-        BaseType::UType | BaseType::UByte => {
-            if let Some(value) = u8::from_f64(v) {
-                // SAFETY: buffer size is verified at the beginning of this function.
-                unsafe { emplace_scalar::<u8>(buf, value) };
-                return Ok(());
-            }
-        }
-        BaseType::Bool => {
-            // SAFETY: buffer size is verified at the beginning of this function.
-            unsafe { emplace_scalar::<bool>(buf, v != 0f64) };
-            return Ok(());
-        }
-        BaseType::Byte => {
-            if let Some(value) = i8::from_f64(v) {
-                // SAFETY: buffer size is verified at the beginning of this function.
-                unsafe { emplace_scalar::<i8>(buf, value) };
-                return Ok(());
-            }
-        }
-        BaseType::Short => {
-            if let Some(value) = i16::from_f64(v) {
-                // SAFETY: buffer size is verified at the beginning of this function.
-                unsafe { emplace_scalar::<i16>(buf, value) };
-                return Ok(());
-            }
-        }
-        BaseType::UShort => {
-            if let Some(value) = u16::from_f64(v) {
-                // SAFETY: buffer size is verified at the beginning of this function.
-                unsafe { emplace_scalar::<u16>(buf, value) };
-                return Ok(());
-            }
-        }
-        BaseType::Int => {
-            if let Some(value) = i32::from_f64(v) {
-                // SAFETY: buffer size is verified at the beginning of this function.
-                unsafe { emplace_scalar::<i32>(buf, value) };
-                return Ok(());
-            }
-        }
-        BaseType::UInt => {
-            if let Some(value) = u32::from_f64(v) {
-                // SAFETY: buffer size is verified at the beginning of this function.
-                unsafe { emplace_scalar::<u32>(buf, value) };
-                return Ok(());
-            }
-        }
-        BaseType::Long => {
-            if let Some(value) = i64::from_f64(v) {
-                // SAFETY: buffer size is verified at the beginning of this function.
-                unsafe { emplace_scalar::<i64>(buf, value) };
-                return Ok(());
-            }
-        }
-        BaseType::ULong => {
-            if let Some(value) = u64::from_f64(v) {
-                // SAFETY: buffer size is verified at the beginning of this function.
-                unsafe { emplace_scalar::<u64>(buf, value) };
-                return Ok(());
-            }
-        }
-        BaseType::Float => {
-            if let Some(value) = f32::from_f64(v) {
-                // Value converted to inf if overflow occurs
-                if value != f32::INFINITY {
-                    // SAFETY: buffer size is verified at the beginning of this function.
-                    unsafe { emplace_scalar::<f32>(buf, value) };
-                    return Ok(());
-                }
-            }
-        }
-        BaseType::Double => {
-            // SAFETY: buffer size is verified at the beginning of this function.
-            unsafe { emplace_scalar::<f64>(buf, v) };
-            return Ok(());
-        }
-        _ => return Err(FlatbufferError::SetValueNotSupported),
+        BaseType::UType | BaseType::UByte => emplace!(u8, u8::from_f64(v)),
+        BaseType::Bool => emplace!(bool, Some(v != 0f64)),
+        BaseType::Byte => emplace!(i8, i8::from_f64(v)),
+        BaseType::Short => emplace!(i16, i16::from_f64(v)),
+        BaseType::UShort => emplace!(u16, u16::from_f64(v)),
+        BaseType::Int => emplace!(i32, i32::from_f64(v)),
+        BaseType::UInt => emplace!(u32, u32::from_f64(v)),
+        BaseType::Long => emplace!(i64, i64::from_f64(v)),
+        BaseType::ULong => emplace!(u64, u64::from_f64(v)),
+        // Value converted to inf if overflow occurs
+        BaseType::Float => emplace!(
+            f32,
+            f32::from_f64(v).filter(|value| *value != f32::INFINITY)
+        ),
+        BaseType::Double => emplace!(f64, Some(v)),
+        _ => Err(FlatbufferError::SetValueNotSupported),
     }
-    Err(FlatbufferError::FieldTypeMismatch(
-        String::from("f64"),
-        type_name,
-    ))
 }
 
 fn is_scalar(base_type: BaseType) -> bool {
@@ -1289,9 +1184,8 @@ unsafe fn update_offset(
         // Checks if insertion point is between the table and a vtable that
         // precedes it.
         if (vtable_loc..table_loc).contains(&insertion_loc) {
-            let vtable_offset = (vtable_offset + offset).try_into()?;
             // SAFETY: `slice` is exactly `SIZE_SOFFSET` bytes, the width of `SOffsetT`.
-            unsafe { emplace_scalar::<SOffsetT>(slice, vtable_offset) };
+            unsafe { emplace_scalar::<SOffsetT>(slice, (vtable_offset + offset).try_into()?) };
             updated[table_loc] = true;
         }
 
@@ -1329,14 +1223,17 @@ unsafe fn update_offset(
         }
 
         // Updates the relative offset from table to actual data if needed
-        let slice = &mut buf[field_loc..field_loc + SIZE_UOFFSET];
-        // SAFETY: `slice` is exactly `SIZE_UOFFSET` bytes, the width of `UOffsetT`.
-        let field_value_offset = unsafe { read_scalar::<UOffsetT>(slice) };
+        let field_value_offset = read_uoffset(buf, field_loc);
         let field_value_loc = field_loc.saturating_add(field_value_offset.try_into()?);
         if (field_loc..field_value_loc).contains(&insertion_loc) {
-            let field_value_offset = (isize::try_from(field_value_offset)? + offset).try_into()?;
+            let slice = &mut buf[field_loc..field_loc + SIZE_UOFFSET];
             // SAFETY: `slice` is exactly `SIZE_UOFFSET` bytes, the width of `UOffsetT`.
-            unsafe { emplace_scalar::<UOffsetT>(slice, field_value_offset) };
+            unsafe {
+                emplace_scalar::<UOffsetT>(
+                    slice,
+                    (isize::try_from(field_value_offset)? + offset).try_into()?,
+                )
+            };
             updated[field_loc] = true;
         }
 
@@ -1370,23 +1267,23 @@ unsafe fn update_offset(
                 {
                     continue;
                 }
-                // SAFETY: `buf` conforms to `schema`, so a vector length is stored
-                // at `field_value_loc`.
-                let vec_size = usize::try_from(unsafe { read_uoffset(buf, field_value_loc) })?;
+                let vec_size = usize::try_from(read_uoffset(buf, field_value_loc))?;
                 for index in 0..vec_size {
                     let elem_loc = field_value_loc + SIZE_UOFFSET + index * SIZE_UOFFSET;
                     if updated[elem_loc] {
                         continue;
                     }
-                    let slice = &mut buf[elem_loc..elem_loc + SIZE_UOFFSET];
-                    // SAFETY: `slice` is exactly `SIZE_UOFFSET` bytes, the width of `UOffsetT`.
-                    let elem_value_offset = unsafe { read_scalar::<UOffsetT>(slice) };
+                    let elem_value_offset = read_uoffset(buf, elem_loc);
                     let elem_value_loc = elem_loc.saturating_add(elem_value_offset.try_into()?);
                     if (elem_loc..elem_value_loc).contains(&insertion_loc) {
-                        let elem_value_offset =
-                            (isize::try_from(elem_value_offset)? + offset).try_into()?;
+                        let slice = &mut buf[elem_loc..elem_loc + SIZE_UOFFSET];
                         // SAFETY: `slice` is exactly `SIZE_UOFFSET` bytes, the width of `UOffsetT`.
-                        unsafe { emplace_scalar::<UOffsetT>(slice, elem_value_offset) };
+                        unsafe {
+                            emplace_scalar::<UOffsetT>(
+                                slice,
+                                (isize::try_from(elem_value_offset)? + offset).try_into()?,
+                            )
+                        };
                         updated[elem_loc] = true;
                     }
 
@@ -1453,9 +1350,8 @@ unsafe fn update_offset(
     // Checks if the vtable offset points beyond the insertion point.
     if (table_loc..vtable_loc).contains(&insertion_loc) {
         let slice = &mut buf[table_loc..table_loc + SIZE_SOFFSET];
-        let vtable_offset = (vtable_offset - offset).try_into()?;
         // SAFETY: `slice` is exactly `SIZE_SOFFSET` bytes, the width of `SOffsetT`.
-        unsafe { emplace_scalar::<SOffsetT>(slice, vtable_offset) };
+        unsafe { emplace_scalar::<SOffsetT>(slice, (vtable_offset - offset).try_into()?) };
         updated[table_loc] = true;
     }
     Ok(())
@@ -1463,21 +1359,13 @@ unsafe fn update_offset(
 
 /// Returns the absolute location of the data (e.g. string) in the buffer when the field contains relative offset (`UOffsetT`) to the data.
 ///
-/// # Safety
-///
-/// The value of the corresponding slot must have type `UOffsetT`.
-unsafe fn deref_uoffset(buf: &[u8], field_loc: usize) -> FlatbufferResult<usize> {
-    // SAFETY: the caller guarantees the slot at `field_loc` holds a `UOffsetT`.
-    let offset = unsafe { read_uoffset(buf, field_loc) };
-    Ok(field_loc.saturating_add(offset.try_into()?))
+/// The slot at `field_loc` is read as a `UOffsetT`; panics if it lies outside `buf`.
+fn deref_uoffset(buf: &[u8], field_loc: usize) -> FlatbufferResult<usize> {
+    Ok(field_loc.saturating_add(read_uoffset(buf, field_loc).try_into()?))
 }
 
-/// Reads the value of `UOffsetT` at the give location.
-///
-/// # Safety
-///
-/// The value of the corresponding slot must have type `UOffsetT`.
-unsafe fn read_uoffset(buf: &[u8], loc: usize) -> UOffsetT {
+/// Reads the value of `UOffsetT` at the give location; panics if it lies outside `buf`.
+fn read_uoffset(buf: &[u8], loc: usize) -> UOffsetT {
     let slice = &buf[loc..loc + SIZE_UOFFSET];
     // SAFETY: `slice` is exactly `SIZE_UOFFSET` bytes, the width of `UOffsetT`.
     unsafe { read_scalar::<UOffsetT>(slice) }
