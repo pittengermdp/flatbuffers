@@ -10,6 +10,7 @@
 #include "flatbuffers/reflection.h"
 #include "flatbuffers/util.h"
 #include "test_assert.h"
+#include "tests/union_underlying_type_test_generated.h"
 #include "tests/union_value_gap_test_generated.h"
 
 namespace flatbuffers {
@@ -105,6 +106,38 @@ UnionValueGap::HolderT ManyOfEach(UnionValueGap::BetaT beta,
   holder.many[1].Set(beta);
   holder.many[2].Set(gamma);
   return holder;
+}
+
+// Packs `d` and checks that the generated verifier accepts the bytes.
+std::vector<uint8_t> PackD(const UnionUnderlyingType::DT& d) {
+  FlatBufferBuilder fbb;
+  fbb.Finish(UnionUnderlyingType::D::Pack(fbb, &d));
+  Verifier verifier(fbb.GetBufferPointer(), fbb.GetSize());
+  TEST_EQ(verifier.VerifyBuffer<UnionUnderlyingType::D>(nullptr), true);
+  return std::vector<uint8_t>(fbb.GetBufferPointer(),
+                              fbb.GetBufferPointer() + fbb.GetSize());
+}
+
+// Checks that the int at `value` in `buffer` is annotated as one region, typed
+// as the annotator types an int.
+void CheckIntRegion(const Annotations& annotations,
+                    const std::vector<uint8_t>& buffer,
+                    const uint8_t* const value) {
+  TEST_NOTNULL(value);
+  const uint64_t offset = static_cast<uint64_t>(value - buffer.data());
+  const BinaryRegion* found = nullptr;
+  for (const auto& section : annotations) {
+    for (const BinaryRegion& region : section.second.regions) {
+      if (region.offset == offset) {
+        found = &region;
+      }
+    }
+  }
+  TEST_NOTNULL(found);
+  if (found != nullptr) {
+    TEST_EQ(found->length, 4u);
+    TEST_EQ(found->type, BinaryRegionType::Uint32);
+  }
 }
 
 }  // namespace
@@ -234,6 +267,148 @@ void AnnotateUnionByValueTest(const std::string& tests_data_path) {
         CountStatus(annotations, BinaryRegionStatus::ERROR_INVALID_UNION_TYPE),
         1u);
     TEST_EQ(CountTables(annotations, "UnionValueGap.Beta"), 0u);
+  }
+}
+
+// `union ABC: int` stores test_union_type as an int, and
+// test_vector_of_union_type as ints, though the binary schema gives both the
+// base type UType. The annotator must read and size them as ints.
+void AnnotateUnionUnderlyingTypeTest(const std::string& tests_data_path) {
+  using UnionUnderlyingType::ABC;
+
+  std::string schemafile;
+  TEST_EQ(LoadFile((tests_data_path + "union_underlying_type_test.fbs").c_str(),
+                   false, &schemafile),
+          true);
+  IDLOptions opts;
+  opts.lang_to_generate |= IDLOptions::kBinary;
+  Parser parser(opts);
+  TEST_EQ(parser.Parse(schemafile.c_str()), true);
+  // The schema declares no root_type; name one, as `flatc --root-type` does.
+  TEST_EQ(parser.SetRootType("D"), true);
+  parser.Serialize();
+  const std::string bfbs(
+      reinterpret_cast<const char*>(parser.builder_.GetBufferPointer()),
+      parser.builder_.GetSize());
+
+  // The premise: to their fields the types are UTypes; to the union, ints.
+  const reflection::Schema* schema =
+      reflection::GetSchema(parser.builder_.GetBufferPointer());
+  const reflection::Field* type_field =
+      schema->root_table()->fields()->LookupByKey("test_union_type");
+  const reflection::Field* types_field =
+      schema->root_table()->fields()->LookupByKey("test_vector_of_union_type");
+  TEST_NOTNULL(type_field);
+  TEST_NOTNULL(types_field);
+  TEST_EQ(type_field->type()->base_type(), reflection::UType);
+  TEST_EQ(types_field->type()->element(), reflection::UType);
+  TEST_EQ(schema->enums()
+              ->Get(type_field->type()->index())
+              ->underlying_type()
+              ->base_type(),
+          reflection::Int);
+
+  UnionUnderlyingType::AT a;
+  a.a = 42;
+  UnionUnderlyingType::BT b;
+  b.b = "foo";
+  UnionUnderlyingType::CT c;
+  c.c = true;
+
+  UnionUnderlyingType::DT many;
+  many.test_vector_of_union.resize(3);
+  many.test_vector_of_union[0].Set(a);
+  many.test_vector_of_union[1].Set(b);
+  many.test_vector_of_union[2].Set(c);
+
+  UnionUnderlyingType::DT both = many;
+  both.test_union.Set(b);
+
+  // Each type is one int region and names its member.
+  {
+    const std::vector<uint8_t> buffer = PackD(both);
+    const Annotations annotations = Annotate(bfbs, buffer);
+
+    CheckIntRegion(
+        annotations, buffer,
+        GetAnyRoot(buffer.data())->GetAddressOf(type_field->offset()));
+    const Vector<ABC>* types = GetRoot<UnionUnderlyingType::D>(buffer.data())
+                                   ->test_vector_of_union_type();
+    TEST_NOTNULL(types);
+    for (uoffset_t i = 0; types != nullptr && i < types->size(); ++i) {
+      CheckIntRegion(annotations, buffer, types->Data() + i * sizeof(ABC));
+    }
+
+    const BinaryRegion* single =
+        FindRegion(annotations, BinaryRegionCommentType::TableOffsetField,
+                   "test_union", 0);
+    TEST_NOTNULL(single);
+    if (single != nullptr) {
+      TEST_EQ_STR(single->comment.default_value.c_str(), "(union of type `B`)");
+    }
+    TEST_EQ_STR(ManyMember(annotations, 0).c_str(), "(`A`)");
+    TEST_EQ_STR(ManyMember(annotations, 1).c_str(), "(`B`)");
+    TEST_EQ_STR(ManyMember(annotations, 2).c_str(), "(`C`)");
+    TEST_EQ(CountTables(annotations, "UnionUnderlyingType.A"), 1u);
+    TEST_EQ(CountTables(annotations, "UnionUnderlyingType.B"), 2u);
+    TEST_EQ(CountTables(annotations, "UnionUnderlyingType.C"), 1u);
+    TEST_EQ(
+        CountStatus(annotations, BinaryRegionStatus::ERROR_INVALID_UNION_TYPE),
+        0u);
+  }
+
+  // 512 names no member, in the field and in the vector.
+  {
+    UnionUnderlyingType::DT unknown;
+    unknown.test_union.type = static_cast<ABC>(512);
+    const Annotations annotations = Annotate(bfbs, PackD(unknown));
+    TEST_EQ(
+        CountStatus(annotations, BinaryRegionStatus::ERROR_INVALID_UNION_TYPE),
+        1u);
+  }
+
+  {
+    std::vector<uint8_t> buffer = PackD(many);
+    GetMutableRoot<UnionUnderlyingType::D>(buffer.data())
+        ->mutable_test_vector_of_union_type()
+        ->Mutate(1, static_cast<ABC>(512));
+    const Annotations annotations = Annotate(bfbs, buffer);
+    TEST_EQ_STR(ManyMember(annotations, 0).c_str(), "(`A`)");
+    TEST_EQ_STR(ManyMember(annotations, 1).c_str(), "");
+    TEST_EQ_STR(ManyMember(annotations, 2).c_str(), "(`C`)");
+    TEST_EQ(
+        CountStatus(annotations, BinaryRegionStatus::ERROR_INVALID_UNION_TYPE),
+        1u);
+    TEST_EQ(CountTables(annotations, "UnionUnderlyingType.B"), 0u);
+  }
+
+  // The last type of `many` ends the buffer. Cut off its last byte, into a
+  // buffer of its own so a sanitizer reports any read past the end. What is
+  // left of the vector still holds 3 types read as bytes, but not 3 ints.
+  {
+    const std::vector<uint8_t> buffer = PackD(many);
+    const Vector<ABC>* types = GetRoot<UnionUnderlyingType::D>(buffer.data())
+                                   ->test_vector_of_union_type();
+    TEST_NOTNULL(types);
+    if (types != nullptr) {
+      TEST_EQ(types->Data() + types->size() * sizeof(ABC) ==
+                  buffer.data() + buffer.size(),
+              true);
+    }
+    const std::vector<uint8_t> cut(buffer.begin(), buffer.end() - 1);
+    const Annotations annotations = Annotate(bfbs, cut);
+    TEST_EQ(CountStatus(annotations, BinaryRegionStatus::ERROR_LENGTH_TOO_LONG),
+            1u);
+    TEST_EQ_STR(ManyMember(annotations, 0).c_str(), "(`A`)");
+    TEST_EQ_STR(ManyMember(annotations, 1).c_str(), "(`B`)");
+    const BinaryRegion* last = FindRegion(
+        annotations, BinaryRegionCommentType::VectorUnionValue, "", 2);
+    TEST_NOTNULL(last);
+    if (last != nullptr) {
+      TEST_EQ(last->comment.status,
+              BinaryRegionStatus::ERROR_INCOMPLETE_BINARY);
+      TEST_EQ_STR(last->comment.status_message.c_str(), "4");
+    }
   }
 }
 

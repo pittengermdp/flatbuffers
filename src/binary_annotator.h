@@ -346,7 +346,7 @@ class BinaryAnnotator {
                    const reflection::Field* field, uint64_t parent_table_offset,
                    const std::map<uint16_t, VTable::Entry> vtable_fields);
 
-  std::string BuildUnion(uint64_t offset, uint8_t realized_type,
+  std::string BuildUnion(uint64_t offset, int64_t realized_type,
                          const reflection::Field* field);
 
   void FixMissingRegions();
@@ -382,6 +382,16 @@ class BinaryAnnotator {
     return flatbuffers::ReadScalar<T>(binary_ + offset);
   }
 
+  // Reads an integer scalar stored as `base_type`, e.g. a union's type.
+  flatbuffers::Optional<int64_t> ReadScalar(
+      const uint64_t offset, const reflection::BaseType base_type) const {
+    if (!IsValidRead(offset, GetTypeSize(base_type))) {
+      return flatbuffers::nullopt;
+    }
+
+    return GetAnyValueI(base_type, binary_ + offset);
+  }
+
   // Adds the provided `section` keyed by the `offset` it occurs at. If a
   // section is already added at that offset, it doesn't replace the existing
   // one.
@@ -407,12 +417,12 @@ class BinaryAnnotator {
   }
 
   bool IsValidUnionValue(const reflection::Field* const field,
-                         const uint8_t value) {
+                         const int64_t value) {
     return IsUnionType(field) &&
            IsValidUnionValue(field->type()->index(), value);
   }
 
-  bool IsValidUnionValue(const uint32_t enum_id, const uint8_t value) {
+  bool IsValidUnionValue(const uint32_t enum_id, const int64_t value) {
     if (enum_id >= schema_->enums()->size()) {
       return false;
     }
@@ -427,9 +437,24 @@ class BinaryAnnotator {
     return enum_def->values()->LookupByKey(value) != nullptr;
   }
 
+  // The base type a scalar `type` of `field`, its type or its element type, is
+  // stored as. Only a union's types differ: the schema says `UType` (1 byte),
+  // but they are stored as the union's underlying type, e.g. `Int` for
+  // `union U: int`. `field` is then the union, its `_type` field, or a vector
+  // of either.
+  reflection::BaseType GetStoredType(const reflection::Field* const field,
+                                     const reflection::BaseType type) const {
+    const int32_t enum_id = field->type()->index();
+    if (type != reflection::BaseType::UType || enum_id < 0 ||
+        static_cast<uint32_t>(enum_id) >= schema_->enums()->size()) {
+      return type;
+    }
+    return schema_->enums()->Get(enum_id)->underlying_type()->base_type();
+  }
+
   uint64_t GetElementSize(const reflection::Field* const field) {
     if (IsScalar(field->type()->element())) {
-      return GetTypeSize(field->type()->element());
+      return GetTypeSize(GetStoredType(field, field->type()->element()));
     }
 
     switch (field->type()->element()) {
