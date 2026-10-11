@@ -445,9 +445,9 @@ jobs:
     - name: set up Gradle
       uses: gradle/actions/setup-gradle@v5
       with:
-        # The version of kotlin/gradle/wrapper: the Kotlin plugin in use does
-        # not run on the runner image's newer preinstalled Gradle.
-        gradle-version: 8.0.1
+        # The Kotlin plugin in use needs Gradle 8.2 or later, but does not run
+        # on the runner image's preinstalled Gradle 9.
+        gradle-version: 8.14.3
     - name: Build flatc
       run: |
        cmake -DFLATBUFFERS_BUILD_TESTS=OFF -DFLATBUFFERS_BUILD_FLATLIB=OFF -DFLATBUFFERS_BUILD_FLATHASH=OFF .
