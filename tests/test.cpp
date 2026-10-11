@@ -1676,6 +1676,54 @@ void UnionUnderlyingTypeTest() {
   TEST_ASSERT(unpacked.test_vector_of_union == buffer.test_vector_of_union);
 }
 
+// A union's type is stored as the union's underlying type, so the generated
+// verifier must check that it is aligned for that type: for `union ABC: int`,
+// that test_union_type is 4-byte aligned, not 1-byte aligned as a UType is.
+void UnionUnderlyingTypeVerifierAlignmentTest() {
+  using namespace UnionUnderlyingType;
+  const auto verifies = [](const flatbuffers::FlatBufferBuilder& fbb,
+                           const bool check_alignment) {
+    flatbuffers::Verifier::Options options;
+    options.check_alignment = check_alignment;
+    flatbuffers::Verifier verifier(fbb.GetBufferPointer(), fbb.GetSize(),
+                                   options);
+    return verifier.VerifyBuffer<D>(nullptr);
+  };
+
+  BT b;
+  b.b = "foo";
+  DT d;
+  d.test_union.Set(b);
+
+  flatbuffers::FlatBufferBuilder aligned;
+  aligned.Finish(D::Pack(aligned, &d));
+  TEST_EQ(verifies(aligned, true), true);
+
+  // The same table with its type 1 byte past a 4-byte boundary, where only a
+  // 1-byte type may be. The builder aligns every scalar it adds to its size,
+  // so the type is pushed as bytes and tracked, as CopyTable() copies a field.
+  flatbuffers::FlatBufferBuilder misaligned;
+  const auto member = B::Pack(misaligned, &b);
+  const auto start = misaligned.StartTable();
+  misaligned.AddOffset(D::VT_TEST_UNION, member.Union());
+  misaligned.Align(sizeof(int32_t));
+  misaligned.PushElement<uint8_t>(0);
+  const auto type = flatbuffers::EndianScalar(static_cast<int32_t>(ABC::B));
+  misaligned.PushBytes(reinterpret_cast<const uint8_t*>(&type), sizeof(type));
+  misaligned.TrackField(D::VT_TEST_UNION_TYPE, misaligned.GetSize());
+  misaligned.Finish(flatbuffers::Offset<D>(misaligned.EndTable(start)));
+  const uint8_t* buf = misaligned.GetBufferPointer();
+  const uint8_t* type_ptr =
+      flatbuffers::GetRoot<flatbuffers::Table>(buf)->GetAddressOf(
+          D::VT_TEST_UNION_TYPE);
+  TEST_NOTNULL(type_ptr);
+  TEST_EQ(static_cast<size_t>(type_ptr - buf) % sizeof(int32_t), size_t{3});
+
+  TEST_EQ(verifies(misaligned, true), false);
+  // Misalignment is the only thing wrong with it.
+  TEST_EQ(verifies(misaligned, false), true);
+}
+
 void StructsInHashTableTest() {
 #if defined(HAS_ABSL_CONTAINERS) && (!defined(_MSC_VER) || _MSC_VER >= 1700)
   absl::flat_hash_set<ArrayStruct> hash_set;
@@ -2262,6 +2310,7 @@ int FlatBufferTests(const std::string& tests_data_path) {
   EmbeddedSchemaAccess();
   Offset64Tests();
   UnionUnderlyingTypeTest();
+  UnionUnderlyingTypeVerifierAlignmentTest();
   StructsInHashTableTest();
   DefaultVectorsStringsTest();
   CrossNamespacePackTest();
