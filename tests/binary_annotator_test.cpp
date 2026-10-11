@@ -1,7 +1,9 @@
 #include "binary_annotator_test.h"
 
 #include <cstdint>
+#include <limits>
 #include <map>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -13,6 +15,7 @@
 #include "test_assert.h"
 #include "tests/union_underlying_type_test_generated.h"
 #include "tests/union_value_gap_test_generated.h"
+#include "tests/vtable_slot_count_test_generated.h"
 
 namespace flatbuffers {
 namespace tests {
@@ -160,6 +163,96 @@ void CheckUnionSlot(const Annotations& annotations,
     TEST_EQ(region->comment.status, status);
   }
 }
+
+// The finished buffer in `fbb`.
+std::vector<uint8_t> FinishedBuffer(const FlatBufferBuilder& fbb) {
+  return std::vector<uint8_t>(fbb.GetBufferPointer(),
+                              fbb.GetBufferPointer() + fbb.GetSize());
+}
+
+// The regions of the one vtable in `annotations`.
+std::vector<BinaryRegion> VTableRegions(const Annotations& annotations) {
+  std::vector<BinaryRegion> regions;
+  size_t vtables = 0;
+  for (const auto& section : annotations) {
+    if (section.second.type == BinarySectionType::VTable) {
+      regions = section.second.regions;
+      ++vtables;
+    }
+  }
+  TEST_EQ(vtables, 1u);
+  return regions;
+}
+
+// The number of `regions` whose comment has `type`.
+size_t CountType(const std::vector<BinaryRegion>& regions,
+                 const BinaryRegionCommentType type) {
+  size_t count = 0;
+  for (const BinaryRegion& region : regions) {
+    if (region.comment.type == type) {
+      ++count;
+    }
+  }
+  return count;
+}
+
+// Whether no two `regions` start at the same offset. A slot annotated twice
+// shows up as two regions at one offset.
+bool EachAtItsOwnOffset(const std::vector<BinaryRegion>& regions) {
+  std::set<uint64_t> offsets;
+  for (const BinaryRegion& region : regions) {
+    if (!offsets.insert(region.offset).second) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// The region of `regions` annotated as the slot of the field `name` with `id`,
+// or null. The text output prints it as "offset to field `name` (id: N)".
+const BinaryRegion* FindSlot(const std::vector<BinaryRegion>& regions,
+                             const std::string& name, const int id) {
+  const std::string comment_name = name + "` (id: " + std::to_string(id) + ")";
+  for (const BinaryRegion& region : regions) {
+    if (region.comment.type == BinaryRegionCommentType::VTableFieldOffset &&
+        region.comment.name == comment_name) {
+      return &region;
+    }
+  }
+  return nullptr;
+}
+
+// Checks that the slot of the field `name` with `id` is annotated with
+// `status`.
+void CheckSlot(const std::vector<BinaryRegion>& regions,
+               const std::string& name, const int id,
+               const BinaryRegionStatus status) {
+  const BinaryRegion* slot = FindSlot(regions, name, id);
+  TEST_NOTNULL(slot);
+  if (slot) {
+    TEST_EQ(slot->comment.status, status);
+  }
+}
+
+// A Reader written by Reader's generated code, whose vtable slot `slot`, a
+// Reader::VT_* constant, then has `voffset` written over it.
+std::vector<uint8_t> ReaderWithSlot(const voffset_t slot,
+                                    const voffset_t voffset) {
+  VTableSlotCount::ReaderT reader_t;
+  reader_t.name = "name";
+  reader_t.count = 7;
+  FlatBufferBuilder fbb;
+  VTableSlotCount::FinishReaderBuffer(
+      fbb, VTableSlotCount::Reader::Pack(fbb, &reader_t));
+  Verifier verifier(fbb.GetBufferPointer(), fbb.GetSize());
+  TEST_EQ(VTableSlotCount::VerifyReaderBuffer(verifier), true);
+
+  std::vector<uint8_t> buffer = FinishedBuffer(fbb);
+  const uint8_t* vtable = GetRoot<Table>(buffer.data())->GetVTable();
+  WriteScalar(buffer.data() + (vtable - buffer.data()) + slot, voffset);
+  return buffer;
+}
+
 
 }  // namespace
 
@@ -553,6 +646,252 @@ void AnnotateUnionVectorTest(const std::string& tests_data_path) {
     TEST_EQ(CountTables(annotations, "UnionUnderlyingType.C"), 0u);
   }
 }
+
+// A union with no `_type` to read. A single union's absent type is its
+// default, NONE, which is valid; a vector of unions without its `_type` vector
+// has 0 types, which is not. Either way the type is never read from the
+// table's own vtable offset, which sits where an absent field's offset (0)
+// points. A `_type` field whose vtable slot points outside the binary is left
+// out of the vtable, so its union's type is unknown.
+void AnnotateUnionWithoutTypeTest(const std::string& tests_data_path) {
+  using UnionUnderlyingType::ABC;
+
+  std::string schemafile;
+  TEST_EQ(LoadFile((tests_data_path + "union_underlying_type_test.fbs").c_str(),
+                   false, &schemafile),
+          true);
+  IDLOptions opts;
+  opts.lang_to_generate |= IDLOptions::kBinary;
+  Parser parser(opts);
+  TEST_EQ(parser.Parse(schemafile.c_str()), true);
+  // The schema declares no root_type; name one, as `flatc --root-type` does.
+  TEST_EQ(parser.SetRootType("D"), true);
+  parser.Serialize();
+  const std::string bfbs(
+      reinterpret_cast<const char*>(parser.builder_.GetBufferPointer()),
+      parser.builder_.GetSize());
+  const reflection::Object* d_def =
+      reflection::GetSchema(parser.builder_.GetBufferPointer())->root_table();
+  const reflection::Field* type_field =
+      d_def->fields()->LookupByKey("test_union_type");
+  const reflection::Field* types_field =
+      d_def->fields()->LookupByKey("test_vector_of_union_type");
+  TEST_NOTNULL(type_field);
+  TEST_NOTNULL(types_field);
+
+  UnionUnderlyingType::AT a;
+  a.a = 42;
+  UnionUnderlyingType::BT b;
+  b.b = "foo";
+  UnionUnderlyingType::CT c;
+  c.c = true;
+
+  // test_union holds a B, but test_union_type is absent: its default, NONE,
+  // is the type. The generated verifier accepts this. The B is not annotated.
+  {
+    FlatBufferBuilder fbb;
+    const Offset<void> member = UnionUnderlyingType::B::Pack(fbb, &b).Union();
+    fbb.Finish(UnionUnderlyingType::CreateD(fbb, ABC::NONE, member));
+    Verifier verifier(fbb.GetBufferPointer(), fbb.GetSize());
+    TEST_EQ(verifier.VerifyBuffer<UnionUnderlyingType::D>(nullptr), true);
+    const std::vector<uint8_t> buffer(fbb.GetBufferPointer(),
+                                      fbb.GetBufferPointer() + fbb.GetSize());
+    TEST_NULL(GetAnyRoot(buffer.data())->GetAddressOf(type_field->offset()));
+
+    const Annotations annotations = Annotate(bfbs, buffer);
+    const BinaryRegion* single =
+        FindRegion(annotations, BinaryRegionCommentType::TableOffsetField,
+                   "test_union", 0);
+    TEST_NOTNULL(single);
+    if (single != nullptr) {
+      TEST_EQ(single->comment.status, BinaryRegionStatus::OK);
+      TEST_EQ_STR(single->comment.default_value.c_str(),
+                  "(union of type `NONE`)");
+    }
+    TEST_EQ(CountTables(annotations, "UnionUnderlyingType.B"), 0u);
+  }
+
+  // test_union_type's vtable slot points outside the binary. No API writes a
+  // vtable, so this sets that one slot of a packed buffer directly.
+  {
+    UnionUnderlyingType::DT d;
+    d.test_union.Set(b);
+    std::vector<uint8_t> buffer = PackD(d);
+    uint8_t* vtable =
+        const_cast<uint8_t*>(GetAnyRoot(buffer.data())->GetVTable());
+    WriteScalar<voffset_t>(vtable + type_field->offset(), 0xFFFF);
+
+    const Annotations annotations = Annotate(bfbs, buffer);
+    const BinaryRegion* single =
+        FindRegion(annotations, BinaryRegionCommentType::TableOffsetField,
+                   "test_union", 0);
+    TEST_NOTNULL(single);
+    if (single != nullptr) {
+      TEST_EQ(single->comment.status,
+              BinaryRegionStatus::ERROR_INVALID_UNION_TYPE);
+    }
+    TEST_EQ(CountTables(annotations, "UnionUnderlyingType.B"), 0u);
+  }
+
+  // test_vector_of_union holds [A, B, C], but test_vector_of_union_type is
+  // absent. The generated verifier rejects this. No union has a type.
+  {
+    FlatBufferBuilder fbb;
+    const Offset<void> members[] = {
+        UnionUnderlyingType::A::Pack(fbb, &a).Union(),
+        UnionUnderlyingType::B::Pack(fbb, &b).Union(),
+        UnionUnderlyingType::C::Pack(fbb, &c).Union()};
+    const auto members_vector = fbb.CreateVector(members, 3);
+    fbb.Finish(
+        UnionUnderlyingType::CreateD(fbb, ABC::NONE, 0, 0, members_vector));
+    Verifier verifier(fbb.GetBufferPointer(), fbb.GetSize());
+    TEST_EQ(verifier.VerifyBuffer<UnionUnderlyingType::D>(nullptr), false);
+    const std::vector<uint8_t> buffer(fbb.GetBufferPointer(),
+                                      fbb.GetBufferPointer() + fbb.GetSize());
+    TEST_NULL(GetAnyRoot(buffer.data())->GetAddressOf(types_field->offset()));
+
+    const Annotations annotations = Annotate(bfbs, buffer);
+    for (uoffset_t i = 0; i < 3; ++i) {
+      CheckUnionSlot(annotations, buffer, i,
+                     BinaryRegionStatus::ERROR_INVALID_UNION_TYPE);
+    }
+    TEST_EQ(CountTables(annotations, "UnionUnderlyingType.A"), 0u);
+    TEST_EQ(CountTables(annotations, "UnionUnderlyingType.B"), 0u);
+    TEST_EQ(CountTables(annotations, "UnionUnderlyingType.C"), 0u);
+  }
+
+  // test_vector_of_union_type's vtable slot points outside the binary.
+  {
+    UnionUnderlyingType::DT many;
+    many.test_vector_of_union.resize(3);
+    many.test_vector_of_union[0].Set(a);
+    many.test_vector_of_union[1].Set(b);
+    many.test_vector_of_union[2].Set(c);
+    std::vector<uint8_t> buffer = PackD(many);
+    uint8_t* vtable =
+        const_cast<uint8_t*>(GetAnyRoot(buffer.data())->GetVTable());
+    WriteScalar<voffset_t>(vtable + types_field->offset(), 0xFFFF);
+
+    const Annotations annotations = Annotate(bfbs, buffer);
+    for (uoffset_t i = 0; i < 3; ++i) {
+      CheckUnionSlot(annotations, buffer, i,
+                     BinaryRegionStatus::ERROR_INVALID_UNION_TYPE);
+    }
+    TEST_EQ(CountTables(annotations, "UnionUnderlyingType.A"), 0u);
+    TEST_EQ(CountTables(annotations, "UnionUnderlyingType.B"), 0u);
+    TEST_EQ(CountTables(annotations, "UnionUnderlyingType.C"), 0u);
+  }
+}
+
+// The annotator labels each vtable slot once: as the slot of a field in the
+// schema, or, past the schema's last field, as the slot of an unknown field.
+// It counted only the slots it annotated without error, and labelled every slot
+// from that count on as unknown. So for each field it reported as a required
+// field not present, or as an offset outside the binary, it annotated a later
+// slot a second time.
+void AnnotateVTableSlotsOnceTest(const std::string& tests_data_path) {
+  std::string schemafile;
+  TEST_EQ(LoadFile((tests_data_path + "vtable_slot_count_test.fbs").c_str(),
+                   false, &schemafile),
+          true);
+  IDLOptions opts;
+  opts.lang_to_generate |= IDLOptions::kBinary;
+  Parser parser(opts);
+  TEST_EQ(parser.Parse(schemafile.c_str()), true);
+  parser.Serialize();
+  const std::string bfbs(
+      reinterpret_cast<const char*>(parser.builder_.GetBufferPointer()),
+      parser.builder_.GetSize());
+
+  // A buffer without `name`, which Reader requires.
+  {
+    VTableSlotCount::WriterT writer_t;
+    writer_t.count = 7;
+    FlatBufferBuilder fbb;
+    fbb.Finish(VTableSlotCount::Writer::Pack(fbb, &writer_t));
+    Verifier writer_verifier(fbb.GetBufferPointer(), fbb.GetSize());
+    TEST_EQ(writer_verifier.VerifyBuffer<VTableSlotCount::Writer>(nullptr),
+            true);
+    Verifier reader_verifier(fbb.GetBufferPointer(), fbb.GetSize());
+    TEST_EQ(VTableSlotCount::VerifyReaderBuffer(reader_verifier), false);
+
+    const std::vector<BinaryRegion> vtable =
+        VTableRegions(Annotate(bfbs, FinishedBuffer(fbb)));
+    TEST_EQ(EachAtItsOwnOffset(vtable), true);
+    TEST_EQ(CountType(vtable, BinaryRegionCommentType::VTableFieldOffset), 3u);
+    TEST_EQ(
+        CountType(vtable, BinaryRegionCommentType::VTableUnknownFieldOffset),
+        0u);
+    CheckSlot(vtable, "gone", 0, BinaryRegionStatus::OK);
+    CheckSlot(vtable, "name", 1,
+              BinaryRegionStatus::ERROR_REQUIRED_FIELD_NOT_PRESENT);
+    CheckSlot(vtable, "count", 2, BinaryRegionStatus::OK);
+  }
+
+  // The same, written at a newer version: the one slot past Reader's fields is
+  // still annotated as unknown, and only that one.
+  {
+    VTableSlotCount::NewerWriterT newer_t;
+    newer_t.count = 7;
+    newer_t.extra = 9;
+    FlatBufferBuilder fbb;
+    fbb.Finish(VTableSlotCount::NewerWriter::Pack(fbb, &newer_t));
+    Verifier verifier(fbb.GetBufferPointer(), fbb.GetSize());
+    TEST_EQ(verifier.VerifyBuffer<VTableSlotCount::NewerWriter>(nullptr), true);
+
+    const std::vector<BinaryRegion> vtable =
+        VTableRegions(Annotate(bfbs, FinishedBuffer(fbb)));
+    TEST_EQ(EachAtItsOwnOffset(vtable), true);
+    TEST_EQ(CountType(vtable, BinaryRegionCommentType::VTableFieldOffset), 3u);
+    TEST_EQ(
+        CountType(vtable, BinaryRegionCommentType::VTableUnknownFieldOffset),
+        1u);
+    for (const BinaryRegion& region : vtable) {
+      if (region.comment.type ==
+          BinaryRegionCommentType::VTableUnknownFieldOffset) {
+        TEST_EQ(region.comment.index, 3u);
+      }
+    }
+    CheckSlot(vtable, "name", 1,
+              BinaryRegionStatus::ERROR_REQUIRED_FIELD_NOT_PRESENT);
+  }
+
+  // A slot whose offset points past the end of the buffer, for a field ahead
+  // of the last, and for the last.
+  const voffset_t past_the_end = std::numeric_limits<voffset_t>::max();
+  {
+    const std::vector<uint8_t> buffer =
+        ReaderWithSlot(VTableSlotCount::Reader::VT_NAME, past_the_end);
+    TEST_EQ(buffer.size() < past_the_end, true);
+
+    const std::vector<BinaryRegion> vtable =
+        VTableRegions(Annotate(bfbs, buffer));
+    TEST_EQ(EachAtItsOwnOffset(vtable), true);
+    TEST_EQ(CountType(vtable, BinaryRegionCommentType::VTableFieldOffset), 3u);
+    TEST_EQ(
+        CountType(vtable, BinaryRegionCommentType::VTableUnknownFieldOffset),
+        0u);
+    CheckSlot(vtable, "name", 1,
+              BinaryRegionStatus::ERROR_OFFSET_OUT_OF_BINARY);
+    CheckSlot(vtable, "count", 2, BinaryRegionStatus::OK);
+  }
+  {
+    const std::vector<uint8_t> buffer =
+        ReaderWithSlot(VTableSlotCount::Reader::VT_COUNT, past_the_end);
+
+    const std::vector<BinaryRegion> vtable =
+        VTableRegions(Annotate(bfbs, buffer));
+    TEST_EQ(EachAtItsOwnOffset(vtable), true);
+    TEST_EQ(CountType(vtable, BinaryRegionCommentType::VTableFieldOffset), 3u);
+    TEST_EQ(
+        CountType(vtable, BinaryRegionCommentType::VTableUnknownFieldOffset),
+        0u);
+    CheckSlot(vtable, "name", 1, BinaryRegionStatus::OK);
+    CheckSlot(vtable, "count", 2,
+              BinaryRegionStatus::ERROR_OFFSET_OUT_OF_BINARY);
+  }
+}
+
 
 }  // namespace tests
 }  // namespace flatbuffers
