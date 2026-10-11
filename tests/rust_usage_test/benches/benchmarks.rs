@@ -22,6 +22,11 @@ extern crate flexbuffers;
 mod flatbuffers_benchmarks;
 mod flexbuffers_benchmarks;
 
+#[allow(dead_code, unused_imports)]
+#[path = "../../monster_test/mod.rs"]
+mod monster_test_generated;
+pub use monster_test_generated::my_game;
+
 benchmark_main!(
     flatbuffers_benchmarks::benches,
     flexbuffers_benchmarks::benches

@@ -16,10 +16,9 @@
 
 use bencher::{benchmark_group, Bencher};
 
-#[allow(dead_code, unused_imports)]
-#[path = "../../monster_test/mod.rs"]
-mod monster_test_generated;
-pub use monster_test_generated::my_game;
+// benchmarks.rs, the crate root, loads the generated code once for every
+// benchmark module.
+use crate::my_game;
 
 fn traverse_canonical_buffer(bench: &mut Bencher) {
     let owned_data = {

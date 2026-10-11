@@ -55,10 +55,6 @@ mod monster_test_generated;
 pub use monster_test_generated::my_game;
 
 #[allow(dead_code, unused_imports, clippy::all)]
-#[path = "../../optional_scalars/mod.rs"]
-mod optional_scalars_generated;
-
-#[allow(dead_code, unused_imports, clippy::all)]
 #[path = "../../arrays_test/mod.rs"]
 mod arrays_test_generated;
 
@@ -70,7 +66,7 @@ mod keyword_test_generated;
 // Test rust namer, should not cause compiling issues
 #[allow(dead_code, unused_imports, clippy::all)]
 #[path = "../../rust_namer_test/mod.rs"]
-mod rust_namer_test_generated;
+mod rust_namer_test;
 
 #[rustfmt::skip] // TODO: Use standard rust formatting and remove dead code.
 #[allow(dead_code)]
@@ -131,6 +127,10 @@ fn macro_check_is_some() {
     assert!(check_is_some!(none).is_err());
 }
 
+// monster_test.fbs declares `testf:float = 3.14159`. That is not pi, so the
+// expected default is pinned by its bits: the f32 nearest 3.14159.
+const TESTF_DEFAULT: f32 = f32::from_bits(0x4049_0FD0);
+
 #[test]
 fn object_api_defaults() {
     use my_game::example::*;
@@ -146,7 +146,6 @@ fn object_api_defaults() {
             b: 0
         }
     });
-    // NaN != NaN, so swap the NaN default for a comparable value.
     let default_without_nan = MonsterT {
         nan_default: 0.0,
         ..MonsterT::default()
@@ -180,7 +179,7 @@ fn object_api_defaults() {
             testhashu32_fnv1a: 0,
             testhashs64_fnv1a: 0,
             testhashu64_fnv1a: 0,
-            testf: f32::from_bits(0x4049_0fd0), // the schema default, 3.14159
+            testf: TESTF_DEFAULT,
             testf2: 3.0,
             testf3: 0.0,
             flex: None,
@@ -512,6 +511,13 @@ fn verifier_in_too_deep() {
 
     opts.max_depth += 1;
     assert!(flatbuffers::root_with_opts::<Monster>(&opts, data).is_ok());
+}
+#[test]
+fn verifier_error_is_a_core_error() {
+    // Holds with and without flatbuffers' std feature: core::error::Error is
+    // stable since Rust 1.81, and std::error::Error is the same trait.
+    let err: &dyn core::error::Error = &flatbuffers::InvalidFlatbuffer::TooManyTables;
+    assert!(err.source().is_none());
 }
 
 #[cfg(test)]
@@ -914,22 +920,22 @@ mod roundtrip_generated_code {
     #[test]
     fn vector_of_f64_store() {
         let mut b = flatbuffers::FlatBufferBuilder::new();
-        let v = b.create_vector(&[1.234_567_890_123f64][..]);
+        let v = b.create_vector(&[core::f64::consts::PI][..]);
         let name = b.create_string("foo");
         let m = build_mon(&mut b, &my_game::example::MonsterArgs{
             name: Some(name),
             vector_of_doubles: Some(v), ..Default::default()});
         assert_eq!(m.vector_of_doubles().unwrap().len(), 1);
-        assert_eq!(m.vector_of_doubles().unwrap().get(0), 1.234_567_890_123f64);
+        assert_eq!(m.vector_of_doubles().unwrap().get(0), core::f64::consts::PI);
 
         let rust_vec_inst = m.vector_of_doubles().unwrap();
         let rust_vec_iter_collect = rust_vec_inst.iter().collect::<Vec<_>>();
         assert_eq!(rust_vec_iter_collect.len(), 1);
-        assert_eq!(rust_vec_iter_collect[0], 1.234_567_890_123f64);
+        assert_eq!(rust_vec_iter_collect[0], core::f64::consts::PI);
 
         let rust_vec_iter_rev_collect = rust_vec_inst.iter().rev().collect::<Vec<_>>();
         assert_eq!(rust_vec_iter_rev_collect.len(), 1);
-        assert_eq!(rust_vec_iter_rev_collect[0], 1.234_567_890_123f64);
+        assert_eq!(rust_vec_iter_rev_collect[0], core::f64::consts::PI);
     }
     #[test]
     fn vector_of_struct_store() {
@@ -1250,7 +1256,7 @@ mod roundtrip_vectors {
 
             assert_eq!(got.len(), xs.len());
             for (i, x) in xs.iter().enumerate() {
-                assert_eq!(got.get(i), &x[..]);
+                assert_eq!(got.get(i), x.as_str());
             }
         }
 
@@ -1377,10 +1383,10 @@ mod roundtrip_table {
         let ushort_val: u16 = 0xFEEE;
         let int_val: i32 = 0x83333333u32.cast_signed();
         let uint_val: u32 = 0xFDDDDDDD;
-        let long_val: i64 = 0x8444444444444444u64.cast_signed(); // TODO: byte literal?
+        let long_val: i64 = 0x8444444444444444u64.cast_signed();
         let ulong_val: u64 = 0xFCCCCCCCCCCCCCCCu64;
-        let float_val: f32 = 1.234_567;
-        let double_val: f64 = 1.234_567_890_123;
+        let float_val: f32 = core::f32::consts::PI;
+        let double_val: f64 = core::f64::consts::PI;
 
         let test_value_types_max: isize = 11;
         let max_fields_per_object: flatbuffers::VOffsetT = 100;
@@ -1430,7 +1436,7 @@ mod roundtrip_table {
         // Test that all objects we generated are readable and return the
         // expected values. We generate random objects in the same order
         // so this is deterministic:
-        for &object in objects.iter() {
+        for &object in &objects {
             let table = {
                 let buf = builder.unfinished_data();
                 let loc = buf.len() as flatbuffers::UOffsetT - object;
@@ -1488,8 +1494,8 @@ mod roundtrip_table {
             let str_offsets: Vec<flatbuffers::WIPOffset<_>> = xs.iter().map(|s| b.create_byte_string(&s[..])).collect();
             let table_start = b.start_table();
 
-            for (i, &off) in str_offsets.iter().enumerate() {
-                b.push_slot_always(fi2fo(i as flatbuffers::VOffsetT), off);
+            for (i, &str_offset) in str_offsets.iter().enumerate() {
+                b.push_slot_always(fi2fo(i as flatbuffers::VOffsetT), str_offset);
             }
             let root = b.end_table(table_start);
             b.finish_minimal(root);
@@ -1502,7 +1508,7 @@ mod roundtrip_table {
                 let v = unsafe { tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<u8>>>(fi2fo(i as flatbuffers::VOffsetT), None) };
                 assert!(v.is_some());
                 let v2 = v.unwrap();
-                assert_eq!(v2.bytes(), x);
+                assert_eq!(v2.bytes(), x.as_slice());
             }
         }
         prop(vec![vec![1,2,3]]);
@@ -1525,8 +1531,8 @@ mod roundtrip_table {
             let str_offsets: Vec<flatbuffers::WIPOffset<_>> = xs.iter().map(|s| b.create_string(&s[..])).collect();
             let table_start = b.start_table();
 
-            for (i, &off) in str_offsets.iter().enumerate() {
-                b.push_slot_always(fi2fo(i as flatbuffers::VOffsetT), off);
+            for (i, &str_offset) in str_offsets.iter().enumerate() {
+                b.push_slot_always(fi2fo(i as flatbuffers::VOffsetT), str_offset);
             }
             let root = b.end_table(table_start);
             b.finish_minimal(root);
@@ -1537,7 +1543,7 @@ mod roundtrip_table {
 
             for (i, x) in xs.iter().enumerate() {
                 let v = unsafe { tab.get::<flatbuffers::ForwardsUOffset<&str>>(fi2fo(i as flatbuffers::VOffsetT), None) };
-                assert_eq!(v, Some(&x[..]));
+                assert_eq!(v, Some(x.as_str()));
             }
         }
         let n = 20;
@@ -1591,15 +1597,15 @@ mod roundtrip_table {
             let buf = b.finished_data();
             let tab = unsafe { <flatbuffers::ForwardsUOffset<flatbuffers::Table>>::follow(buf, 0) };
 
-            for (i, vec) in vecs.iter().enumerate() {
+            for (i, want) in vecs.iter().enumerate() {
                 let got = unsafe { tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<T>>>(fi2fo(i as flatbuffers::VOffsetT), None) };
                 assert!(got.is_some());
                 let got2 = got.unwrap();
                 let mut got3: Vec<T> = Vec::with_capacity(got2.len());
-                for j in 0..got2.len() {
-                    got3.push(got2.get(j));
+                for i in 0..got2.len() {
+                    got3.push(got2.get(i));
                 }
-                assert_eq!(*vec, got3);
+                assert_eq!(*want, got3);
             }
         }
 
@@ -1901,7 +1907,8 @@ mod generated_code_asserts {
     #[should_panic]
     fn monster_builder_fails_when_name_is_missing() {
         let b = &mut flatbuffers::FlatBufferBuilder::new();
-        let _ = my_game::example::Monster::create(b, &my_game::example::MonsterArgs{..Default::default()});
+        let mon = my_game::example::Monster::create(b, &my_game::example::MonsterArgs{..Default::default()});
+        b.finish(mon, None);
     }
 }
 
@@ -2131,9 +2138,9 @@ mod follow_impls {
 
     #[test]
     fn to_f32() {
-        let vec: Vec<u8> = vec![255, 255, 255, 255, /* start of value */ 208, 15, 73, 64];
+        let vec: Vec<u8> = vec![255, 255, 255, 255, /* start of value */ 219, 15, 73, 64];
         let fs: flatbuffers::FollowStart<f32> = flatbuffers::FollowStart::new();
-        assert_eq!(unsafe { fs.self_follow(&vec[..], 4) }, f32::from_bits(0x4049_0fd0));
+        assert_eq!(unsafe { fs.self_follow(&vec[..], 4) }, core::f32::consts::PI);
     }
 
     #[test]
@@ -2375,8 +2382,8 @@ mod push_impls {
     #[test]
     fn push_f64() {
         let mut b = flatbuffers::FlatBufferBuilder::new();
-        b.push(f64::from_bits(0x4009_21fb_5444_2eea));
-        check(&b, &[234, 46, 68, 84, 251, 33, 9, 64]);
+        b.push(core::f64::consts::PI);
+        check(&b, &[24, 45, 68, 84, 251, 33, 9, 64]);
     }
 
     #[test]
@@ -3630,7 +3637,7 @@ mod try_api {
     #[test]
     fn try_create_vector_from_iter_roundtrip() {
         let mut builder = flatbuffers::FlatBufferBuilder::new();
-        let items: Vec<f64> = vec![1.0, 2.5, -3.75, 0.0];
+        let items: Vec<f64> = vec![1.0, 2.5, -core::f64::consts::PI, 0.0];
         let offset = builder
             .try_create_vector_from_iter(items.iter().copied())
             .unwrap();

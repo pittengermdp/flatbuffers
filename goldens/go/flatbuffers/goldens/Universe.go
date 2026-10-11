@@ -10,81 +10,119 @@ type Universe struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsUniverse(buf []byte, offset flatbuffers.UOffsetT) *Universe {
-	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &Universe{}
-	x.Init(buf, n+offset)
-	return x
+func GetRootAsUniverse(buf_ []byte, offset_ flatbuffers.UOffsetT) *Universe {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_:])
+	x_ := &Universe{}
+	x_.Init(buf_, n_+offset_)
+	return x_
 }
 
-func FinishUniverseBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.Finish(offset)
+func FinishUniverseBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.Finish(offset_)
 }
 
-func GetSizePrefixedRootAsUniverse(buf []byte, offset flatbuffers.UOffsetT) *Universe {
-	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &Universe{}
-	x.Init(buf, n+offset+flatbuffers.SizeUint32)
-	return x
+func GetSizePrefixedRootAsUniverse(buf_ []byte, offset_ flatbuffers.UOffsetT) *Universe {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_+flatbuffers.SizeUint32:])
+	x_ := &Universe{}
+	x_.Init(buf_, n_+offset_+flatbuffers.SizeUint32)
+	return x_
 }
 
-func FinishSizePrefixedUniverseBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.FinishSizePrefixed(offset)
+func FinishSizePrefixedUniverseBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.FinishSizePrefixed(offset_)
 }
 
-func (rcv *Universe) Init(buf []byte, i flatbuffers.UOffsetT) {
-	rcv._tab.Bytes = buf
-	rcv._tab.Pos = i
+func VerifyRootAsUniverse(buf_ []byte, opts_ *flatbuffers.VerifierOptions) error {
+	v_ := flatbuffers.NewVerifier(buf_, opts_)
+	tablePos_, err_ := v_.CheckUOffsetT(0)
+	if err_ != nil {
+		return err_
+	}
+	return verifyUniverse(v_, int(tablePos_))
 }
 
-func (rcv *Universe) Table() flatbuffers.Table {
-	return rcv._tab
+func VerifyUniverse(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	return verifyUniverse(v_, tablePos_)
 }
 
-func (rcv *Universe) Age() float64 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
-	if o != 0 {
-		return rcv._tab.GetFloat64(o + rcv._tab.Pos)
+func verifyUniverse(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	if err_ := v_.CheckTable(tablePos_); err_ != nil {
+		return err_
+	}
+	if err_ := v_.CountTable(); err_ != nil {
+		return err_
+	}
+	if err_ := v_.PushDepth(); err_ != nil {
+		return err_
+	}
+	defer v_.PopDepth()
+
+	if err_ := v_.CheckScalarField(tablePos_, 4, 8); err_ != nil {
+		return err_
+	}
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 6); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := v_.CheckVectorOfTables(pos_, verifyGalaxy); err_ != nil {
+			return err_
+		}
+	}
+	return nil
+}
+
+func (rcv_ *Universe) Init(buf_ []byte, i_ flatbuffers.UOffsetT) {
+	rcv_._tab.Bytes = buf_
+	rcv_._tab.Pos = i_
+}
+
+func (rcv_ *Universe) Table() flatbuffers.Table {
+	return rcv_._tab
+}
+
+func (rcv_ *Universe) Age() float64 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(4))
+	if o_ != 0 {
+		return rcv_._tab.GetFloat64(o_ + rcv_._tab.Pos)
 	}
 	return 0.0
 }
 
-func (rcv *Universe) MutateAge(n float64) bool {
-	return rcv._tab.MutateFloat64Slot(4, n)
+func (rcv_ *Universe) MutateAge(n_ float64) bool {
+	return rcv_._tab.MutateFloat64Slot(4, n_)
 }
 
-func (rcv *Universe) Galaxies(obj *Galaxy, j int) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
-	if o != 0 {
-		x := rcv._tab.Vector(o)
-		x += flatbuffers.UOffsetT(j) * 4
-		x = rcv._tab.Indirect(x)
-		obj.Init(rcv._tab.Bytes, x)
+func (rcv_ *Universe) Galaxies(obj_ *Galaxy, j_ int) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(6))
+	if o_ != 0 {
+		x_ := rcv_._tab.Vector(o_)
+		x_ += flatbuffers.UOffsetT(j_) * 4
+		x_ = rcv_._tab.Indirect(x_)
+		obj_.Init(rcv_._tab.Bytes, x_)
 		return true
 	}
 	return false
 }
 
-func (rcv *Universe) GalaxiesLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
+func (rcv_ *Universe) GalaxiesLength() int {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(6))
+	if o_ != 0 {
+		return rcv_._tab.VectorLen(o_)
 	}
 	return 0
 }
 
-func UniverseStart(builder *flatbuffers.Builder) {
-	builder.StartObject(2)
+func UniverseStart(builder_ *flatbuffers.Builder) {
+	builder_.StartObject(2)
 }
-func UniverseAddAge(builder *flatbuffers.Builder, age float64) {
-	builder.PrependFloat64Slot(0, age, 0.0)
+func UniverseAddAge(builder_ *flatbuffers.Builder, ageArg_ float64) {
+	builder_.PrependFloat64Slot(0, ageArg_, 0.0)
 }
-func UniverseAddGalaxies(builder *flatbuffers.Builder, galaxies flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(galaxies), 0)
+func UniverseAddGalaxies(builder_ *flatbuffers.Builder, galaxiesArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(galaxiesArg_), 0)
 }
-func UniverseStartGalaxiesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(4, numElems, 4)
+func UniverseStartGalaxiesVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
+	return builder_.StartVector(4, numElems_, 4)
 }
-func UniverseEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	return builder.EndObject()
+func UniverseEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder_.EndObject()
 }

@@ -233,11 +233,11 @@ func (rcv_ *Leaf) Note() []byte {
 func LeafStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(2)
 }
-func LeafAddId(builder_ *flatbuffers.Builder, id_ uint64) {
-	builder_.PrependUint64Slot(0, id_, 0)
+func LeafAddId(builder_ *flatbuffers.Builder, idArg_ uint64) {
+	builder_.PrependUint64Slot(0, idArg_, 0)
 }
-func LeafAddNote(builder_ *flatbuffers.Builder, note_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(note_), 0)
+func LeafAddNote(builder_ *flatbuffers.Builder, noteArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(noteArg_), 0)
 }
 func LeafEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder_.EndObject()

@@ -62,18 +62,18 @@ func (rcv_ *StructOfStructsOfStructs) A(obj_ *StructOfStructs) *StructOfStructs 
 	return obj_
 }
 
-func CreateStructOfStructsOfStructs(builder_ *flatbuffers.Builder, a_a_id_ uint32, a_a_distance_ uint32, a_b_a_ int16, a_b_b_ int8, a_c_id_ uint32, a_c_distance_ uint32) flatbuffers.UOffsetT {
+func CreateStructOfStructsOfStructs(builder_ *flatbuffers.Builder, a_a_idArg_ uint32, a_a_distanceArg_ uint32, a_b_aArg_ int16, a_b_bArg_ int8, a_c_idArg_ uint32, a_c_distanceArg_ uint32) flatbuffers.UOffsetT {
 	builder_.Prep(4, 20)
 	builder_.Prep(4, 20)
 	builder_.Prep(4, 8)
-	builder_.PrependUint32(a_c_distance_)
-	builder_.PrependUint32(a_c_id_)
+	builder_.PrependUint32(a_c_distanceArg_)
+	builder_.PrependUint32(a_c_idArg_)
 	builder_.Prep(2, 4)
 	builder_.Pad(1)
-	builder_.PrependInt8(a_b_b_)
-	builder_.PrependInt16(a_b_a_)
+	builder_.PrependInt8(a_b_bArg_)
+	builder_.PrependInt16(a_b_aArg_)
 	builder_.Prep(4, 8)
-	builder_.PrependUint32(a_a_distance_)
-	builder_.PrependUint32(a_a_id_)
+	builder_.PrependUint32(a_a_distanceArg_)
+	builder_.PrependUint32(a_a_idArg_)
 	return builder_.Offset()
 }

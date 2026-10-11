@@ -26,14 +26,24 @@ impl quickcheck::Arbitrary for NonNullString {
     fn arbitrary<G: quickcheck::Gen>(g: &mut G) -> Self {
         let size = core::cmp::min(1, usize::arbitrary(g));
         NonNullString(
-            (0..)
-                .map(|_| <char>::arbitrary(g))
-                .filter(|&b| b != '\0')
-                .take(size)
-                .collect(),
+            (0..).map(|_| <char>::arbitrary(g)).filter(|&b| b != '\0').take(size).collect(),
         )
     }
 }
+
+// The argument of qc_serde_ints: one vector of each integer type. They come in
+// as one tuple, since clippy limits a function to seven arguments.
+#[cfg(not(miri))] // slow.
+type IntVecs = (
+    Vec<u8>,
+    Vec<u16>,
+    Vec<u32>,
+    Vec<u64>,
+    Vec<i8>,
+    Vec<i16>,
+    Vec<i32>,
+    Vec<i64>,
+);
 
 #[cfg(not(miri))] // slow.
 quickcheck! {
@@ -125,12 +135,8 @@ quickcheck! {
             |(i, x)| r.idx(i).get_blob().unwrap().0.iter().eq(x.iter())
         )
     }
-    fn qc_serde_ints(
-        unsigned: (Vec<u8>, Vec<u16>, Vec<u32>, Vec<u64>),
-        signed: (Vec<i8>, Vec<i16>, Vec<i32>, Vec<i64>)
-    ) -> bool {
-        let (u8s, u16s, u32s, u64s) = unsigned;
-        let (i8s, i16s, i32s, i64s) = signed;
+    fn qc_serde_ints(ints: IntVecs) -> bool {
+        let (u8s, u16s, u32s, u64s, i8s, i16s, i32s, i64s) = ints;
         #[derive(Serialize, Deserialize, PartialEq)]
         struct Foo {
             u8s: Vec<u8>,
@@ -349,12 +355,12 @@ fn store_indirects() {
     let mut v = b.start_vector();
     v.push(IndirectInt(-42));
     v.push(IndirectUInt(9000));
-    v.push(IndirectFloat(3.3));
+    v.push(IndirectFloat(core::f64::consts::PI));
     v.end_vector();
     let r = Reader::get_root(b.view()).unwrap().as_vector();
     assert_eq!(r.idx(0).get_i64().unwrap(), -42);
     assert_eq!(r.idx(1).get_u64().unwrap(), 9000);
-    assert_eq!(r.idx(2).get_f64().unwrap(), 3.3);
+    assert_eq!(r.idx(2).get_f64().unwrap(), core::f64::consts::PI);
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -409,22 +415,13 @@ fn serde_serious() {
     let data = MyTupleStruct(
         MyNewType,
         MyUnitStruct(vec!["Hello".to_string(), "World".to_string()]),
-        MyStruct {
-            a: 2,
-            b: 4,
-            c: 8,
-            d: 16,
-        },
+        MyStruct { a: 2, b: 4, c: 8, d: 16 },
         vec![
             MyEnum::Unit,
             MyEnum::NewType([-1, 0, 1]),
             MyEnum::Unit,
-            MyEnum::Tuple(3.25, 2.71),
-            MyEnum::Struct {
-                a: 32,
-                b: 64,
-                c: 128,
-            },
+            MyEnum::Tuple(core::f32::consts::PI, 2.71),
+            MyEnum::Struct { a: 32, b: 64, c: 128 },
         ],
     );
 

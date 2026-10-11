@@ -234,8 +234,8 @@ func (rcv_ *__Set_bool_Entry) LookupByKey(key_ bool, vectorLocation_ flatbuffers
 func __Set_bool_EntryStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(1)
 }
-func __Set_bool_EntryAddKey(builder_ *flatbuffers.Builder, key_ bool) {
-	builder_.PrependBoolSlot(0, key_, false)
+func __Set_bool_EntryAddKey(builder_ *flatbuffers.Builder, keyArg_ bool) {
+	builder_.PrependBoolSlot(0, keyArg_, false)
 }
 func __Set_bool_EntryEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder_.EndObject()

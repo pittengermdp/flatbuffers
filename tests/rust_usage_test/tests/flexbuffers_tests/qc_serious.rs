@@ -107,8 +107,8 @@ struct Struct {
     e: Array4<NewType>,
 }
 
-// quickcheck_derive wraps each impl in a named const, which rustc flags as a non-local
-// impl, so these are written by hand like the ones above and below.
+// These are written out because quickcheck_derive puts each impl it derives
+// inside a named const, which rustc reports as a non-local impl definition.
 impl Arbitrary for Unit {
     fn arbitrary<G: Gen>(_g: &mut G) -> Self {
         Unit
@@ -116,28 +116,28 @@ impl Arbitrary for Unit {
 }
 impl Arbitrary for NewType {
     fn arbitrary<G: Gen>(g: &mut G) -> Self {
-        NewType(bool::arbitrary(g))
+        NewType(<bool>::arbitrary(g))
     }
 }
 impl Arbitrary for Tuple {
     fn arbitrary<G: Gen>(g: &mut G) -> Self {
         Tuple(
-            bool::arbitrary(g),
-            u8::arbitrary(g),
-            i16::arbitrary(g),
-            f32::arbitrary(g),
-            String::arbitrary(g),
+            <bool>::arbitrary(g),
+            <u8>::arbitrary(g),
+            <i16>::arbitrary(g),
+            <f32>::arbitrary(g),
+            <String>::arbitrary(g),
         )
     }
 }
 impl Arbitrary for Struct {
     fn arbitrary<G: Gen>(g: &mut G) -> Self {
         Struct {
-            a: Vec::arbitrary(g),
-            b: BTreeMap::arbitrary(g),
-            c: Tuple::arbitrary(g),
-            d: <(Unit, Unit)>::arbitrary(g),
-            e: Array4::arbitrary(g),
+            a: Arbitrary::arbitrary(g),
+            b: Arbitrary::arbitrary(g),
+            c: Arbitrary::arbitrary(g),
+            d: Arbitrary::arbitrary(g),
+            e: Arbitrary::arbitrary(g),
         }
     }
 }

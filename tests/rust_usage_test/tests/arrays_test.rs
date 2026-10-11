@@ -246,14 +246,18 @@ fn verify_struct_array_alignment() {
 #[derive(Clone, Debug)]
 struct FakeArray<T, const N: usize>([T; N]);
 
+// False for a value that is not equal to itself, such as a float NaN.
+fn equals_itself<T: PartialEq>(x: &T) -> bool {
+    x.eq(x)
+}
+
 impl<T: Arbitrary + Debug + PartialEq, const N: usize> Arbitrary for FakeArray<T, N> {
     fn arbitrary<G: Gen>(g: &mut G) -> FakeArray<T, N> {
         let x: [T; N] = array_init(|_| {
             loop {
                 let generated_scalar = T::arbitrary(g);
-                // Verify that generated scalar is not Nan, which is not equals to itself,
-                // therefore we can't use it to validate input == output
-                if generated_scalar.eq(&generated_scalar) {
+                // A NaN cannot be used to validate input == output, so draw again.
+                if equals_itself(&generated_scalar) {
                     return generated_scalar;
                 }
             }

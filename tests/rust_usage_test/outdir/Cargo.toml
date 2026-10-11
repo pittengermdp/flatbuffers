@@ -9,3 +9,7 @@ edition = "2018"
 [dependencies]
 flatbuffers = { path = "../../../rust/flatbuffers" }
 serde = "1.0"
+
+# Read by tests/RustTest.sh and tests/RustTest.bat; see docs/source/languages/rust.md.
+[package.metadata.rust-test]
+skip = "build.rs runs the flatc at the repository root, which CI does not build; RustTest.sh tests it when that flatc exists"

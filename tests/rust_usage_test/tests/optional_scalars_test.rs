@@ -1,7 +1,7 @@
 #[allow(dead_code, unused_imports)]
 #[path = "../../optional_scalars/mod.rs"]
 mod optional_scalars_generated;
-use crate::optional_scalars_generated::optional_scalars::*;
+use self::optional_scalars_generated::optional_scalars::*;
 
 // There are 3 variants of scalars in tables - those specified with default=42,
 // optional scalars, and those with nothing specified (implicitly default=0).

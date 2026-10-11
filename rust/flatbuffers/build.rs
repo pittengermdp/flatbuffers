@@ -16,4 +16,13 @@ fn main() {
             println!("cargo:rustc-cfg=error_in_core_unstable");
         }
     }
+
+    // `core::error::Error` is stable since Rust 1.81 on every channel, so a
+    // no_std build implements it whenever the compiler has it. Compare
+    // major.minor only: semver sorts 1.81.0-nightly before 1.81.0.
+    println!("cargo:rustc-check-cfg=cfg(core_error)");
+    let version = &version_meta.semver;
+    if (version.major, version.minor) >= (1, 81) {
+        println!("cargo:rustc-cfg=core_error")
+    }
 }
