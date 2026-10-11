@@ -107,6 +107,18 @@ inline const Table* GetAnySizePrefixedRoot(const uint8_t* const flatbuf) {
   return GetSizePrefixedRoot<Table>(flatbuf);
 }
 
+// As above, where SizeT is the width of the size prefix, as for
+// VerifySizePrefixed<SizeT>().
+template <typename SizeT>
+inline Table* GetAnySizePrefixedRoot(uint8_t* const flatbuf) {
+  return GetMutableSizePrefixedRoot<Table, SizeT>(flatbuf);
+}
+
+template <typename SizeT>
+inline const Table* GetAnySizePrefixedRoot(const uint8_t* const flatbuf) {
+  return GetSizePrefixedRoot<Table, SizeT>(flatbuf);
+}
+
 // Get a field's default, if you know it's an integer, and its exact type.
 template <typename T>
 T GetFieldDefaultI(const reflection::Field& field) {
@@ -154,7 +166,10 @@ Vector<T>* GetFieldV(const Table& table, const reflection::Field& field) {
 
 // Get a field, if you know it's a vector, generically.
 // To actually access elements, use the return value together with
-// field.type()->element() in any of GetAnyVectorElemI below etc.
+// field.type()->element() in any of GetAnyVectorElemI below etc. For a union's
+// `_type` vector, whose element type is UType, use
+// GetUnionUnderlyingType(schema, field) instead: its elements are as wide as
+// the union's underlying type, which only by default is a 1-byte UType.
 inline VectorOfAny* GetFieldAnyV(const Table& table,
                                  const reflection::Field& field) {
   return table.GetPointer<VectorOfAny*>(field.offset());
@@ -193,6 +208,8 @@ int64_t GetAnyValueI(reflection::BaseType type, const uint8_t* data);
 double GetAnyValueF(reflection::BaseType type, const uint8_t* data);
 // All scalars converted using stringstream, strings as-is, and all other
 // data types provide some level of debug-pretty-printing.
+// A union's type, a UType, is read as the union's underlying type when given
+// the schema and the union's enum as `type_index`, and as 1 byte otherwise.
 std::string GetAnyValueS(reflection::BaseType type, const uint8_t* data,
                          const reflection::Schema* schema, int type_index);
 
@@ -213,7 +230,9 @@ inline double GetAnyFieldF(const Table& table, const reflection::Field& field) {
 
 // Get any table field as a string, regardless of what type it is.
 // You may pass nullptr for the schema if you don't care to have fields that
-// are of table type pretty-printed.
+// are of table type pretty-printed, or a union's `_type` field read at the
+// width of the union's underlying type (see GetUnionUnderlyingType()) rather
+// than as a 1-byte UType.
 inline std::string GetAnyFieldS(const Table& table,
                                 const reflection::Field& field,
                                 const reflection::Schema* schema) {
@@ -221,6 +240,40 @@ inline std::string GetAnyFieldS(const Table& table,
   return field_ptr ? GetAnyValueS(field.type()->base_type(), field_ptr, schema,
                                   field.type()->index())
                    : "";
+}
+
+// Defined below, with the other union helpers.
+inline reflection::BaseType GetUnionUnderlyingType(
+    const reflection::Schema& schema, const reflection::Field& field);
+
+// The base type a table field's value is stored as: the field's base type,
+// except for a union's `_type` field, which the schema gives the base type
+// UType, 1 byte, but which is stored as the union's underlying type.
+inline reflection::BaseType GetAnyFieldBaseType(
+    const reflection::Schema& schema, const reflection::Field& field) {
+  auto type = field.type()->base_type();
+  return type == reflection::UType ? GetUnionUnderlyingType(schema, field)
+                                   : type;
+}
+
+// The overloads below that take the schema read a union's `_type` field as
+// wide as the union stores it; those above read it as a 1-byte UType, which
+// it is only by default.
+
+// Get any table field as a 64bit int, regardless of what type it is.
+inline int64_t GetAnyFieldI(const Table& table, const reflection::Field& field,
+                            const reflection::Schema& schema) {
+  auto field_ptr = table.GetAddressOf(field.offset());
+  return field_ptr ? GetAnyValueI(GetAnyFieldBaseType(schema, field), field_ptr)
+                   : field.default_integer();
+}
+
+// Get any table field as a double, regardless of what type it is.
+inline double GetAnyFieldF(const Table& table, const reflection::Field& field,
+                           const reflection::Schema& schema) {
+  auto field_ptr = table.GetAddressOf(field.offset());
+  return field_ptr ? GetAnyValueF(GetAnyFieldBaseType(schema, field), field_ptr)
+                   : field.default_real();
 }
 
 // Get any struct field as a 64bit int, regardless of what type it is.
@@ -354,6 +407,38 @@ inline bool SetAnyFieldS(Table* table, const reflection::Field& field,
   return true;
 }
 
+// The overloads below that take the schema write a union's `_type` field as
+// wide as the union stores it; those above write it as a 1-byte UType, which
+// it is only by default. An absent field cannot be written: they return
+// whether `val` is the default the matching GetAnyField overload reads.
+
+// Set any table field as a 64bit int, regardless of what type it is.
+inline bool SetAnyFieldI(Table* table, const reflection::Field& field,
+                         int64_t val, const reflection::Schema& schema) {
+  auto field_ptr = table->GetAddressOf(field.offset());
+  if (!field_ptr) return val == field.default_integer();
+  SetAnyValueI(GetAnyFieldBaseType(schema, field), field_ptr, val);
+  return true;
+}
+
+// Set any table field as a double, regardless of what type it is.
+inline bool SetAnyFieldF(Table* table, const reflection::Field& field,
+                         double val, const reflection::Schema& schema) {
+  auto field_ptr = table->GetAddressOf(field.offset());
+  if (!field_ptr) return val == field.default_real();
+  SetAnyValueF(GetAnyFieldBaseType(schema, field), field_ptr, val);
+  return true;
+}
+
+// Set any table field as a string, regardless of what type it is.
+inline bool SetAnyFieldS(Table* table, const reflection::Field& field,
+                         const char* val, const reflection::Schema& schema) {
+  auto field_ptr = table->GetAddressOf(field.offset());
+  if (!field_ptr) return false;
+  SetAnyValueS(GetAnyFieldBaseType(schema, field), field_ptr, val);
+  return true;
+}
+
 // Set any struct field as a 64bit int, regardless of type what it is.
 inline void SetAnyFieldI(Struct* st, const reflection::Field& field,
                          int64_t val) {
@@ -424,6 +509,19 @@ pointer_inside_vector<T, U> piv(T* ptr, std::vector<U>& vec) {
 
 constexpr const char* UnionTypeFieldSuffix() { return "_type"; }
 
+// The base type a union's types are stored as: UType, 1 byte, by default, or
+// the underlying type the union declares, e.g. Int for `union U: int`. The
+// `_type` field says UType either way, so read and size its types with this.
+// `field` must refer to the union: it is the union field, its `_type` field,
+// or a vector of either.
+inline reflection::BaseType GetUnionUnderlyingType(
+    const reflection::Schema& schema, const reflection::Field& field) {
+  return schema.enums()
+      ->Get(field.type()->index())
+      ->underlying_type()
+      ->base_type();
+}
+
 // Helper to figure out the actual table type a union refers to.
 inline const reflection::Object& GetUnionType(
     const reflection::Schema& schema, const reflection::Object& parent,
@@ -433,7 +531,11 @@ inline const reflection::Object& GetUnionType(
   auto type_field = parent.fields()->LookupByKey(
       (unionfield.name()->str() + UnionTypeFieldSuffix()).c_str());
   FLATBUFFERS_ASSERT(type_field);
-  auto union_type = GetFieldI<uint8_t>(table, *type_field);
+  auto type_ptr = table.GetAddressOf(type_field->offset());
+  auto union_type =
+      type_ptr
+          ? GetAnyValueI(GetUnionUnderlyingType(schema, unionfield), type_ptr)
+          : type_field->default_integer();
   auto enumval = enumdef->values()->LookupByKey(union_type);
   return *schema.objects()->Get(enumval->union_type()->index());
 }
@@ -505,6 +607,12 @@ inline bool SetFieldT(Table* table, const reflection::Field& field,
 // Note: this does not deal with DAGs correctly. If the table passed forms a
 // DAG, the copy will be a tree instead (with duplicates). Strings can be
 // shared however, by passing true for use_string_pooling.
+// Returns a null offset (see Offset::IsNull) if the copy reaches a field set
+// with a 64-bit offset (`offset64` or `vector64`), which a 32-bit
+// FlatBufferBuilder cannot write. Anything copied before that is left in fbb,
+// unreferenced, and fbb can still be used. Check IsNull() before passing the
+// result on: AddOffset() drops a null offset without a trace, and Finish()
+// cannot take one.
 
 Offset<const Table*> CopyTable(FlatBufferBuilder& fbb,
                                const reflection::Schema& schema,
@@ -516,14 +624,40 @@ Offset<const Table*> CopyTable(FlatBufferBuilder& fbb,
 // root should point to the root type for this flatbuffer.
 // buf should point to the start of flatbuffer data.
 // length specifies the size of the flatbuffer data.
+// The buffer's framing is checked as the generated Verify<Root>Buffer()
+// checks it: its minimum size, and a nonzero, in-bounds root offset. So is the
+// offset of each string, vector, table and union field, as the generated
+// VerifyOffset() and VerifyOffsetRequired() check it, before it is followed:
+// nonzero and in bounds. A field of any kind that is marked required must be
+// present unless it is also deprecated, since the generated builder and
+// verifier both skip a deprecated field. Unlike the generated verifier, a
+// deprecated field present in the buffer is still checked, as reflection can
+// still read it. The file identifier and the contents of nested flatbuffers
+// are not checked. A length at or above max_size (FLATBUFFERS_MAX_BUFFER_SIZE
+// unless given in opts) fails.
 bool Verify(const reflection::Schema& schema, const reflection::Object& root,
             const uint8_t* buf, size_t length, uoffset_t max_depth = 64,
             uoffset_t max_tables = 1000000);
 
+bool Verify(const reflection::Schema& schema, const reflection::Object& root,
+            const uint8_t* buf, size_t length, const Verifier::Options& opts);
+
+// As Verify(), for a buffer that starts with a 32-bit size prefix, as
+// FlatBufferBuilder::FinishSizePrefixed() writes. Read its root with
+// GetAnySizePrefixedRoot().
 bool VerifySizePrefixed(const reflection::Schema& schema,
                         const reflection::Object& root, const uint8_t* buf,
                         size_t length, uoffset_t max_depth = 64,
                         uoffset_t max_tables = 1000000);
+
+// SizeT is the width of the size prefix, uoffset_t or uoffset64_t (the only
+// two instantiated): uoffset64_t for a buffer that
+// FlatBufferBuilder64::FinishSizePrefixed() wrote. Read its root with
+// GetAnySizePrefixedRoot<SizeT>().
+template <typename SizeT = uoffset_t>
+bool VerifySizePrefixed(const reflection::Schema& schema,
+                        const reflection::Object& root, const uint8_t* buf,
+                        size_t length, const Verifier::Options& opts);
 
 }  // namespace flatbuffers
 

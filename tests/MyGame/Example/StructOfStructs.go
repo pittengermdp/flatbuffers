@@ -77,17 +77,17 @@ func (rcv_ *StructOfStructs) C(obj_ *Ability) *Ability {
 	return obj_
 }
 
-func CreateStructOfStructs(builder_ *flatbuffers.Builder, a_id_ uint32, a_distance_ uint32, b_a_ int16, b_b_ int8, c_id_ uint32, c_distance_ uint32) flatbuffers.UOffsetT {
+func CreateStructOfStructs(builder_ *flatbuffers.Builder, a_idArg_ uint32, a_distanceArg_ uint32, b_aArg_ int16, b_bArg_ int8, c_idArg_ uint32, c_distanceArg_ uint32) flatbuffers.UOffsetT {
 	builder_.Prep(4, 20)
 	builder_.Prep(4, 8)
-	builder_.PrependUint32(c_distance_)
-	builder_.PrependUint32(c_id_)
+	builder_.PrependUint32(c_distanceArg_)
+	builder_.PrependUint32(c_idArg_)
 	builder_.Prep(2, 4)
 	builder_.Pad(1)
-	builder_.PrependInt8(b_b_)
-	builder_.PrependInt16(b_a_)
+	builder_.PrependInt8(b_bArg_)
+	builder_.PrependInt16(b_aArg_)
 	builder_.Prep(4, 8)
-	builder_.PrependUint32(a_distance_)
-	builder_.PrependUint32(a_id_)
+	builder_.PrependUint32(a_distanceArg_)
+	builder_.PrependUint32(a_idArg_)
 	return builder_.Offset()
 }

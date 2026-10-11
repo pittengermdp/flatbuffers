@@ -121,17 +121,12 @@ impl ::flatbuffers::SimpleToVerifyInSlice for KeywordsInUnion {}
 pub struct KeywordsInUnionUnionTableOffset {}
 
 #[allow(clippy::upper_case_acronyms)]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Default, Eq, Hash)]
 pub enum KeywordsInUnionT {
+    #[default]
     NONE,
     Static_(Box<KeywordsInTableT>),
     Internal(Box<KeywordsInTableT>),
-}
-
-impl Default for KeywordsInUnionT {
-    fn default() -> Self {
-        Self::NONE
-    }
 }
 
 impl KeywordsInUnionT {

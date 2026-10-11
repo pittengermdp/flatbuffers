@@ -12,45 +12,53 @@ pub mod flatbuffers {
 
         pub enum GalaxyOffset {}
 
-        #[derive(Copy, Clone, PartialEq)]
+        #[derive(Copy, Clone, PartialEq, Eq)]
         pub struct Galaxy<'a> {
-            pub _tab: ::flatbuffers::Table<'a>,
+            pub tab: ::flatbuffers::Table<'a>,
         }
 
         impl<'a> ::flatbuffers::Follow<'a> for Galaxy<'a> {
-            type Inner = Galaxy<'a>;
+            type Inner = Self;
 
             #[inline]
             unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-                Self { _tab: unsafe { ::flatbuffers::Table::new(buf, loc) } }
+                Self { tab: unsafe { ::flatbuffers::Table::new(buf, loc) } }
             }
         }
 
         impl<'a> Galaxy<'a> {
             pub const VT_NUM_STARS: ::flatbuffers::VOffsetT = 4;
 
+            /// # Safety
+            /// Caller must ensure `table` is a valid flatbuffer table for this type.
             #[inline]
-            pub unsafe fn init_from_table(table: ::flatbuffers::Table<'a>) -> Self {
-                Galaxy { _tab: table }
+            #[must_use]
+            pub const unsafe fn init_from_table(table: ::flatbuffers::Table<'a>) -> Self {
+                Self { tab: table }
             }
 
             #[allow(unused_mut)]
+            #[must_use]
             pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: ::flatbuffers::Allocator + 'bldr>(
-                _fbb: &'mut_bldr mut ::flatbuffers::FlatBufferBuilder<'bldr, A>,
+                fbb: &'mut_bldr mut ::flatbuffers::FlatBufferBuilder<'bldr, A>,
                 args: &'args GalaxyArgs
             ) -> ::flatbuffers::WIPOffset<Galaxy<'bldr>> {
-                let mut builder = GalaxyBuilder::new(_fbb);
+                let mut builder = GalaxyBuilder::new(fbb);
                 builder.add_num_stars(args.num_stars);
                 builder.finish()
             }
 
 
+            ///
+            /// # Panics
+            /// Panics if the field is not present. This should not happen for validated flatbuffers.
             #[inline]
+            #[must_use]
             pub fn num_stars(&self) -> i64 {
                 // Safety:
                 // Created from valid Table for this object
                 // which contains a valid value in this slot
-                unsafe { self._tab.get::<i64>(Galaxy::VT_NUM_STARS, Some(0)).unwrap()}
+                unsafe { self.tab.get::<i64>(Galaxy::VT_NUM_STARS, Some(0)).unwrap()}
             }
         }
 
@@ -70,10 +78,10 @@ pub mod flatbuffers {
             pub num_stars: i64,
         }
 
-        impl<'a> Default for GalaxyArgs {
+        impl Default for GalaxyArgs {
             #[inline]
             fn default() -> Self {
-                GalaxyArgs {
+                Self {
                     num_stars: 0,
                 }
             }
@@ -91,15 +99,17 @@ pub mod flatbuffers {
             }
 
             #[inline]
-            pub fn new(_fbb: &'b mut ::flatbuffers::FlatBufferBuilder<'a, A>) -> GalaxyBuilder<'a, 'b, A> {
-                let start = _fbb.start_table();
+            #[must_use]
+            pub fn new(fbb: &'b mut ::flatbuffers::FlatBufferBuilder<'a, A>) -> Self {
+                let start = fbb.start_table();
                 GalaxyBuilder {
-                    fbb_: _fbb,
+                    fbb_: fbb,
                     start_: start,
                 }
             }
 
             #[inline]
+            #[must_use]
             pub fn finish(self) -> ::flatbuffers::WIPOffset<Galaxy<'a>> {
                 let o = self.fbb_.end_table(self.start_);
                 ::flatbuffers::WIPOffset::new(o.value())
@@ -116,17 +126,17 @@ pub mod flatbuffers {
 
         pub enum UniverseOffset {}
 
-        #[derive(Copy, Clone, PartialEq)]
+        #[derive(Copy, Clone, PartialEq, Eq)]
         pub struct Universe<'a> {
-            pub _tab: ::flatbuffers::Table<'a>,
+            pub tab: ::flatbuffers::Table<'a>,
         }
 
         impl<'a> ::flatbuffers::Follow<'a> for Universe<'a> {
-            type Inner = Universe<'a>;
+            type Inner = Self;
 
             #[inline]
             unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-                Self { _tab: unsafe { ::flatbuffers::Table::new(buf, loc) } }
+                Self { tab: unsafe { ::flatbuffers::Table::new(buf, loc) } }
             }
         }
 
@@ -134,37 +144,46 @@ pub mod flatbuffers {
             pub const VT_AGE: ::flatbuffers::VOffsetT = 4;
             pub const VT_GALAXIES: ::flatbuffers::VOffsetT = 6;
 
+            /// # Safety
+            /// Caller must ensure `table` is a valid flatbuffer table for this type.
             #[inline]
-            pub unsafe fn init_from_table(table: ::flatbuffers::Table<'a>) -> Self {
-                Universe { _tab: table }
+            #[must_use]
+            pub const unsafe fn init_from_table(table: ::flatbuffers::Table<'a>) -> Self {
+                Self { tab: table }
             }
 
             #[allow(unused_mut)]
+            #[must_use]
             pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: ::flatbuffers::Allocator + 'bldr>(
-                _fbb: &'mut_bldr mut ::flatbuffers::FlatBufferBuilder<'bldr, A>,
+                fbb: &'mut_bldr mut ::flatbuffers::FlatBufferBuilder<'bldr, A>,
                 args: &'args UniverseArgs<'args>
             ) -> ::flatbuffers::WIPOffset<Universe<'bldr>> {
-                let mut builder = UniverseBuilder::new(_fbb);
+                let mut builder = UniverseBuilder::new(fbb);
                 builder.add_age(args.age);
                 if let Some(x) = args.galaxies { builder.add_galaxies(x); }
                 builder.finish()
             }
 
 
+            ///
+            /// # Panics
+            /// Panics if the field is not present. This should not happen for validated flatbuffers.
             #[inline]
+            #[must_use]
             pub fn age(&self) -> f64 {
                 // Safety:
                 // Created from valid Table for this object
                 // which contains a valid value in this slot
-                unsafe { self._tab.get::<f64>(Universe::VT_AGE, Some(0.0)).unwrap()}
+                unsafe { self.tab.get::<f64>(Universe::VT_AGE, Some(0.0)).unwrap()}
             }
 
             #[inline]
+            #[must_use]
             pub fn galaxies(&self) -> Option<::flatbuffers::Vector<'a, ::flatbuffers::ForwardsUOffset<Galaxy<'a>>>> {
                 // Safety:
                 // Created from valid Table for this object
                 // which contains a valid value in this slot
-                unsafe { self._tab.get::<::flatbuffers::ForwardsUOffset<::flatbuffers::Vector<'a, ::flatbuffers::ForwardsUOffset<Galaxy>>>>(Universe::VT_GALAXIES, None)}
+                unsafe { self.tab.get::<::flatbuffers::ForwardsUOffset<::flatbuffers::Vector<'a, ::flatbuffers::ForwardsUOffset<Galaxy>>>>(Universe::VT_GALAXIES, None)}
             }
         }
 
@@ -186,10 +205,10 @@ pub mod flatbuffers {
             pub galaxies: Option<::flatbuffers::WIPOffset<::flatbuffers::Vector<'a, ::flatbuffers::ForwardsUOffset<Galaxy<'a>>>>>,
         }
 
-        impl<'a> Default for UniverseArgs<'a> {
+        impl Default for UniverseArgs<'_> {
             #[inline]
             fn default() -> Self {
-                UniverseArgs {
+                Self {
                     age: 0.0,
                     galaxies: None,
                 }
@@ -213,15 +232,17 @@ pub mod flatbuffers {
             }
 
             #[inline]
-            pub fn new(_fbb: &'b mut ::flatbuffers::FlatBufferBuilder<'a, A>) -> UniverseBuilder<'a, 'b, A> {
-                let start = _fbb.start_table();
+            #[must_use]
+            pub fn new(fbb: &'b mut ::flatbuffers::FlatBufferBuilder<'a, A>) -> Self {
+                let start = fbb.start_table();
                 UniverseBuilder {
-                    fbb_: _fbb,
+                    fbb_: fbb,
                     start_: start,
                 }
             }
 
             #[inline]
+            #[must_use]
             pub fn finish(self) -> ::flatbuffers::WIPOffset<Universe<'a>> {
                 let o = self.fbb_.end_table(self.start_);
                 ::flatbuffers::WIPOffset::new(o.value())
@@ -237,35 +258,44 @@ pub mod flatbuffers {
             }
         }
 
-        /// Verifies that a buffer of bytes contains a `Universe`
-        /// and returns it.
+        #[inline]
+        /// Verifies that a buffer of bytes contains a `Universe` and returns it.
+        ///
         /// Note that verification is still experimental and may not
         /// catch every error, or be maximally performant. For the
         /// previous, unchecked, behavior use
         /// `root_as_universe_unchecked`.
-        #[inline]
+        ///
+        /// # Errors
+        /// Returns `InvalidFlatbuffer` if the buffer does not contain a valid flatbuffer.
         pub fn root_as_universe(buf: &[u8]) -> Result<Universe<'_>, ::flatbuffers::InvalidFlatbuffer> {
             ::flatbuffers::root::<Universe>(buf)
         }
 
-        /// Verifies that a buffer of bytes contains a size prefixed
-        /// `Universe` and returns it.
+        #[inline]
+        /// Verifies that a buffer of bytes contains a size prefixed `Universe` and returns it.
+        ///
         /// Note that verification is still experimental and may not
         /// catch every error, or be maximally performant. For the
         /// previous, unchecked, behavior use
         /// `size_prefixed_root_as_universe_unchecked`.
-        #[inline]
+        ///
+        /// # Errors
+        /// Returns `InvalidFlatbuffer` if the buffer does not contain a valid flatbuffer.
         pub fn size_prefixed_root_as_universe(buf: &[u8]) -> Result<Universe<'_>, ::flatbuffers::InvalidFlatbuffer> {
             ::flatbuffers::size_prefixed_root::<Universe>(buf)
         }
 
-        /// Verifies, with the given options, that a buffer of bytes
-        /// contains a `Universe` and returns it.
+        #[inline]
+        /// Verifies, with the given options, that a buffer of bytes contains a `Universe` and returns it.
+        ///
         /// Note that verification is still experimental and may not
         /// catch every error, or be maximally performant. For the
         /// previous, unchecked, behavior use
         /// `root_as_universe_unchecked`.
-        #[inline]
+        ///
+        /// # Errors
+        /// Returns `InvalidFlatbuffer` if the buffer does not contain a valid flatbuffer.
         pub fn root_as_universe_with_opts<'b, 'o>(
             opts: &'o ::flatbuffers::VerifierOptions,
             buf: &'b [u8],
@@ -273,13 +303,16 @@ pub mod flatbuffers {
             ::flatbuffers::root_with_opts::<Universe<'b>>(opts, buf)
         }
 
-        /// Verifies, with the given verifier options, that a buffer of
-        /// bytes contains a size prefixed `Universe` and returns
-        /// it. Note that verification is still experimental and may not
+        #[inline]
+        /// Verifies, with the given verifier options, that a buffer of bytes contains a size prefixed `Universe` and returns it.
+        ///
+        /// Note that verification is still experimental and may not
         /// catch every error, or be maximally performant. For the
         /// previous, unchecked, behavior use
         /// `root_as_universe_unchecked`.
-        #[inline]
+        ///
+        /// # Errors
+        /// Returns `InvalidFlatbuffer` if the buffer does not contain a valid flatbuffer.
         pub fn size_prefixed_root_as_universe_with_opts<'b, 'o>(
             opts: &'o ::flatbuffers::VerifierOptions,
             buf: &'b [u8],
@@ -287,7 +320,9 @@ pub mod flatbuffers {
             ::flatbuffers::size_prefixed_root_with_opts::<Universe<'b>>(opts, buf)
         }
 
-        /// Assumes, without verification, that a buffer of bytes contains a Universe and returns it.
+        #[must_use]
+        /// Assumes, without verification, that a buffer of bytes contains a `Universe` and returns it.
+        ///
         /// # Safety
         /// Callers must trust the given bytes do indeed contain a valid `Universe`.
         #[inline]
@@ -295,7 +330,9 @@ pub mod flatbuffers {
             unsafe { ::flatbuffers::root_unchecked::<Universe>(buf) }
         }
 
-        /// Assumes, without verification, that a buffer of bytes contains a size prefixed Universe and returns it.
+        #[must_use]
+        /// Assumes, without verification, that a buffer of bytes contains a size prefixed `Universe` and returns it.
+        ///
         /// # Safety
         /// Callers must trust the given bytes do indeed contain a valid size prefixed `Universe`.
         #[inline]

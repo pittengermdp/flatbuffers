@@ -132,9 +132,9 @@ func (rcv_ *Pt) MutateY(n_ int32) bool {
 	return rcv_._tab.MutateInt32(rcv_._tab.Pos+flatbuffers.UOffsetT(4), n_)
 }
 
-func CreatePt(builder_ *flatbuffers.Builder, x_ int32, y_ int32) flatbuffers.UOffsetT {
+func CreatePt(builder_ *flatbuffers.Builder, xArg_ int32, yArg_ int32) flatbuffers.UOffsetT {
 	builder_.Prep(4, 8)
-	builder_.PrependInt32(y_)
-	builder_.PrependInt32(x_)
+	builder_.PrependInt32(yArg_)
+	builder_.PrependInt32(xArg_)
 	return builder_.Offset()
 }
