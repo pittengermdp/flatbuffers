@@ -224,9 +224,9 @@ inline ::flatbuffers::Offset<Child> Child::Pack(::flatbuffers::FlatBufferBuilder
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder64 *__fbb; const ChildT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _id = _o->id;
   _fbb.ForceVectorAlignment64(_o->data.size(), sizeof(uint8_t), 16);
   auto _data = _o->data.size() ? _fbb.CreateVector64(_o->data) : 0;
+  auto _id = _o->id;
   return empty_force_align::CreateChild(
       _fbb,
       _id,

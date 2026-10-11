@@ -886,6 +886,11 @@ flatc(
 )
 flatc(
     CPP_TEST_OPTS,
+    prefix="64bit",
+    schema="64bit/empty_force_align.fbs",
+)
+flatc(
+    CPP_TEST_OPTS,
     prefix="64bit/evolution",
     schema=["64bit/evolution/v1.fbs", "64bit/evolution/v2.fbs"],
 )
