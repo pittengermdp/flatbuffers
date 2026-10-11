@@ -770,6 +770,63 @@ void Offset64ReflectionVerifyRequired() {
   }
 }
 
+// `buf` with 0 for the 32-bit offset in the root table's slot for `field`.
+static std::vector<uint8_t> WithZeroOffset(std::vector<uint8_t> buf,
+                                           const voffset_t field) {
+  const uint8_t* const slot = GetAnyRoot(buf.data())->GetAddressOf(field);
+  TEST_NOTNULL(slot);
+  WriteScalar<uoffset_t>(buf.data() + (slot - buf.data()), 0);
+  return buf;
+}
+
+// A 32-bit offset of 0 points a field at its own slot. The generated verifier
+// rejects it in VerifyOffset(). The reflection verifier checked only that the
+// slot was in bounds, and read the slot itself as an empty vector or string.
+void Offset64ReflectionVerifyZeroOffset() {
+  const reflection::Schema& schema = RootTableSchema();
+
+  // The differential fuzzer's input: a RootTable whose many_vectors is empty,
+  // with its offset zeroed. Pack() omits an empty vector, so this one comes
+  // from the generated builder.
+  FlatBufferBuilder64 empty_fbb;
+  const auto empty =
+      empty_fbb.CreateVector(std::vector<Offset<WrapperTable>>());
+  RootTableBuilder empty_root(empty_fbb);
+  empty_root.add_many_vectors(empty);
+  FinishRootTableBuffer(empty_fbb, empty_root.Finish());
+  const std::vector<uint8_t> fuzzed = WithZeroOffset(
+      std::vector<uint8_t>(empty_fbb.GetBufferPointer(),
+                           empty_fbb.GetBufferPointer() + empty_fbb.GetSize()),
+      RootTable::VT_MANY_VECTORS);
+  const std::vector<uint8_t> fuzzed_bytes = {
+      0x1c, 0x00, 0x00, 0x00, 0x18, 0x00, 0x08, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x18, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  };
+  TEST_ASSERT(fuzzed == fuzzed_bytes);
+  TEST_EQ(GeneratedVerify(fuzzed), false);
+  TEST_EQ(ReflectionVerify(schema, fuzzed), false);
+
+  // An empty near_string, likewise from the builder. The string follows the
+  // table, so its zero length is right after the slot: with the slot zeroed,
+  // that length is the terminator of an empty string on the slot.
+  FlatBufferBuilder64 string_fbb;
+  const auto near_string = string_fbb.CreateString("");
+  RootTableBuilder string_root(string_fbb);
+  string_root.add_near_string(near_string);
+  FinishRootTableBuffer(string_fbb, string_root.Finish());
+  const std::vector<uint8_t> empty_string(
+      string_fbb.GetBufferPointer(),
+      string_fbb.GetBufferPointer() + string_fbb.GetSize());
+  TEST_EQ(GeneratedVerify(empty_string), true);
+  TEST_EQ(ReflectionVerify(schema, empty_string), true);
+  const std::vector<uint8_t> zero_string =
+      WithZeroOffset(empty_string, RootTable::VT_NEAR_STRING);
+  TEST_EQ(GeneratedVerify(zero_string), false);
+  TEST_EQ(ReflectionVerify(schema, zero_string), false);
+}
+
 void Offset64ReflectionVerifySizePrefixed() {
   const reflection::Schema& schema = RootTableSchema();
   const reflection::Object& root = *schema.root_table();

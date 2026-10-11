@@ -529,7 +529,12 @@ Offset<const Table*> CopyTable(FlatBufferBuilder& fbb,
 // buf should point to the start of flatbuffer data.
 // length specifies the size of the flatbuffer data.
 // The buffer's framing is checked as the generated Verify<Root>Buffer()
-// checks it: its minimum size, and a nonzero, in-bounds root offset. The file
+// checks it: its minimum size, and a nonzero, in-bounds root offset. So is the
+// offset of each string, vector, table and union field, as the generated
+// VerifyOffset() and VerifyOffsetRequired() check it, before it is followed:
+// present if the field is required (and not deprecated), nonzero, and in
+// bounds. Unlike the generated verifier, a deprecated field present in the
+// buffer is still checked, as reflection can still read it. The file
 // identifier and the contents of nested flatbuffers are not checked. A length
 // at or above max_size (FLATBUFFERS_MAX_BUFFER_SIZE unless given in opts)
 // fails.
