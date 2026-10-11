@@ -116,16 +116,11 @@ impl ::flatbuffers::SimpleToVerifyInSlice for UnionInNestedNS {}
 pub struct UnionInNestedNSUnionTableOffset {}
 
 #[allow(clippy::upper_case_acronyms)]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Default, Eq, Hash)]
 pub enum UnionInNestedNST {
+    #[default]
     NONE,
     TableInNestedNS(Box<TableInNestedNST>),
-}
-
-impl Default for UnionInNestedNST {
-    fn default() -> Self {
-        Self::NONE
-    }
 }
 
 impl UnionInNestedNST {

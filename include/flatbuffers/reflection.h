@@ -107,6 +107,18 @@ inline const Table* GetAnySizePrefixedRoot(const uint8_t* const flatbuf) {
   return GetSizePrefixedRoot<Table>(flatbuf);
 }
 
+// As above, where SizeT is the width of the size prefix, as for
+// VerifySizePrefixed<SizeT>().
+template <typename SizeT>
+inline Table* GetAnySizePrefixedRoot(uint8_t* const flatbuf) {
+  return GetMutableSizePrefixedRoot<Table, SizeT>(flatbuf);
+}
+
+template <typename SizeT>
+inline const Table* GetAnySizePrefixedRoot(const uint8_t* const flatbuf) {
+  return GetSizePrefixedRoot<Table, SizeT>(flatbuf);
+}
+
 // Get a field's default, if you know it's an integer, and its exact type.
 template <typename T>
 T GetFieldDefaultI(const reflection::Field& field) {
@@ -537,14 +549,40 @@ Offset<const Table*> CopyTable(FlatBufferBuilder& fbb,
 // root should point to the root type for this flatbuffer.
 // buf should point to the start of flatbuffer data.
 // length specifies the size of the flatbuffer data.
+// The buffer's framing is checked as the generated Verify<Root>Buffer()
+// checks it: its minimum size, and a nonzero, in-bounds root offset. So is the
+// offset of each string, vector, table and union field, as the generated
+// VerifyOffset() and VerifyOffsetRequired() check it, before it is followed:
+// nonzero and in bounds. A field of any kind that is marked required must be
+// present unless it is also deprecated, since the generated builder and
+// verifier both skip a deprecated field. Unlike the generated verifier, a
+// deprecated field present in the buffer is still checked, as reflection can
+// still read it. The file identifier and the contents of nested flatbuffers
+// are not checked. A length at or above max_size (FLATBUFFERS_MAX_BUFFER_SIZE
+// unless given in opts) fails.
 bool Verify(const reflection::Schema& schema, const reflection::Object& root,
             const uint8_t* buf, size_t length, uoffset_t max_depth = 64,
             uoffset_t max_tables = 1000000);
 
+bool Verify(const reflection::Schema& schema, const reflection::Object& root,
+            const uint8_t* buf, size_t length, const Verifier::Options& opts);
+
+// As Verify(), for a buffer that starts with a 32-bit size prefix, as
+// FlatBufferBuilder::FinishSizePrefixed() writes. Read its root with
+// GetAnySizePrefixedRoot().
 bool VerifySizePrefixed(const reflection::Schema& schema,
                         const reflection::Object& root, const uint8_t* buf,
                         size_t length, uoffset_t max_depth = 64,
                         uoffset_t max_tables = 1000000);
+
+// SizeT is the width of the size prefix, uoffset_t or uoffset64_t (the only
+// two instantiated): uoffset64_t for a buffer that
+// FlatBufferBuilder64::FinishSizePrefixed() wrote. Read its root with
+// GetAnySizePrefixedRoot<SizeT>().
+template <typename SizeT = uoffset_t>
+bool VerifySizePrefixed(const reflection::Schema& schema,
+                        const reflection::Object& root, const uint8_t* buf,
+                        size_t length, const Verifier::Options& opts);
 
 }  // namespace flatbuffers
 

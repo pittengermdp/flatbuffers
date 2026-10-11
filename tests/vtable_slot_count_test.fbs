@@ -1,0 +1,28 @@
+// Tables for checking that the binary annotator annotates each vtable slot of a
+// Reader once. `gone` gives Reader a deprecated slot ahead of the others.
+namespace VTableSlotCount;
+
+table Reader {
+  gone: string (deprecated);
+  name: string (required);
+  count: int;
+}
+
+// Reader's layout with nothing required, to write the buffer that Reader's
+// generated builder refuses to: one without `name`. Setting `count` still
+// gives `name` a slot, holding 0.
+table Writer {
+  gone: string (deprecated);
+  name: string;
+  count: int;
+}
+
+// Writer at a newer version, with a field Reader does not know.
+table NewerWriter {
+  gone: string (deprecated);
+  name: string;
+  count: int;
+  extra: int;
+}
+
+root_type Reader;

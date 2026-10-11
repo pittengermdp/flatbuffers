@@ -165,7 +165,7 @@ impl<'a> MoreDefaults<'a> {
             self.tab
                 .get::<::flatbuffers::ForwardsUOffset<&str>>(
                     MoreDefaults::VT_EMPTY_STRING,
-                    Some(&""),
+                    Some(""),
                 )
                 .unwrap()
         }
@@ -184,7 +184,7 @@ impl<'a> MoreDefaults<'a> {
             self.tab
                 .get::<::flatbuffers::ForwardsUOffset<&str>>(
                     MoreDefaults::VT_SOME_STRING,
-                    Some(&"some"),
+                    Some("some"),
                 )
                 .unwrap()
         }
