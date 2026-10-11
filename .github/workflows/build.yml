@@ -444,10 +444,6 @@ jobs:
         java-version: 17
     - name: set up Gradle
       uses: gradle/actions/setup-gradle@v5
-      with:
-        # The Kotlin plugin in use needs Gradle 8.2 or later, but does not run
-        # on the runner image's preinstalled Gradle 9.
-        gradle-version: 8.14.3
     - name: Build flatc
       run: |
        cmake -DFLATBUFFERS_BUILD_TESTS=OFF -DFLATBUFFERS_BUILD_FLATLIB=OFF -DFLATBUFFERS_BUILD_FLATHASH=OFF .
@@ -477,8 +473,9 @@ jobs:
        echo "${PWD}" >> "$GITHUB_PATH"
     - name: Build
       working-directory: kotlin
-      # `gradle` is the version set up above, not ./gradlew.
-      run: gradle jvmMainClasses jvmTest jsTest jsBrowserTest
+      # The wrapper's Gradle, which the Kotlin plugin in use supports. The
+      # runner image's preinstalled Gradle 9 removed an API the plugin calls.
+      run: ./gradlew jvmMainClasses jvmTest jsTest jsBrowserTest
 
   build-rust-linux:
     name: Build Rust Linux
