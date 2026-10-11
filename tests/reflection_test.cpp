@@ -166,6 +166,25 @@ void ReflectionTest(const std::string& tests_data_path, uint8_t* flatbuf,
   hp_int64 = flatbuffers::GetAnyFieldI(root, hp_field);
   TEST_EQ(hp_int64, 300);
 
+  // Given the schema, a union's type is read and written as wide as its union
+  // stores it: here as a UType.
+  TEST_EQ(flatbuffers::GetAnyFieldI(root, *test_type_field_ptr, schema), 1);
+  TEST_EQ(flatbuffers::GetAnyFieldF(root, *test_type_field_ptr, schema), 1.0);
+  // A write changes that one byte and no other.
+  {
+    const std::vector<uint8_t> before(flatbuf, flatbuf + length);
+    const auto type_at = static_cast<size_t>(
+        root.GetAddressOf(test_type_field_ptr->offset()) - flatbuf);
+    TEST_EQ(flatbuffers::SetAnyFieldI(&root, *test_type_field_ptr, 2, schema),
+            true);
+    for (size_t i = 0; i < length; i++) {
+      TEST_EQ(flatbuf[i], i == type_at ? uint8_t{2} : before[i]);
+    }
+    TEST_EQ(flatbuffers::SetAnyFieldI(&root, *test_type_field_ptr, 1, schema),
+            true);
+    TEST_EQ(flatbuffers::GetAnyFieldI(root, *test_type_field_ptr), 1);
+  }
+
   // Test buffer is valid after the modifications
   TEST_EQ(flatbuffers::Verify(schema, *schema.root_table(), flatbuf, length),
           true);
@@ -497,6 +516,94 @@ void ForAllFieldsReverseTest(const std::string& tests_data_path) {
       TEST_ASSERT(reverse_ids[i - 1] > reverse_ids[i]);
     }
   }
+}
+
+// Given the schema, the GetAnyField and SetAnyField overloads read and write a
+// union's `_type` field as wide as the union's underlying type, and
+// GetUnionUnderlyingType() is the element type of its `_type` vector:
+// `union ABC: int` makes them ints, though the schema says UType, 1 byte.
+void ReflectionUnionUnderlyingTypeAnyFieldTest(
+    const std::string& tests_data_path) {
+  using namespace UnionUnderlyingType;
+
+  std::string schemafile;
+  TEST_EQ(flatbuffers::LoadFile(
+              (tests_data_path + "union_underlying_type_test.fbs").c_str(),
+              false, &schemafile),
+          true);
+  flatbuffers::Parser parser;
+  TEST_EQ(parser.Parse(schemafile.c_str()), true);
+  parser.Serialize();
+  auto& schema = *reflection::GetSchema(parser.builder_.GetBufferPointer());
+  auto d_def = schema.objects()->LookupByKey("UnionUnderlyingType.D");
+  TEST_NOTNULL(d_def);
+  auto type_field = d_def->fields()->LookupByKey("test_union_type");
+  auto types_field = d_def->fields()->LookupByKey("test_vector_of_union_type");
+  TEST_NOTNULL(type_field);
+  TEST_NOTNULL(types_field);
+
+  AT a;
+  a.a = 42;
+  BT b;
+  b.b = "foo";
+  CT c;
+  c.c = true;
+  DT d;
+  d.test_union.Set(a);
+  d.test_vector_of_union.resize(3);
+  d.test_vector_of_union[0].Set(a);
+  d.test_vector_of_union[1].Set(b);
+  d.test_vector_of_union[2].Set(c);
+  flatbuffers::FlatBufferBuilder fbb;
+  fbb.Finish(D::Pack(fbb, &d));
+  std::vector<uint8_t> buf(fbb.GetBufferPointer(),
+                           fbb.GetBufferPointer() + fbb.GetSize());
+  auto& root = *flatbuffers::GetAnyRoot(buf.data());
+  auto generated = GetRoot<D>(buf.data());
+
+  // The premise: without the schema, A = 555 is read as a 1-byte UType.
+  TEST_EQ(flatbuffers::GetAnyFieldI(root, *type_field), 555 & 0xFF);
+
+  TEST_EQ(flatbuffers::GetAnyFieldBaseType(schema, *type_field),
+          reflection::Int);
+  TEST_EQ(flatbuffers::GetAnyFieldI(root, *type_field, schema), 555);
+  TEST_EQ(flatbuffers::GetAnyFieldF(root, *type_field, schema), 555.0);
+
+  // Each write changes the type's second byte, which a 1-byte write would not.
+  TEST_EQ(flatbuffers::SetAnyFieldI(&root, *type_field, 777, schema), true);
+  TEST_EQ(generated->test_union_type(), ABC::C);
+  TEST_EQ(flatbuffers::SetAnyFieldF(&root, *type_field, 555.0, schema), true);
+  TEST_EQ(generated->test_union_type(), ABC::A);
+  TEST_EQ(flatbuffers::SetAnyFieldS(&root, *type_field, "777", schema), true);
+  TEST_EQ(generated->test_union_type(), ABC::C);
+
+  auto types = flatbuffers::GetFieldAnyV(root, *types_field);
+  TEST_NOTNULL(types);
+  const auto underlying =
+      flatbuffers::GetUnionUnderlyingType(schema, *types_field);
+  TEST_EQ(flatbuffers::GetAnyVectorElemI(types, underlying, 0), 555);
+  TEST_EQ(flatbuffers::GetAnyVectorElemI(types, underlying, 1), 666);
+  TEST_EQ(flatbuffers::GetAnyVectorElemI(types, underlying, 2), 777);
+  flatbuffers::SetAnyVectorElemI(types, underlying, 0, 666);
+  TEST_EQ(generated->test_vector_of_union_type()->Get(0), ABC::B);
+
+  // Pack() leaves out a type of NONE, its default, 0. An absent field cannot be
+  // written, so writing it succeeds only for that default.
+  DT none;
+  flatbuffers::FlatBufferBuilder none_fbb;
+  none_fbb.Finish(D::Pack(none_fbb, &none));
+  auto& none_root = *flatbuffers::GetAnyRoot(none_fbb.GetBufferPointer());
+  TEST_EQ(flatbuffers::GetAnyFieldI(none_root, *type_field, schema), 0);
+  TEST_EQ(flatbuffers::GetAnyFieldF(none_root, *type_field, schema), 0.0);
+  TEST_EQ(flatbuffers::SetAnyFieldI(&none_root, *type_field, 0, schema), true);
+  TEST_EQ(flatbuffers::SetAnyFieldI(&none_root, *type_field, 555, schema),
+          false);
+  TEST_EQ(flatbuffers::SetAnyFieldF(&none_root, *type_field, 0.0, schema),
+          true);
+  TEST_EQ(flatbuffers::SetAnyFieldF(&none_root, *type_field, 555.0, schema),
+          false);
+  TEST_EQ(flatbuffers::SetAnyFieldS(&none_root, *type_field, "555", schema),
+          false);
 }
 
 void MiniReflectFlatBuffersTest(uint8_t* flatbuf) {
