@@ -481,6 +481,14 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v6
+    # RustTest.sh fails on any clippy warning, and every Rust release adds
+    # lints, so this job pins its toolchain instead of taking whatever the
+    # runner image ships. Bump the version on purpose, in a change that also
+    # fixes the new lints it reports.
+    - name: Set up Rust (clippy)
+      uses: dtolnay/rust-toolchain@1.99.0
+      with:
+        components: clippy
     - name: test
       working-directory: tests
       run: bash RustTest.sh
