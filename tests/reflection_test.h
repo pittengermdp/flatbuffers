@@ -14,6 +14,8 @@ void ReflectionVerifyOffsetFieldsTest();
 void ReflectionVerifyRequiredOffsetFieldsTest();
 void ReflectionVerifyUnionTypeSlotsTest(const std::string& tests_data_path);
 void ForAllFieldsReverseTest(const std::string& tests_data_path);
+void ReflectionVerifyUnionValueSlotTest(const std::string& tests_data_path);
+void ReflectionVerifyUnionTypesSlotTest(const std::string& tests_data_path);
 void MiniReflectFixedLengthArrayTest();
 void MiniReflectFlatBuffersTest(uint8_t* flatbuf);
 void MiniReflectUnionUnderlyingTypeTest();

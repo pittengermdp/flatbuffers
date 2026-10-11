@@ -249,6 +249,11 @@ static bool VerifyVector(flatbuffers::Verifier& v,
       }
     }
     case reflection::Union: {
+      // The types are in the `<name>_type` field before this one, which sorts
+      // after it by name and so is not verified yet.
+      if (!table.VerifyField<uoffset_t>(
+              v, vec_field.offset() - sizeof(voffset_t), sizeof(uoffset_t)))
+        return false;
       auto vec = flatbuffers::GetFieldV<flatbuffers::Offset<uint8_t>>(
           table, vec_field);
       if (!v.VerifyVector(vec)) return false;
@@ -348,6 +353,9 @@ static bool VerifyObject(flatbuffers::Verifier& v,
         break;
       }
       case reflection::Union: {
+        if (!table->VerifyField<uoffset_t>(v, field_def->offset(),
+                                           sizeof(uoffset_t)))
+          return false;
         //  get union type from the prev field
         voffset_t utype_offset = field_def->offset() - sizeof(voffset_t);
         // That field, `<name>_type`, sorts after this one by name and so is
