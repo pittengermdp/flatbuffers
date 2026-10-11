@@ -260,6 +260,73 @@ void ReflectionTest(const std::string& tests_data_path, uint8_t* flatbuf,
           true);
 }
 
+// SetString must leave every other value in the buffer as it was, whether the
+// string shrinks or grows. A shrink used to remove the bytes just before the
+// string's characters, i.e. its own length field and the end of whatever
+// precedes it in the buffer, rather than the tail of the old characters. The
+// result still passed both verifiers, but had silently lost the inventory and
+// the strings.
+void SetStringTest(const std::string& tests_data_path) {
+  std::string bfbsfile;
+  TEST_EQ(flatbuffers::LoadFile((tests_data_path + "monster_test.bfbs").c_str(),
+                                true, &bfbsfile),
+          true);
+  auto& schema = *reflection::GetSchema(bfbsfile.c_str());
+  auto fields = schema.root_table()->fields();
+  auto& name_field = *fields->LookupByKey("name");
+  auto& strings_field = *fields->LookupByKey("testarrayofstring");
+
+  MonsterT expected;
+  expected.name = "a monster name long enough to shrink by more than eight";
+  expected.inventory = {1, 2, 3};
+  expected.testarrayofstring = {"bob", "fred"};
+  // NaN never compares equal, so with its default the generated operator==
+  // would reject every MonsterT, however faithfully it was recovered.
+  expected.nan_default = 0.0f;
+  flatbuffers::FlatBufferBuilder fbb;
+  FinishMonsterBuffer(fbb, Monster::Pack(fbb, &expected));
+  std::vector<uint8_t> buf(fbb.GetBufferPointer(),
+                           fbb.GetBufferPointer() + fbb.GetSize());
+
+  const char* const longer =
+      "a string longer than the original name, so the buffer grows";
+  struct Step {
+    bool element;  // The first of testarrayofstring, rather than the name.
+    const char* value;
+  };
+  const Step steps[] = {
+      // More than sizeof(largest_scalar_t), and not a multiple of it.
+      {false, "short"},
+      // Less than sizeof(largest_scalar_t): rewritten in place, no resize.
+      {false, "shor"},
+      {false, longer},
+      {false, ""},
+      {true, longer},
+      {true, "bo"},
+  };
+  for (const auto& step : steps) {
+    auto& root = *flatbuffers::GetAnyRoot(buf.data());
+    auto str = step.element
+                   ? flatbuffers::GetFieldV<flatbuffers::Offset<String>>(
+                         root, strings_field)
+                         ->Get(0)
+                   : GetFieldS(root, name_field);
+    SetString(schema, step.value, str, &buf);
+    (step.element ? expected.testarrayofstring[0] : expected.name) = step.value;
+
+    flatbuffers::Verifier verifier(buf.data(), buf.size());
+    TEST_EQ(VerifyMonsterBuffer(verifier), true);
+    TEST_EQ(flatbuffers::Verify(schema, *schema.root_table(), buf.data(),
+                                buf.size()),
+            true);
+    auto actual = UnPackMonster(buf.data());
+    TEST_EQ(actual->inventory.size(), expected.inventory.size());
+    TEST_EQ(actual->testarrayofstring.size(),
+            expected.testarrayofstring.size());
+    TEST_ASSERT(*actual == expected);
+  }
+}
+
 // Calls `verify` on a copy of `buf` that ends where a page that faults on any
 // access begins, so a verifier that reads past the end of the buffer crashes
 // in every build type. Past an ordinary allocation it reads whatever is there,

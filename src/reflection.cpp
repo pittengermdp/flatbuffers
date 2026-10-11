@@ -566,7 +566,8 @@ void SetAnyValueS(reflection::BaseType type, uint8_t* data, const char* val) {
 // Resize a FlatBuffer in-place by iterating through all offsets in the buffer
 // and adjusting them by "delta" if they straddle the start offset.
 // Once that is done, bytes can now be inserted/deleted safely.
-// "delta" may be negative (shrinking).
+// "delta" may be negative (shrinking), in which case the bytes removed are
+// the ones that end at "start", not the ones that begin there.
 // Unless "delta" is a multiple of the largest alignment, you'll create a small
 // amount of garbage space in the buffer (usually 0..7 bytes).
 // If your FlatBuffer's root table is not the schema's root table, you should
@@ -715,13 +716,18 @@ void SetString(const reflection::Schema& schema, const std::string& val,
   if (delta) {
     // Clear the old string, since we don't want parts of it remaining.
     memset(flatbuf->data() + start, 0, str->size());
-    // Different size, we must expand (or contract).
-    ResizeContext ctx(schema, start, delta, flatbuf, root_table);
+    // Different size, we must expand (or contract). Resize at the end of the
+    // old characters, as ResizeAnyVector does at the end of the elements: a
+    // shrink removes the bytes before the resize point, which must be the tail
+    // of the old string, not its length field and whatever precedes it.
+    ResizeContext ctx(schema, start + str->size(), delta, flatbuf, root_table);
     // Set the new length.
     WriteScalar(flatbuf->data() + str_start,
                 static_cast<uoffset_t>(val.size()));
   }
-  // Copy new data. Safe because we created the right amount of space.
+  // Copy new data. Safe because we created the right amount of space:
+  // ResizeContext rounds a shrink toward zero, so it never removes more than
+  // the old string had to spare.
   memcpy(flatbuf->data() + start, val.c_str(), val.size() + 1);
 }
 
