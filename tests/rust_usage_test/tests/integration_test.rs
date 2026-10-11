@@ -508,6 +508,13 @@ fn verifier_in_too_deep() {
     opts.max_depth += 1;
     assert!(flatbuffers::root_with_opts::<Monster>(&opts, data).is_ok());
 }
+#[test]
+fn verifier_error_is_a_core_error() {
+    // Holds with and without flatbuffers' std feature: core::error::Error is
+    // stable since Rust 1.81, and std::error::Error is the same trait.
+    let err: &dyn core::error::Error = &flatbuffers::InvalidFlatbuffer::TooManyTables;
+    assert!(err.source().is_none());
+}
 
 #[cfg(test)]
 mod generated_constants {
