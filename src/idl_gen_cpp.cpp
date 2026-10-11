@@ -2363,23 +2363,56 @@ class CppGenerator : public BaseGenerator {
           // If the field is a vector of tables, the table need to be compared
           // by value, instead of by the default unique_ptr == operator which
           // compares by address.
-          if (IsMapField(field) || IsSetField(field)) {
+          //
+          // Floats and doubles are compared with IsFloatTheSameAs rather than
+          // ==, so that NaN equals NaN and an object always equals itself.
+          const auto& field_type = field.value.type;
+          const auto equal_length =
+              lhs_accessor + ".size() == " + rhs_accessor + ".size()";
+          // Compares two vectors element by element with `element_equal`.
+          const auto vectors_equal = [&](const std::string& element_equal) {
+            return "(" + equal_length + " && std::equal(" + lhs_accessor +
+                   ".cbegin(), " + lhs_accessor + ".cend(), " + rhs_accessor +
+                   ".cbegin(), " + element_equal + "))";
+          };
+          if (IsMapField(field) &&
+              IsFloat(GetEntryValueField(*field_type.VectorType().struct_def)
+                          ->value.type.base_type)) {
+            // unordered_map's == compares values with ==, so look each key up
+            // instead and compare the values it maps to.
+            compare_op +=
+                "(" + equal_length + " && std::all_of(" + lhs_accessor +
+                ".cbegin(), " + lhs_accessor + ".cend(), [&rhs](" +
+                GenTypeNative(field_type, false, field) +
+                "::value_type const &e) { const auto it = " + rhs_accessor +
+                ".find(e.first); return it != " + rhs_accessor +
+                ".cend() && ::flatbuffers::IsFloatTheSameAs("
+                "e.second, it->second); }))";
+          } else if (IsMapField(field) || IsSetField(field)) {
             // Map/set fields: use direct == comparison.
             compare_op += "(" + lhs_accessor + " == " + rhs_accessor + ")";
           } else if (IsVectorOfPointers(field)) {
             const auto type =
                 GenTypeNative(field.value.type.VectorType(), true, field);
-            const auto equal_length =
-                lhs_accessor + ".size() == " + rhs_accessor + ".size()";
-            const auto elements_equal =
-                "std::equal(" + lhs_accessor + ".cbegin(), " + lhs_accessor +
-                ".cend(), " + rhs_accessor + ".cbegin(), [](" + type +
-                " const &a, " + type +
-                " const &b) { return (a == b) || (a && b && *a == *b); })";
-
-            compare_op += "(" + equal_length + " && " + elements_equal + ")";
+            compare_op += vectors_equal(
+                "[](" + type + " const &a, " + type +
+                " const &b) { return (a == b) || (a && b && *a == *b); }");
           } else if (field.value.type.base_type == BASE_TYPE_ARRAY) {
             compare_op += "(*" + lhs_accessor + " == *" + rhs_accessor + ")";
+          } else if (IsVector(field_type) && IsFloat(field_type.element)) {
+            compare_op += vectors_equal(
+                "::flatbuffers::IsFloatTheSameAs<" +
+                GenTypeBasic(field_type.VectorType(), true) + ">");
+          } else if (IsFloat(field_type.base_type) &&
+                     field.IsScalarOptional()) {
+            compare_op += "(" + lhs_accessor +
+                          ".has_value() == " + rhs_accessor +
+                          ".has_value() && (!" + lhs_accessor +
+                          ".has_value() || ::flatbuffers::IsFloatTheSameAs(*" +
+                          lhs_accessor + ", *" + rhs_accessor + ")))";
+          } else if (IsFloat(field_type.base_type)) {
+            compare_op += "::flatbuffers::IsFloatTheSameAs(" + lhs_accessor +
+                          ", " + rhs_accessor + ")";
           } else {
             compare_op += "(" + lhs_accessor + " == " + rhs_accessor + ")";
           }
@@ -2515,7 +2548,13 @@ class CppGenerator : public BaseGenerator {
     code_.SetValue("SIZE", GenTypeSize(field.value.type));
     code_.SetValue("OFFSET", GenFieldOffsetName(field));
     if (IsScalar(field.value.type.base_type) || IsStruct(field.value.type)) {
-      code_.SetValue("ALIGN", NumToString(InlineAlignment(field.value.type)));
+      // A union's type is stored as, and so aligned as, the union's underlying
+      // type, as GenTypeSize() sizes it: a UType only by default.
+      const auto& type = field.value.type;
+      const auto align = type.base_type == BASE_TYPE_UTYPE && type.enum_def
+                             ? SizeOf(type.enum_def->underlying_type.base_type)
+                             : InlineAlignment(type);
+      code_.SetValue("ALIGN", NumToString(align));
       code_ +=
           "{{PRE}}VerifyField{{REQUIRED}}<{{SIZE}}>(verifier, "
           "{{OFFSET}}, {{ALIGN}})\\";
@@ -4278,22 +4317,24 @@ class CppGenerator : public BaseGenerator {
             "const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { "
             "&_fbb, _o, _rehasher}; (void)_va;";
 
-        for (auto it = struct_def.fields.vec.begin();
-             it != struct_def.fields.vec.end(); ++it) {
-          auto& field = **it;
-          if (field.deprecated) {
-            continue;
+        // As in CreateXDirect, Offset64 fields have to be added to the buffer
+        // first, so serialize them before any 32-bit offset field. Otherwise
+        // a 32-bit object could precede an Offset64 one, which the 64-bit
+        // builder forbids.
+        ForAllFieldsOrderedByOffset(struct_def, [&](const FieldDef* field) {
+          if (field->deprecated) {
+            return;
           }
-          if (IsVector(field.value.type)) {
+          if (IsVector(field->value.type)) {
             const std::string force_align_code =
-                GenVectorForceAlign(field, "_o->" + Name(field) + ".size()");
+                GenVectorForceAlign(*field, "_o->" + Name(*field) + ".size()");
             if (!force_align_code.empty()) {
               code_ += "  " + force_align_code;
             }
           }
           code_ +=
-              "  auto _" + Name(field) + " = " + GenCreateParam(field) + ";";
-        }
+              "  auto _" + Name(*field) + " = " + GenCreateParam(*field) + ";";
+        });
         // Need to call "Create" with the struct namespace.
         const auto qualified_create_name =
             struct_def.defined_namespace->GetFullyQualifiedName("Create");

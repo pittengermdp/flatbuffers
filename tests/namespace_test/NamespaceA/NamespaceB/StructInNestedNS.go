@@ -58,9 +58,9 @@ func (rcv_ *StructInNestedNS) MutateB(n_ int32) bool {
 	return rcv_._tab.MutateInt32(rcv_._tab.Pos+flatbuffers.UOffsetT(4), n_)
 }
 
-func CreateStructInNestedNS(builder_ *flatbuffers.Builder, a_ int32, b_ int32) flatbuffers.UOffsetT {
+func CreateStructInNestedNS(builder_ *flatbuffers.Builder, aArg_ int32, bArg_ int32) flatbuffers.UOffsetT {
 	builder_.Prep(4, 8)
-	builder_.PrependInt32(b_)
-	builder_.PrependInt32(a_)
+	builder_.PrependInt32(bArg_)
+	builder_.PrependInt32(aArg_)
 	return builder_.Offset()
 }

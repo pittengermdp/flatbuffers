@@ -246,20 +246,20 @@ func (rcv_ *TableInFirstNS) FooStruct(obj_ *NamespaceA__NamespaceB.StructInNeste
 func TableInFirstNSStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(5)
 }
-func TableInFirstNSAddFooTable(builder_ *flatbuffers.Builder, fooTable_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(fooTable_), 0)
+func TableInFirstNSAddFooTable(builder_ *flatbuffers.Builder, fooTableArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(fooTableArg_), 0)
 }
-func TableInFirstNSAddFooEnum(builder_ *flatbuffers.Builder, fooEnum_ NamespaceA__NamespaceB.EnumInNestedNS) {
-	builder_.PrependInt8Slot(1, int8(fooEnum_), 0)
+func TableInFirstNSAddFooEnum(builder_ *flatbuffers.Builder, fooEnumArg_ NamespaceA__NamespaceB.EnumInNestedNS) {
+	builder_.PrependInt8Slot(1, int8(fooEnumArg_), 0)
 }
-func TableInFirstNSAddFooUnionType(builder_ *flatbuffers.Builder, fooUnionType_ NamespaceA__NamespaceB.UnionInNestedNS) {
-	builder_.PrependByteSlot(2, byte(fooUnionType_), 0)
+func TableInFirstNSAddFooUnionType(builder_ *flatbuffers.Builder, fooUnionTypeArg_ NamespaceA__NamespaceB.UnionInNestedNS) {
+	builder_.PrependByteSlot(2, byte(fooUnionTypeArg_), 0)
 }
-func TableInFirstNSAddFooUnion(builder_ *flatbuffers.Builder, fooUnion_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(fooUnion_), 0)
+func TableInFirstNSAddFooUnion(builder_ *flatbuffers.Builder, fooUnionArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(fooUnionArg_), 0)
 }
-func TableInFirstNSAddFooStruct(builder_ *flatbuffers.Builder, fooStruct_ flatbuffers.UOffsetT) {
-	builder_.PrependStructSlot(4, flatbuffers.UOffsetT(fooStruct_), 0)
+func TableInFirstNSAddFooStruct(builder_ *flatbuffers.Builder, fooStructArg_ flatbuffers.UOffsetT) {
+	builder_.PrependStructSlot(4, flatbuffers.UOffsetT(fooStructArg_), 0)
 }
 func TableInFirstNSEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder_.EndObject()

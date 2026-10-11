@@ -133,8 +133,8 @@ func (rcv_ *TableA) MutateX(n_ int32) bool {
 func TableAStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(1)
 }
-func TableAAddX(builder_ *flatbuffers.Builder, x_ int32) {
-	builder_.PrependInt32Slot(0, x_, 0)
+func TableAAddX(builder_ *flatbuffers.Builder, xArg_ int32) {
+	builder_.PrependInt32Slot(0, xArg_, 0)
 }
 func TableAEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder_.EndObject()

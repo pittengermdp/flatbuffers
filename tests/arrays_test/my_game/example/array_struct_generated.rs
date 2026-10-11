@@ -56,14 +56,14 @@ impl<'a> ::flatbuffers::Follow<'a> for &'a ArrayStruct {
     }
 }
 
-impl<'b> ::flatbuffers::Push for ArrayStruct {
+impl ::flatbuffers::Push for ArrayStruct {
     type Output = Self;
 
     #[inline]
     unsafe fn push(&self, dst: &mut [u8], _written_len: usize) {
         let src = unsafe {
             ::core::slice::from_raw_parts(
-                self as *const ArrayStruct as *const u8,
+                ::core::ptr::addr_of!(*self).cast::<u8>(),
                 <Self as ::flatbuffers::Push>::size(),
             )
         };
@@ -86,7 +86,7 @@ impl ::flatbuffers::Verifiable for ArrayStruct {
     }
 }
 
-impl<'a> ArrayStruct {
+impl ArrayStruct {
     #[allow(clippy::too_many_arguments)]
     #[must_use]
     pub fn new(a: f32, b: &[i32; 15], c: i8, d: &[NestedStruct; 2], e: i32, f: &[i64; 2]) -> Self {
@@ -115,7 +115,7 @@ impl<'a> ArrayStruct {
         ::flatbuffers::EndianScalar::from_little_endian(unsafe {
             ::core::ptr::copy_nonoverlapping(
                 self.0[0..].as_ptr(),
-                mem.as_mut_ptr() as *mut u8,
+                mem.as_mut_ptr().cast::<u8>(),
                 ::core::mem::size_of::<<f32 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
             mem.assume_init()
@@ -129,7 +129,7 @@ impl<'a> ArrayStruct {
         // Which contains a valid value in this slot
         unsafe {
             ::core::ptr::copy_nonoverlapping(
-                &x_le as *const _ as *const u8,
+                ::core::ptr::addr_of!(x_le).cast::<u8>(),
                 self.0[0..].as_mut_ptr(),
                 ::core::mem::size_of::<<f32 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
@@ -137,7 +137,7 @@ impl<'a> ArrayStruct {
     }
 
     #[must_use]
-    pub fn b(&'a self) -> ::flatbuffers::Array<'a, i32, 15> {
+    pub fn b(&self) -> ::flatbuffers::Array<'_, i32, 15> {
         // Safety:
         // Created from a valid Table for this object
         // Which contains a valid array in this slot
@@ -162,7 +162,7 @@ impl<'a> ArrayStruct {
         ::flatbuffers::EndianScalar::from_little_endian(unsafe {
             ::core::ptr::copy_nonoverlapping(
                 self.0[64..].as_ptr(),
-                mem.as_mut_ptr() as *mut u8,
+                mem.as_mut_ptr().cast::<u8>(),
                 ::core::mem::size_of::<<i8 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
             mem.assume_init()
@@ -176,7 +176,7 @@ impl<'a> ArrayStruct {
         // Which contains a valid value in this slot
         unsafe {
             ::core::ptr::copy_nonoverlapping(
-                &x_le as *const _ as *const u8,
+                ::core::ptr::addr_of!(x_le).cast::<u8>(),
                 self.0[64..].as_mut_ptr(),
                 ::core::mem::size_of::<<i8 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
@@ -184,7 +184,7 @@ impl<'a> ArrayStruct {
     }
 
     #[must_use]
-    pub fn d(&'a self) -> ::flatbuffers::Array<'a, NestedStruct, 2> {
+    pub fn d(&self) -> ::flatbuffers::Array<'_, NestedStruct, 2> {
         // Safety:
         // Created from a valid Table for this object
         // Which contains a valid array in this slot
@@ -197,7 +197,7 @@ impl<'a> ArrayStruct {
         // Created from a valid Table for this object
         // Which contains a valid array in this slot
         unsafe {
-            ::core::ptr::copy(x.as_ptr() as *const u8, self.0.as_mut_ptr().add(72), 64);
+            ::core::ptr::copy(x.as_ptr().cast::<u8>(), self.0.as_mut_ptr().add(72), 64);
         }
     }
 
@@ -211,7 +211,7 @@ impl<'a> ArrayStruct {
         ::flatbuffers::EndianScalar::from_little_endian(unsafe {
             ::core::ptr::copy_nonoverlapping(
                 self.0[136..].as_ptr(),
-                mem.as_mut_ptr() as *mut u8,
+                mem.as_mut_ptr().cast::<u8>(),
                 ::core::mem::size_of::<<i32 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
             mem.assume_init()
@@ -225,7 +225,7 @@ impl<'a> ArrayStruct {
         // Which contains a valid value in this slot
         unsafe {
             ::core::ptr::copy_nonoverlapping(
-                &x_le as *const _ as *const u8,
+                ::core::ptr::addr_of!(x_le).cast::<u8>(),
                 self.0[136..].as_mut_ptr(),
                 ::core::mem::size_of::<<i32 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
@@ -233,7 +233,7 @@ impl<'a> ArrayStruct {
     }
 
     #[must_use]
-    pub fn f(&'a self) -> ::flatbuffers::Array<'a, i64, 2> {
+    pub fn f(&self) -> ::flatbuffers::Array<'_, i64, 2> {
         // Safety:
         // Created from a valid Table for this object
         // Which contains a valid array in this slot
@@ -251,7 +251,7 @@ impl<'a> ArrayStruct {
     #[must_use]
     pub fn unpack(&self) -> ArrayStructT {
         ArrayStructT {
-            a: self.a().into(),
+            a: self.a(),
             b: self.b().into(),
             c: self.c(),
             d: {
@@ -264,7 +264,7 @@ impl<'a> ArrayStruct {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct ArrayStructT {
     pub a: f32,
     pub b: [i32; 15],
@@ -272,18 +272,6 @@ pub struct ArrayStructT {
     pub d: [NestedStructT; 2],
     pub e: i32,
     pub f: [i64; 2],
-}
-impl Default for ArrayStructT {
-    fn default() -> Self {
-        Self {
-            a: 0.0,
-            b: [0; 15],
-            c: 0,
-            d: ::flatbuffers::array_init(|_| Default::default()),
-            e: 0,
-            f: [0; 2],
-        }
-    }
 }
 
 impl ArrayStructT {

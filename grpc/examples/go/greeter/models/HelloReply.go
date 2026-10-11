@@ -87,8 +87,8 @@ func (rcv_ *HelloReply) Message() []byte {
 func HelloReplyStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(1)
 }
-func HelloReplyAddMessage(builder_ *flatbuffers.Builder, message_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(message_), 0)
+func HelloReplyAddMessage(builder_ *flatbuffers.Builder, messageArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(messageArg_), 0)
 }
 func HelloReplyEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder_.EndObject()
