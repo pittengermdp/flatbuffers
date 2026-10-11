@@ -345,8 +345,9 @@ jobs:
       with:
         go-version: '1.23'
     - name: Set up Rust (rustfmt)
-      uses: dtolnay/rust-toolchain@stable
+      uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
       with:
+        toolchain: stable
         components: rustfmt
     - name: Set up Node (prettier)
       uses: actions/setup-node@v6
@@ -378,8 +379,9 @@ jobs:
       with:
         go-version: '1.23'
     - name: Set up Rust (rustfmt)
-      uses: dtolnay/rust-toolchain@stable
+      uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
       with:
+        toolchain: stable
         components: rustfmt
     - name: Set up Node (prettier)
       uses: actions/setup-node@v6
