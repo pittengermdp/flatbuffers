@@ -1,10 +1,8 @@
 #![no_std]
 #![no_main]
-#![feature(default_alloc_error_handler)]
 
-// Include flatbuffers purely to check that it compiles in a no_std binary
-#[allow(unused_imports)]
-use flatbuffers;
+// Link flatbuffers purely to check that it compiles in a no_std binary
+extern crate flatbuffers;
 
 // The rest is just no_std boilerplate
 
