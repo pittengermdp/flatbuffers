@@ -193,6 +193,8 @@ int64_t GetAnyValueI(reflection::BaseType type, const uint8_t* data);
 double GetAnyValueF(reflection::BaseType type, const uint8_t* data);
 // All scalars converted using stringstream, strings as-is, and all other
 // data types provide some level of debug-pretty-printing.
+// A union's type, a UType, is read as the union's underlying type when given
+// the schema and the union's enum as `type_index`, and as 1 byte otherwise.
 std::string GetAnyValueS(reflection::BaseType type, const uint8_t* data,
                          const reflection::Schema* schema, int type_index);
 
@@ -213,7 +215,9 @@ inline double GetAnyFieldF(const Table& table, const reflection::Field& field) {
 
 // Get any table field as a string, regardless of what type it is.
 // You may pass nullptr for the schema if you don't care to have fields that
-// are of table type pretty-printed.
+// are of table type pretty-printed, or a union's `_type` field read at the
+// width of the union's underlying type (see GetUnionUnderlyingType()) rather
+// than as a 1-byte UType.
 inline std::string GetAnyFieldS(const Table& table,
                                 const reflection::Field& field,
                                 const reflection::Schema* schema) {
