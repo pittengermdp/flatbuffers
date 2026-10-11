@@ -78,7 +78,7 @@ FLATBUFFERS_STRUCT_END(LeafStruct, 16);
 inline bool operator==(const LeafStruct &lhs, const LeafStruct &rhs) {
   return
       (lhs.a() == rhs.a()) &&
-      (lhs.b() == rhs.b());
+      ::flatbuffers::IsFloatTheSameAs(lhs.b(), rhs.b());
 }
 
 inline bool operator!=(const LeafStruct &lhs, const LeafStruct &rhs) {
