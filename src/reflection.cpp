@@ -264,7 +264,8 @@ static bool VerifyVector(flatbuffers::Verifier& v,
         return false;
       auto type_vec = table.GetPointer<Vector<uint8_t>*>(vec_field.offset() -
                                                          sizeof(voffset_t));
-      if (!v.VerifyVector(type_vec)) return false;
+      // VerifyVector(nullptr) succeeds, but values without types do not.
+      if (!type_vec || !v.VerifyVector(type_vec)) return false;
       if (type_vec->size() != vec->size()) return false;
       for (uoffset_t j = 0; j < vec->size(); j++) {
         //  get union type from the prev field

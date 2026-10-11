@@ -1,5 +1,6 @@
 #include "reflection_test.h"
 
+#include <vector>
 #include <cstring>
 #include <memory>
 #include <vector>
@@ -908,6 +909,44 @@ void MiniReflectFixedLengthArrayTest() {
       "}",
       s.c_str());
 #endif
+}
+
+// A vector of unions whose `<field>_type` vector is absent must be rejected,
+// not dereferenced. Verifier::VerifyVector(nullptr) returns true, since an
+// absent vector is valid on its own, so the reflection verifier used to go on
+// to read the null type vector's size and crash. The generated verifier
+// (VerifyCharacterVector) rejects the same buffer.
+void ReflectionVerifyUnionVectorWithoutTypesTest(
+    const std::string& tests_data_path) {
+  std::string schemafile;
+  TEST_EQ(flatbuffers::LoadFile(
+              (tests_data_path + "union_vector/union_vector.fbs").c_str(),
+              false, &schemafile),
+          true);
+  flatbuffers::IDLOptions idl_opts;
+  idl_opts.lang_to_generate |= flatbuffers::IDLOptions::kBinary;
+  flatbuffers::Parser parser(idl_opts);
+  TEST_EQ(parser.Parse(schemafile.c_str()), true);
+  parser.Serialize();
+  auto schema = reflection::GetSchema(parser.builder_.GetBufferPointer());
+
+  flatbuffers::FlatBufferBuilder fbb;
+  std::vector<flatbuffers::Offset<void>> characters;
+  characters.push_back(CreateAttacker(fbb, /*sword_attack_damage=*/5).Union());
+  FinishMovieBuffer(fbb,
+                    CreateMovie(fbb, Character_NONE, 0, /*characters_type=*/0,
+                                fbb.CreateVector(characters)));
+
+  auto movie = GetMovie(fbb.GetBufferPointer());
+  TEST_NOTNULL(movie->characters());
+  TEST_NULL(movie->characters_type());
+
+  flatbuffers::Verifier verifier(fbb.GetBufferPointer(), fbb.GetSize());
+  TEST_EQ(VerifyMovieBuffer(verifier), false);
+
+  TEST_EQ(flatbuffers::Verify(*schema, *schema->root_table(),
+                              fbb.GetBufferPointer(), fbb.GetSize()),
+          false);
 }
 
 // A union declared with an underlying type stores its types as that type:
