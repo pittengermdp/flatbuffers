@@ -1,5 +1,6 @@
 #include "reflection_test.h"
 
+#include "flatbuffers/idl.h"
 #include "flatbuffers/minireflect.h"
 #include "flatbuffers/reflection.h"
 #include "flatbuffers/reflection_generated.h"
@@ -8,6 +9,7 @@
 #include "monster_test_generated.h"
 #include "test_assert.h"
 #include "tests/arrays_test_generated.h"
+#include "tests/union_vector/union_vector_generated.h"
 
 namespace flatbuffers {
 namespace tests {
@@ -332,6 +334,111 @@ void ForAllFieldsReverseTest(const std::string& tests_data_path) {
     for (size_t i = 1; i < reverse_ids.size(); ++i) {
       TEST_ASSERT(reverse_ids[i - 1] > reverse_ids[i]);
     }
+  }
+}
+
+namespace {
+
+// Copies the buffer finished in `fbb` into a vector of exactly its size, so
+// that ASan reports a read past its end. ASan checks a read only against the
+// 8-byte granule it starts in, so it misses one that straddles the end from a
+// granule wholly inside the vector. A size that is a multiple of 8 is padded
+// with 4 zero bytes, to end the vector halfway through a granule.
+std::vector<uint8_t> CopyFinishedBuffer(const FlatBufferBuilder& fbb) {
+  const auto size = fbb.GetSize();
+  std::vector<uint8_t> buf(size % 8 ? size : size + 4);
+  std::copy(fbb.GetBufferPointer(), fbb.GetBufferPointer() + size, buf.begin());
+  return buf;
+}
+
+// Rewrites the vtable entry of `field`, which must be present in the root
+// table of `buf`, to put its slot `slot` bytes into `buf`, or, if `slot` is 0,
+// to mark it absent.
+void SetRootFieldSlot(std::vector<uint8_t>& buf, voffset_t field, size_t slot) {
+  auto root = GetRoot<Table>(buf.data());
+  TEST_ASSERT(root->GetOptionalFieldOffset(field) != 0);
+  auto table_pos =
+      static_cast<size_t>(reinterpret_cast<const uint8_t*>(root) - buf.data());
+  auto vtable_pos = static_cast<size_t>(root->GetVTable() - buf.data());
+  TEST_ASSERT(!slot || (slot > table_pos && slot - table_pos <= 0xFFFF));
+  WriteScalar(&buf[vtable_pos + field],
+              static_cast<voffset_t>(slot ? slot - table_pos : 0));
+}
+
+}  // namespace
+
+// A union's value is an offset in its slot, which a vtable can put anywhere in
+// the 64KiB past its table. Verify() read that offset before checking the slot
+// was in the buffer.
+void ReflectionVerifyUnionValueSlotTest(const std::string& tests_data_path) {
+  std::string bfbsfile;
+  TEST_EQ(flatbuffers::LoadFile((tests_data_path + "monster_test.bfbs").c_str(),
+                                true, &bfbsfile),
+          true);
+  auto& schema = *reflection::GetSchema(bfbsfile.c_str());
+
+  MonsterT inner;
+  inner.name = "inner";
+  MonsterT monster;
+  monster.name = "outer";
+  monster.test.Set(std::move(inner));
+  FlatBufferBuilder fbb;
+  FinishMonsterBuffer(fbb, Monster::Pack(fbb, &monster));
+  const auto packed = CopyFinishedBuffer(fbb);
+  TEST_EQ(Verify(schema, *schema.root_table(), packed.data(), packed.size()),
+          true);
+
+  // Leave 3, 2, 1 and then none of the offset's 4 bytes in the buffer.
+  for (auto slot = packed.size() - 3; slot <= packed.size(); slot++) {
+    auto buf = packed;
+    SetRootFieldSlot(buf, Monster::VT_TEST, slot);
+    TEST_EQ(Verify(schema, *schema.root_table(), buf.data(), buf.size()),
+            false);
+
+    // Without its type field the union is NONE, and Verify() accepted it
+    // whatever its slot held.
+    SetRootFieldSlot(buf, Monster::VT_TEST_TYPE, 0);
+    TEST_EQ(Verify(schema, *schema.root_table(), buf.data(), buf.size()),
+            false);
+  }
+}
+
+// A vector of unions finds its types through the offset in the slot of its
+// `<name>_type` field, which sorts after it by name and so is not verified
+// when Verify() reaches the union. Verify() read that offset before checking
+// the slot was in the buffer.
+void ReflectionVerifyUnionTypesSlotTest(const std::string& tests_data_path) {
+  std::string schemafile;
+  TEST_EQ(flatbuffers::LoadFile(
+              (tests_data_path + "union_vector/union_vector.fbs").c_str(),
+              false, &schemafile),
+          true);
+  flatbuffers::IDLOptions idl_opts;
+  idl_opts.lang_to_generate |= flatbuffers::IDLOptions::kBinary;
+  flatbuffers::Parser parser(idl_opts);
+  TEST_EQ(parser.Parse(schemafile.c_str()), true);
+  parser.Serialize();
+  auto& schema = *reflection::GetSchema(parser.builder_.GetBufferPointer());
+
+  // CharacterUnion has no Set(): two of Character's members share a type.
+  MovieT movie;
+  movie.characters.resize(2);
+  movie.characters[0].type = Character_MuLan;
+  movie.characters[0].value = new AttackerT();
+  movie.characters[1].type = Character_Rapunzel;
+  movie.characters[1].value = new Rapunzel(7);
+  FlatBufferBuilder fbb;
+  FinishMovieBuffer(fbb, Movie::Pack(fbb, &movie));
+  const auto packed = CopyFinishedBuffer(fbb);
+  TEST_EQ(Verify(schema, *schema.root_table(), packed.data(), packed.size()),
+          true);
+
+  // Leave 3, 2, 1 and then none of the offset's 4 bytes in the buffer.
+  for (auto slot = packed.size() - 3; slot <= packed.size(); slot++) {
+    auto buf = packed;
+    SetRootFieldSlot(buf, Movie::VT_CHARACTERS_TYPE, slot);
+    TEST_EQ(Verify(schema, *schema.root_table(), buf.data(), buf.size()),
+            false);
   }
 }
 
