@@ -798,10 +798,10 @@ FLATBUFFERS_STRUCT_END(Vec3, 32);
 
 inline bool operator==(const Vec3 &lhs, const Vec3 &rhs) {
   return
-      (lhs.x() == rhs.x()) &&
-      (lhs.y() == rhs.y()) &&
-      (lhs.z() == rhs.z()) &&
-      (lhs.test1() == rhs.test1()) &&
+      ::flatbuffers::IsFloatTheSameAs(lhs.x(), rhs.x()) &&
+      ::flatbuffers::IsFloatTheSameAs(lhs.y(), rhs.y()) &&
+      ::flatbuffers::IsFloatTheSameAs(lhs.z(), rhs.z()) &&
+      ::flatbuffers::IsFloatTheSameAs(lhs.test1(), rhs.test1()) &&
       (lhs.test2() == rhs.test2()) &&
       (lhs.test3() == rhs.test3());
 }
@@ -2966,15 +2966,15 @@ inline bool operator==(const MonsterT &lhs, const MonsterT &rhs) {
       (lhs.testhashs64_fnv1a == rhs.testhashs64_fnv1a) &&
       (lhs.testhashu64_fnv1a == rhs.testhashu64_fnv1a) &&
       (lhs.testarrayofbools == rhs.testarrayofbools) &&
-      (lhs.testf == rhs.testf) &&
-      (lhs.testf2 == rhs.testf2) &&
-      (lhs.testf3 == rhs.testf3) &&
+      ::flatbuffers::IsFloatTheSameAs(lhs.testf, rhs.testf) &&
+      ::flatbuffers::IsFloatTheSameAs(lhs.testf2, rhs.testf2) &&
+      ::flatbuffers::IsFloatTheSameAs(lhs.testf3, rhs.testf3) &&
       (lhs.testarrayofstring2 == rhs.testarrayofstring2) &&
       (lhs.testarrayofsortedstruct == rhs.testarrayofsortedstruct) &&
       (lhs.flex == rhs.flex) &&
       (lhs.test5 == rhs.test5) &&
       (lhs.vector_of_longs == rhs.vector_of_longs) &&
-      (lhs.vector_of_doubles == rhs.vector_of_doubles) &&
+      (lhs.vector_of_doubles.size() == rhs.vector_of_doubles.size() && std::equal(lhs.vector_of_doubles.cbegin(), lhs.vector_of_doubles.cend(), rhs.vector_of_doubles.cbegin(), ::flatbuffers::IsFloatTheSameAs<double>)) &&
       ((lhs.parent_namespace_test == rhs.parent_namespace_test) || (lhs.parent_namespace_test && rhs.parent_namespace_test && *lhs.parent_namespace_test == *rhs.parent_namespace_test)) &&
       (lhs.vector_of_referrables.size() == rhs.vector_of_referrables.size() && std::equal(lhs.vector_of_referrables.cbegin(), lhs.vector_of_referrables.cend(), rhs.vector_of_referrables.cbegin(), [](std::unique_ptr<MyGame::Example::ReferrableT> const &a, std::unique_ptr<MyGame::Example::ReferrableT> const &b) { return (a == b) || (a && b && *a == *b); })) &&
       (lhs.single_weak_reference == rhs.single_weak_reference) &&
@@ -2993,14 +2993,14 @@ inline bool operator==(const MonsterT &lhs, const MonsterT &rhs) {
       (lhs.native_inline == rhs.native_inline) &&
       (lhs.long_enum_non_enum_default == rhs.long_enum_non_enum_default) &&
       (lhs.long_enum_normal_default == rhs.long_enum_normal_default) &&
-      (lhs.nan_default == rhs.nan_default) &&
-      (lhs.inf_default == rhs.inf_default) &&
-      (lhs.positive_inf_default == rhs.positive_inf_default) &&
-      (lhs.infinity_default == rhs.infinity_default) &&
-      (lhs.positive_infinity_default == rhs.positive_infinity_default) &&
-      (lhs.negative_inf_default == rhs.negative_inf_default) &&
-      (lhs.negative_infinity_default == rhs.negative_infinity_default) &&
-      (lhs.double_inf_default == rhs.double_inf_default);
+      ::flatbuffers::IsFloatTheSameAs(lhs.nan_default, rhs.nan_default) &&
+      ::flatbuffers::IsFloatTheSameAs(lhs.inf_default, rhs.inf_default) &&
+      ::flatbuffers::IsFloatTheSameAs(lhs.positive_inf_default, rhs.positive_inf_default) &&
+      ::flatbuffers::IsFloatTheSameAs(lhs.infinity_default, rhs.infinity_default) &&
+      ::flatbuffers::IsFloatTheSameAs(lhs.positive_infinity_default, rhs.positive_infinity_default) &&
+      ::flatbuffers::IsFloatTheSameAs(lhs.negative_inf_default, rhs.negative_inf_default) &&
+      ::flatbuffers::IsFloatTheSameAs(lhs.negative_infinity_default, rhs.negative_infinity_default) &&
+      ::flatbuffers::IsFloatTheSameAs(lhs.double_inf_default, rhs.double_inf_default);
 }
 
 inline bool operator!=(const MonsterT &lhs, const MonsterT &rhs) {
@@ -3353,10 +3353,10 @@ inline bool operator==(const TypeAliasesT &lhs, const TypeAliasesT &rhs) {
       (lhs.u32 == rhs.u32) &&
       (lhs.i64 == rhs.i64) &&
       (lhs.u64 == rhs.u64) &&
-      (lhs.f32 == rhs.f32) &&
-      (lhs.f64 == rhs.f64) &&
+      ::flatbuffers::IsFloatTheSameAs(lhs.f32, rhs.f32) &&
+      ::flatbuffers::IsFloatTheSameAs(lhs.f64, rhs.f64) &&
       (lhs.v8 == rhs.v8) &&
-      (lhs.vf64 == rhs.vf64);
+      (lhs.vf64.size() == rhs.vf64.size() && std::equal(lhs.vf64.cbegin(), lhs.vf64.cend(), rhs.vf64.cbegin(), ::flatbuffers::IsFloatTheSameAs<double>));
 }
 
 inline bool operator!=(const TypeAliasesT &lhs, const TypeAliasesT &rhs) {

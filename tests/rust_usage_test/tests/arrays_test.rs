@@ -44,7 +44,12 @@ fn create_serialized_example_with_generated_code(builder: &mut flatbuffers::Flat
         &[-0x8000000000000000, 0x7FFFFFFFFFFFFFFF],
     );
     // Test five makes sense when specified.
-    let ss = ArrayTable::create(builder, &ArrayTableArgs { a: Some(&array_struct) });
+    let ss = ArrayTable::create(
+        builder,
+        &ArrayTableArgs {
+            a: Some(&array_struct),
+        },
+    );
     finish_array_table_buffer(builder, ss);
 }
 

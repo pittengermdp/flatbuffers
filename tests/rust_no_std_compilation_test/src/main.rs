@@ -26,7 +26,11 @@ fn panic(_info: &core::panic::PanicInfo) -> ! {
     loop {}
 }
 
+// A bare-metal target has no C runtime to call `main`; its linker looks for
+// `_start`.
 #[no_mangle]
-pub extern "C" fn main(_argc: i32, _argv: *const *const u8) -> i32 {
-    0
+pub extern "C" fn _start() -> ! {
+    loop {
+        core::hint::spin_loop();
+    }
 }

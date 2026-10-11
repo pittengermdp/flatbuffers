@@ -23,8 +23,8 @@ extern crate flatbuffers;
 
 use alloc::vec;
 use alloc::vec::Vec;
-use core::convert::Infallible;
 use core::cmp::max;
+use core::convert::Infallible;
 use core::ops::{Deref, DerefMut};
 use core::ptr::write_bytes;
 

@@ -29,6 +29,15 @@ The `annotated_binary.bin` is the flatbufer binary of the data contained within
 ..\..\flatc -b annotated_binary.fbs annotated_binary.json
 ```
 
+### Regenerating the examples
+
+`generate_annotations.py` regenerates every `.afb` file here and in `tests/`,
+using the `flatc` at the root of the repository. One of them,
+`annotated_binary_old.afb`, is `annotated_binary.bin` read with
+`annotated_binary_old.fbs`: the same schema without its last field, `charlie`.
+It shows how a binary written with a newer schema is annotated: the slot for
+`charlie` is an unknown field, and the string it points to is not referenced.
+
 ## Text Format
 
 Currently there is a built-in text-based format for outputting the annotations.
@@ -95,7 +104,7 @@ known is provided.
 #### Offsets
 
 If the type in the 3rd column is of an absolute offset (`SOffet32` or
-`Offset32`), the fourth column also shows an `Loc: +0x025A` value which shows
+`Offset32`), the fourth column also shows an `Loc: 0x025A` value which shows
 where in the binary this region is pointing to. These values are absolute from
 the beginning of the file, their calculation from the raw value in the 4th
 column depends on the context.

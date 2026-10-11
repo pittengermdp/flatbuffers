@@ -10,7 +10,7 @@ use alloc::borrow::Cow;
 #[cfg(feature = "std")]
 use std::borrow::Cow;
 
-#[cfg(all(nightly, not(feature = "std")))]
+#[cfg(all(core_error, not(feature = "std")))]
 use core::error::Error;
 #[cfg(feature = "std")]
 use std::error::Error;
@@ -86,7 +86,7 @@ pub enum InvalidFlatbuffer {
     DepthLimitReached,
 }
 
-#[cfg(any(nightly, feature = "std"))]
+#[cfg(any(core_error, feature = "std"))]
 impl Error for InvalidFlatbuffer {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         if let InvalidFlatbuffer::Utf8Error { error: source, .. } = self {
