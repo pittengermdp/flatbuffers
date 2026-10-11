@@ -114,11 +114,11 @@ func (rcv_ *Universe) GalaxiesLength() int {
 func UniverseStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(2)
 }
-func UniverseAddAge(builder_ *flatbuffers.Builder, age_ float64) {
-	builder_.PrependFloat64Slot(0, age_, 0.0)
+func UniverseAddAge(builder_ *flatbuffers.Builder, ageArg_ float64) {
+	builder_.PrependFloat64Slot(0, ageArg_, 0.0)
 }
-func UniverseAddGalaxies(builder_ *flatbuffers.Builder, galaxies_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(galaxies_), 0)
+func UniverseAddGalaxies(builder_ *flatbuffers.Builder, galaxiesArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(galaxiesArg_), 0)
 }
 func UniverseStartGalaxiesVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(4, numElems_, 4)

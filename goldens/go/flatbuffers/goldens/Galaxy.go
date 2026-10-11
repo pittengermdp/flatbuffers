@@ -87,8 +87,8 @@ func (rcv_ *Galaxy) MutateNumStars(n_ int64) bool {
 func GalaxyStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(1)
 }
-func GalaxyAddNumStars(builder_ *flatbuffers.Builder, numStars_ int64) {
-	builder_.PrependInt64Slot(0, numStars_, 0)
+func GalaxyAddNumStars(builder_ *flatbuffers.Builder, numStarsArg_ int64) {
+	builder_.PrependInt64Slot(0, numStarsArg_, 0)
 }
 func GalaxyEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder_.EndObject()
