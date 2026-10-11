@@ -884,9 +884,9 @@ inline const ::flatbuffers::TypeTable *CTypeTable() {
 
 inline const ::flatbuffers::TypeTable *DTypeTable() {
   static const ::flatbuffers::TypeCode type_codes[] = {
-    { ::flatbuffers::ET_UTYPE, 0, 0 },
+    { ::flatbuffers::ET_INT, 0, 0 },
     { ::flatbuffers::ET_SEQUENCE, 0, 0 },
-    { ::flatbuffers::ET_UTYPE, 1, 0 },
+    { ::flatbuffers::ET_INT, 1, 0 },
     { ::flatbuffers::ET_SEQUENCE, 1, 0 }
   };
   static const ::flatbuffers::TypeFunction type_refs[] = {
