@@ -161,7 +161,6 @@
               <release>8</release>
               <testExcludes>
                 <testExclude>MyGame/Example/MonsterStorageGrpc.java</testExclude>
-                <testExclude>MyGame/OtherNameSpace/TableBT.java</testExclude>
               </testExcludes>
             </configuration>
             <version>3.8.1</version>
@@ -185,7 +184,6 @@
             <configuration>
               <testExcludes>
                 <testExclude>MyGame/Example/MonsterStorageGrpc.java</testExclude>
-                <testExclude>MyGame/OtherNameSpace/TableBT.java</testExclude>
               </testExcludes>
             </configuration>
             <version>3.8.1</version>

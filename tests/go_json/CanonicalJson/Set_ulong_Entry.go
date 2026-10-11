@@ -234,8 +234,8 @@ func (rcv_ *__Set_ulong_Entry) LookupByKey(key_ uint64, vectorLocation_ flatbuff
 func __Set_ulong_EntryStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(1)
 }
-func __Set_ulong_EntryAddKey(builder_ *flatbuffers.Builder, key_ uint64) {
-	builder_.PrependUint64Slot(0, key_, 0)
+func __Set_ulong_EntryAddKey(builder_ *flatbuffers.Builder, keyArg_ uint64) {
+	builder_.PrependUint64Slot(0, keyArg_, 0)
 }
 func __Set_ulong_EntryEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder_.EndObject()

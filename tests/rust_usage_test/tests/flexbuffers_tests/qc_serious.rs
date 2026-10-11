@@ -25,7 +25,11 @@ enum Enum {
     String(String),
     Strings(String, String),
     Everything(u8, u16, u32, u64, i8, i16, i32, i64, f32, f64, String),
-    Arrays { a: Array3<u16>, b: Array4<i32>, c: Array2<f64> },
+    Arrays {
+        a: Array3<u16>,
+        b: Array4<i32>,
+        c: Array2<f64>,
+    },
     Blobs(#[serde(with = "serde_bytes")] Vec<u8>),
 }
 
@@ -85,22 +89,57 @@ impl Arbitrary for Enum {
     }
 }
 
-#[derive(Debug, Clone, Arbitrary, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 struct Unit;
 
-#[derive(Debug, Clone, Arbitrary, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 struct NewType(bool);
 
-#[derive(Debug, Clone, Arbitrary, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 struct Tuple(bool, u8, i16, f32, String);
 
-#[derive(Debug, Clone, Arbitrary, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 struct Struct {
     a: Vec<Enum>,
     b: BTreeMap<NonNullString, Enum>,
     c: Tuple,
     d: (Unit, Unit),
     e: Array4<NewType>,
+}
+
+// These are written out because quickcheck_derive puts each impl it derives
+// inside a named const, which rustc reports as a non-local impl definition.
+impl Arbitrary for Unit {
+    fn arbitrary<G: Gen>(_g: &mut G) -> Self {
+        Unit
+    }
+}
+impl Arbitrary for NewType {
+    fn arbitrary<G: Gen>(g: &mut G) -> Self {
+        NewType(<bool>::arbitrary(g))
+    }
+}
+impl Arbitrary for Tuple {
+    fn arbitrary<G: Gen>(g: &mut G) -> Self {
+        Tuple(
+            <bool>::arbitrary(g),
+            <u8>::arbitrary(g),
+            <i16>::arbitrary(g),
+            <f32>::arbitrary(g),
+            <String>::arbitrary(g),
+        )
+    }
+}
+impl Arbitrary for Struct {
+    fn arbitrary<G: Gen>(g: &mut G) -> Self {
+        Struct {
+            a: Arbitrary::arbitrary(g),
+            b: Arbitrary::arbitrary(g),
+            c: Arbitrary::arbitrary(g),
+            d: Arbitrary::arbitrary(g),
+            e: Arbitrary::arbitrary(g),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialOrd, Ord, PartialEq, Eq, Serialize, Deserialize)]
@@ -122,7 +161,12 @@ impl<A: Arbitrary> Arbitrary for Array3<A> {
 }
 impl<A: Arbitrary> Arbitrary for Array4<A> {
     fn arbitrary<G: Gen>(g: &mut G) -> Self {
-        Array4([A::arbitrary(g), A::arbitrary(g), A::arbitrary(g), A::arbitrary(g)])
+        Array4([
+            A::arbitrary(g),
+            A::arbitrary(g),
+            A::arbitrary(g),
+            A::arbitrary(g),
+        ])
     }
 }
 

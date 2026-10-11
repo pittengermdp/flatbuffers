@@ -125,12 +125,38 @@ const char* EnumName(T tval, const TypeTable* type_table) {
   return nullptr;
 }
 
+// Reads a union's type, stored as `type`: ET_UTYPE, 1 byte, by default, or the
+// underlying type the union declares, e.g. ET_INT for `union U: int`.
+inline int64_t ReadUnionType(ElementaryType type, const uint8_t* val) {
+  switch (type) {
+    case ET_CHAR:
+      return ReadScalar<int8_t>(val);
+    case ET_SHORT:
+      return ReadScalar<int16_t>(val);
+    case ET_USHORT:
+      return ReadScalar<uint16_t>(val);
+    case ET_INT:
+      return ReadScalar<int32_t>(val);
+    case ET_UINT:
+      return ReadScalar<uint32_t>(val);
+    case ET_LONG:
+      return ReadScalar<int64_t>(val);
+    case ET_ULONG:
+      return static_cast<int64_t>(ReadScalar<uint64_t>(val));
+    default:  // ET_UTYPE, ET_UCHAR.
+      return ReadScalar<uint8_t>(val);
+  }
+}
+
 void IterateObject(const uint8_t* obj, const TypeTable* type_table,
                    IterationVisitor* visitor);
 
+// `prev_type` is the type of the value before `val`, which for a union is its
+// type: the field, or for a vector of unions the vector, it is read from.
 inline void IterateValue(ElementaryType type, const uint8_t* val,
                          const TypeTable* type_table, const uint8_t* prev_val,
-                         soffset_t vector_index, IterationVisitor* visitor) {
+                         soffset_t vector_index, IterationVisitor* visitor,
+                         ElementaryType prev_type = ET_UTYPE) {
   switch (type) {
     case ET_UTYPE: {
       auto tval = ReadScalar<uint8_t>(val);
@@ -204,11 +230,16 @@ inline void IterateValue(ElementaryType type, const uint8_t* val,
         case ST_UNION: {
           val += ReadScalar<uoffset_t>(val);
           FLATBUFFERS_ASSERT(prev_val);
-          auto union_type = *prev_val;  // Always a uint8_t.
+          auto type_ptr = prev_val;
           if (vector_index >= 0) {
             auto type_vec = reinterpret_cast<const Vector<uint8_t>*>(prev_val);
-            union_type = type_vec->Get(static_cast<uoffset_t>(vector_index));
+            // As Vector::Get() checks, for a vector of any width.
+            FLATBUFFERS_ASSERT(static_cast<uoffset_t>(vector_index) <
+                               type_vec->size());
+            type_ptr = type_vec->Data() + InlineSize(prev_type, nullptr) *
+                                              static_cast<size_t>(vector_index);
           }
+          auto union_type = ReadUnionType(prev_type, type_ptr);
           auto type_code_idx =
               LookupEnum(union_type, type_table->values, type_table->num_elems);
           if (type_code_idx >= 0 &&
@@ -248,6 +279,7 @@ inline void IterateObject(const uint8_t* obj, const TypeTable* type_table,
                           IterationVisitor* visitor) {
   visitor->StartSequence();
   const uint8_t* prev_val = nullptr;
+  auto prev_type = ET_UTYPE;
   size_t set_idx = 0;
   size_t array_idx = 0;
   for (size_t i = 0; i < type_table->num_elems; i++) {
@@ -288,15 +320,16 @@ inline void IterateObject(const uint8_t* obj, const TypeTable* type_table,
         for (size_t j = 0; j < size; j++) {
           visitor->Element(j, type, ref, elem_ptr);
           IterateValue(type, elem_ptr, ref, prev_val, static_cast<soffset_t>(j),
-                       visitor);
+                       visitor, prev_type);
           elem_ptr += InlineSize(type, ref);
         }
         visitor->EndVector();
       } else {
-        IterateValue(type, val, ref, prev_val, -1, visitor);
+        IterateValue(type, val, ref, prev_val, -1, visitor, prev_type);
       }
     }
     prev_val = val;
+    prev_type = type;
   }
   visitor->EndSequence();
 }

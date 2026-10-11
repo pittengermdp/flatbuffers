@@ -198,8 +198,8 @@ func (rcv_ *Leaf) MutateId(n_ int32) bool {
 func LeafStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(1)
 }
-func LeafAddId(builder_ *flatbuffers.Builder, id_ int32) {
-	builder_.PrependInt32Slot(0, id_, 0)
+func LeafAddId(builder_ *flatbuffers.Builder, idArg_ int32) {
+	builder_.PrependInt32Slot(0, idArg_, 0)
 }
 func LeafEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder_.EndObject()

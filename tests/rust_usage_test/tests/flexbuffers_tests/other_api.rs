@@ -89,15 +89,15 @@ fn as_num() {
 fn string_as_num() {
     let mut fxb = Builder::default();
     let mut v = fxb.start_vector();
-    v.push("3.1415");
+    v.push("1.2345");
     v.push("9.001e3");
     v.push("42");
     v.end_vector();
     let r = Reader::get_root(fxb.view()).unwrap();
 
     let v0 = r.as_vector().idx(0);
-    assert_eq!(v0.as_f64(), 3.1415);
-    assert_eq!(v0.as_f32(), 3.1415);
+    assert_eq!(v0.as_f64(), 1.2345);
+    assert_eq!(v0.as_f32(), 1.2345);
     assert_eq!(v0.as_u8(), 0);
     assert_eq!(v0.as_u16(), 0);
     assert_eq!(v0.as_u32(), 0);
@@ -165,7 +165,12 @@ fn get_root_deref_oob() {
 }
 #[test]
 fn get_root_deref_u64() {
-    let s = &[0, 0, (FlexBufferType::IndirectUInt as u8) << 2 | BitWidth::W64 as u8, 1];
+    let s = &[
+        0,
+        0,
+        (FlexBufferType::IndirectUInt as u8) << 2 | BitWidth::W64 as u8,
+        1,
+    ];
     // The risk of crashing is reading 8 bytes from index 0.
     assert_eq!(Reader::get_root(s.as_ref()).unwrap().as_u64(), 0);
 }
