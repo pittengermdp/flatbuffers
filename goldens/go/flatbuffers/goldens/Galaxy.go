@@ -10,55 +10,86 @@ type Galaxy struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsGalaxy(buf []byte, offset flatbuffers.UOffsetT) *Galaxy {
-	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &Galaxy{}
-	x.Init(buf, n+offset)
-	return x
+func GetRootAsGalaxy(buf_ []byte, offset_ flatbuffers.UOffsetT) *Galaxy {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_:])
+	x_ := &Galaxy{}
+	x_.Init(buf_, n_+offset_)
+	return x_
 }
 
-func FinishGalaxyBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.Finish(offset)
+func FinishGalaxyBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.Finish(offset_)
 }
 
-func GetSizePrefixedRootAsGalaxy(buf []byte, offset flatbuffers.UOffsetT) *Galaxy {
-	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &Galaxy{}
-	x.Init(buf, n+offset+flatbuffers.SizeUint32)
-	return x
+func GetSizePrefixedRootAsGalaxy(buf_ []byte, offset_ flatbuffers.UOffsetT) *Galaxy {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_+flatbuffers.SizeUint32:])
+	x_ := &Galaxy{}
+	x_.Init(buf_, n_+offset_+flatbuffers.SizeUint32)
+	return x_
 }
 
-func FinishSizePrefixedGalaxyBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.FinishSizePrefixed(offset)
+func FinishSizePrefixedGalaxyBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.FinishSizePrefixed(offset_)
 }
 
-func (rcv *Galaxy) Init(buf []byte, i flatbuffers.UOffsetT) {
-	rcv._tab.Bytes = buf
-	rcv._tab.Pos = i
+func VerifyRootAsGalaxy(buf_ []byte, opts_ *flatbuffers.VerifierOptions) error {
+	v_ := flatbuffers.NewVerifier(buf_, opts_)
+	tablePos_, err_ := v_.CheckUOffsetT(0)
+	if err_ != nil {
+		return err_
+	}
+	return verifyGalaxy(v_, int(tablePos_))
 }
 
-func (rcv *Galaxy) Table() flatbuffers.Table {
-	return rcv._tab
+func VerifyGalaxy(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	return verifyGalaxy(v_, tablePos_)
 }
 
-func (rcv *Galaxy) NumStars() int64 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
-	if o != 0 {
-		return rcv._tab.GetInt64(o + rcv._tab.Pos)
+func verifyGalaxy(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	if err_ := v_.CheckTable(tablePos_); err_ != nil {
+		return err_
+	}
+	if err_ := v_.CountTable(); err_ != nil {
+		return err_
+	}
+	if err_ := v_.PushDepth(); err_ != nil {
+		return err_
+	}
+	defer v_.PopDepth()
+
+	if err_ := v_.CheckScalarField(tablePos_, 4, 8); err_ != nil {
+		return err_
+	}
+	return nil
+}
+
+func (rcv_ *Galaxy) Init(buf_ []byte, i_ flatbuffers.UOffsetT) {
+	rcv_._tab.Bytes = buf_
+	rcv_._tab.Pos = i_
+}
+
+func (rcv_ *Galaxy) Table() flatbuffers.Table {
+	return rcv_._tab
+}
+
+func (rcv_ *Galaxy) NumStars() int64 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(4))
+	if o_ != 0 {
+		return rcv_._tab.GetInt64(o_ + rcv_._tab.Pos)
 	}
 	return 0
 }
 
-func (rcv *Galaxy) MutateNumStars(n int64) bool {
-	return rcv._tab.MutateInt64Slot(4, n)
+func (rcv_ *Galaxy) MutateNumStars(n_ int64) bool {
+	return rcv_._tab.MutateInt64Slot(4, n_)
 }
 
-func GalaxyStart(builder *flatbuffers.Builder) {
-	builder.StartObject(1)
+func GalaxyStart(builder_ *flatbuffers.Builder) {
+	builder_.StartObject(1)
 }
-func GalaxyAddNumStars(builder *flatbuffers.Builder, numStars int64) {
-	builder.PrependInt64Slot(0, numStars, 0)
+func GalaxyAddNumStars(builder_ *flatbuffers.Builder, numStarsArg_ int64) {
+	builder_.PrependInt64Slot(0, numStarsArg_, 0)
 }
-func GalaxyEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	return builder.EndObject()
+func GalaxyEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder_.EndObject()
 }

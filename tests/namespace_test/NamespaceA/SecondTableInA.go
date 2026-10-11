@@ -9,78 +9,141 @@ import (
 )
 
 type SecondTableInAT struct {
-	ReferToC *NamespaceC.TableInCT
+	ReferToC *NamespaceC.TableInCT `json:"refer_to_c,omitempty"`
 }
 
-func (t *SecondTableInAT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *SecondTableInAT) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	referToCOffset := t.ReferToC.Pack(builder)
-	SecondTableInAStart(builder)
-	SecondTableInAAddReferToC(builder, referToCOffset)
-	return SecondTableInAEnd(builder)
+	referToCOffset_ := t_.ReferToC.Pack(builder_)
+	SecondTableInAStart(builder_)
+	SecondTableInAAddReferToC(builder_, referToCOffset_)
+	return SecondTableInAEnd(builder_)
 }
 
-func (rcv *SecondTableInA) UnPackTo(t *SecondTableInAT) {
-	t.ReferToC = rcv.ReferToC(nil).UnPack()
+func (rcv_ *SecondTableInA) UnPackTo(t_ *SecondTableInAT) {
+	t_.ReferToC = rcv_.ReferToC(nil).UnPack()
 }
 
-func (rcv *SecondTableInA) UnPack() *SecondTableInAT {
-	if rcv == nil {
+func (rcv_ *SecondTableInA) UnPack() *SecondTableInAT {
+	if rcv_ == nil {
 		return nil
 	}
-	t := &SecondTableInAT{}
-	rcv.UnPackTo(t)
-	return t
+	t_ := &SecondTableInAT{}
+	rcv_.UnPackTo(t_)
+	return t_
+}
+
+const (
+	SecondTableInAFieldReferToC = "refer_to_c"
+)
+
+// UnpackFields returns a partial *SecondTableInAT with only the named fields populated.
+// Fields not in the list are left at their zero/default values.
+// This avoids materializing the entire table tree. Pass the
+// generated SecondTableInAField* constants rather than raw strings.
+func (rcv_ *SecondTableInA) UnpackFields(fields_ ...string) *SecondTableInAT {
+	t_ := &SecondTableInAT{}
+	fieldSet_ := make(map[string]bool, len(fields_))
+	for _, f_ := range fields_ {
+		fieldSet_[f_] = true
+	}
+	if fieldSet_["refer_to_c"] {
+		t_.ReferToC = rcv_.ReferToC(nil).UnPack()
+	}
+	return t_
 }
 
 type SecondTableInA struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsSecondTableInA(buf []byte, offset flatbuffers.UOffsetT) *SecondTableInA {
-	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &SecondTableInA{}
-	x.Init(buf, n+offset)
-	return x
+func GetRootAsSecondTableInA(buf_ []byte, offset_ flatbuffers.UOffsetT) *SecondTableInA {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_:])
+	x_ := &SecondTableInA{}
+	x_.Init(buf_, n_+offset_)
+	return x_
 }
 
-func GetSizePrefixedRootAsSecondTableInA(buf []byte, offset flatbuffers.UOffsetT) *SecondTableInA {
-	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &SecondTableInA{}
-	x.Init(buf, n+offset+flatbuffers.SizeUint32)
-	return x
+func FinishSecondTableInABuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.Finish(offset_)
 }
 
-func (rcv *SecondTableInA) Init(buf []byte, i flatbuffers.UOffsetT) {
-	rcv._tab.Bytes = buf
-	rcv._tab.Pos = i
+func GetSizePrefixedRootAsSecondTableInA(buf_ []byte, offset_ flatbuffers.UOffsetT) *SecondTableInA {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_+flatbuffers.SizeUint32:])
+	x_ := &SecondTableInA{}
+	x_.Init(buf_, n_+offset_+flatbuffers.SizeUint32)
+	return x_
 }
 
-func (rcv *SecondTableInA) Table() flatbuffers.Table {
-	return rcv._tab
+func FinishSizePrefixedSecondTableInABuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.FinishSizePrefixed(offset_)
 }
 
-func (rcv *SecondTableInA) ReferToC(obj *NamespaceC.TableInC) *NamespaceC.TableInC {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
-	if o != 0 {
-		x := rcv._tab.Indirect(o + rcv._tab.Pos)
-		if obj == nil {
-			obj = new(NamespaceC.TableInC)
+func VerifyRootAsSecondTableInA(buf_ []byte, opts_ *flatbuffers.VerifierOptions) error {
+	v_ := flatbuffers.NewVerifier(buf_, opts_)
+	tablePos_, err_ := v_.CheckUOffsetT(0)
+	if err_ != nil {
+		return err_
+	}
+	return verifySecondTableInA(v_, int(tablePos_))
+}
+
+func VerifySecondTableInA(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	return verifySecondTableInA(v_, tablePos_)
+}
+
+func verifySecondTableInA(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	if err_ := v_.CheckTable(tablePos_); err_ != nil {
+		return err_
+	}
+	if err_ := v_.CountTable(); err_ != nil {
+		return err_
+	}
+	if err_ := v_.PushDepth(); err_ != nil {
+		return err_
+	}
+	defer v_.PopDepth()
+
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 4); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := NamespaceC.VerifyTableInC(v_, pos_); err_ != nil {
+			return err_
 		}
-		obj.Init(rcv._tab.Bytes, x)
-		return obj
 	}
 	return nil
 }
 
-func SecondTableInAStart(builder *flatbuffers.Builder) {
-	builder.StartObject(1)
+func (rcv_ *SecondTableInA) Init(buf_ []byte, i_ flatbuffers.UOffsetT) {
+	rcv_._tab.Bytes = buf_
+	rcv_._tab.Pos = i_
 }
-func SecondTableInAAddReferToC(builder *flatbuffers.Builder, referToC flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(referToC), 0)
+
+func (rcv_ *SecondTableInA) Table() flatbuffers.Table {
+	return rcv_._tab
 }
-func SecondTableInAEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	return builder.EndObject()
+
+func (rcv_ *SecondTableInA) ReferToC(obj_ *NamespaceC.TableInC) *NamespaceC.TableInC {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(4))
+	if o_ != 0 {
+		x_ := rcv_._tab.Indirect(o_ + rcv_._tab.Pos)
+		if obj_ == nil {
+			obj_ = new(NamespaceC.TableInC)
+		}
+		obj_.Init(rcv_._tab.Bytes, x_)
+		return obj_
+	}
+	return nil
+}
+
+func SecondTableInAStart(builder_ *flatbuffers.Builder) {
+	builder_.StartObject(1)
+}
+func SecondTableInAAddReferToC(builder_ *flatbuffers.Builder, referToCArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(referToCArg_), 0)
+}
+func SecondTableInAEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder_.EndObject()
 }

@@ -1,0 +1,26 @@
+// Union-of-unions: a union member may name another union, and flatc flattens
+// that union's members into the outer one. Outer therefore numbers TableA = 1,
+// TableB = 2 (from Inner) and TableC = 3. roundtrip_test.go exercises it.
+namespace Test;
+
+table TableA {
+  x:int;
+}
+
+table TableB {
+  y:string;
+}
+
+table TableC {
+  z:float;
+}
+
+union Inner { TableA, TableB }
+
+union Outer { Inner, TableC }
+
+table Root {
+  content:Outer;
+}
+
+root_type Root;

@@ -5,6 +5,9 @@ authors = ["Robert Winslow <hello@rwinslow.com>",
            "Casper Neo <cneo@google.com>",
            "FlatBuffers Maintainers"]
 edition = "2018"
+# benches/benchmarks.rs is the only bench target. The other files in benches/
+# are its modules, so Cargo must not build each as a bench of its own.
+autobenches = false
 
 [dependencies]
 flatbuffers = { path = "../../rust/flatbuffers", default-features = false }
@@ -51,10 +54,14 @@ serde = "1.0"
 bencher = "0.1.5"
 static_assertions = "1.0.0"
 rand = "*"
-quickcheck_derive = "*"
 array-init = "2.0"
 
 [[bench]]
 # setup for bencher
 name = "benchmarks"
 harness = false
+
+# Read by tests/RustTest.sh and tests/RustTest.bat; see docs/source/languages/rust.md.
+[package.metadata.rust-test]
+clippy-debt = "generated code for test schemas that use non-Rust names on purpose (rust_namer_test fields, the ABC type)"
+clippy-debt-limit = 14

@@ -129,18 +129,13 @@ impl ::flatbuffers::SimpleToVerifyInSlice for GameMessage {}
 pub struct GameMessageUnionTableOffset {}
 
 #[allow(clippy::upper_case_acronyms)]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Default, Eq, Hash)]
 pub enum GameMessageT {
+    #[default]
     NONE,
     PlayerStatEvent(Box<PlayerStatEventT>),
     PlayerSpectate(Box<PlayerSpectateT>),
     PlayerInputChange(Box<PlayerInputChangeT>),
-}
-
-impl Default for GameMessageT {
-    fn default() -> Self {
-        Self::NONE
-    }
 }
 
 impl GameMessageT {
