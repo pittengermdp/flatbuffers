@@ -3846,7 +3846,9 @@ class RustGenerator : public BaseGenerator {
       code_ += "";
     }
 
-    // Generate a constructor that takes all fields as arguments.
+    // Generate a constructor that takes all fields as arguments. The impl
+    // carries no lifetime: a struct owns its bytes, so the only borrow its
+    // methods return (an array view) is tied to `&self` by elision.
     code_ += "impl {{STRUCT_TY}} {";
     code_ += "    #[allow(clippy::too_many_arguments)]";
     code_ += "    #[must_use]";
