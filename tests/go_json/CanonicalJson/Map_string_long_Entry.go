@@ -265,11 +265,11 @@ func (rcv_ *__Map_string_long_Entry) MutateValue(n_ int64) bool {
 func __Map_string_long_EntryStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(2)
 }
-func __Map_string_long_EntryAddKey(builder_ *flatbuffers.Builder, key_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(key_), 0)
+func __Map_string_long_EntryAddKey(builder_ *flatbuffers.Builder, keyArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(keyArg_), 0)
 }
-func __Map_string_long_EntryAddValue(builder_ *flatbuffers.Builder, value_ int64) {
-	builder_.PrependInt64Slot(1, value_, 0)
+func __Map_string_long_EntryAddValue(builder_ *flatbuffers.Builder, valueArg_ int64) {
+	builder_.PrependInt64Slot(1, valueArg_, 0)
 }
 func __Map_string_long_EntryEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder_.EndObject()

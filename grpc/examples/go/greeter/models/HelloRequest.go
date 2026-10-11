@@ -87,8 +87,8 @@ func (rcv_ *HelloRequest) Name() []byte {
 func HelloRequestStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(1)
 }
-func HelloRequestAddName(builder_ *flatbuffers.Builder, name_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(name_), 0)
+func HelloRequestAddName(builder_ *flatbuffers.Builder, nameArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(nameArg_), 0)
 }
 func HelloRequestEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder_.EndObject()
