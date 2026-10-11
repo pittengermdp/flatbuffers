@@ -129,7 +129,7 @@ inline ::flatbuffers::Offset<RootTable> CreateRootTableDirect(
 
 inline bool operator==(const RootTableT &lhs, const RootTableT &rhs) {
   return
-      (lhs.a == rhs.a) &&
+      ::flatbuffers::IsFloatTheSameAs(lhs.a, rhs.a) &&
       (lhs.b == rhs.b) &&
       (lhs.big_vector == rhs.big_vector);
 }
@@ -161,9 +161,9 @@ inline ::flatbuffers::Offset<RootTable> RootTable::Pack(::flatbuffers::FlatBuffe
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { ::flatbuffers::FlatBufferBuilder64 *__fbb; const RootTableT* __o; const ::flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _big_vector = _o->big_vector.size() ? _fbb.CreateVector64(_o->big_vector) : 0;
   auto _a = _o->a;
   auto _b = _o->b.size() ? _fbb.CreateVector(_o->b) : 0;
-  auto _big_vector = _o->big_vector.size() ? _fbb.CreateVector64(_o->big_vector) : 0;
   return v2::CreateRootTable(
       _fbb,
       _a,

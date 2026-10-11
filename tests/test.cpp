@@ -61,6 +61,7 @@
 #if INCLUDE_64_BIT_TESTS
 #include "tests/64bit/offset64_test.h"
 #endif
+#include "binary_annotator_test.h"
 #include "flexbuffers_test.h"
 #include "is_quiet_nan.h"
 #include "monster_test_bfbs_generated.h"  // Generated using --bfbs-comments --bfbs-builtins --cpp --bfbs-gen-embed
@@ -445,12 +446,6 @@ void UninitializedVectorTest() {
 void EqualOperatorTest() {
   MonsterT a;
   MonsterT b;
-  // We have to reset the fields that are NaN to zero to allow the equality
-  // to evaluate to true.
-  TEST_EQ(std::isnan(a.nan_default), true);
-  TEST_EQ(std::isnan(b.nan_default), true);
-  a.nan_default = 0;
-  b.nan_default = 0;
   TEST_EQ(b == a, true);
   TEST_EQ(b != a, false);
 
@@ -469,14 +464,12 @@ void EqualOperatorTest() {
   TEST_EQ(b != a, false);
 
   a.enemy.reset(new MonsterT());
-  a.enemy->nan_default = 0;
   TEST_EQ(b != a, true);
   a.enemy->mana = 33;
   TEST_EQ(b == a, false);
   TEST_EQ(b != a, true);
 
   b.enemy.reset(new MonsterT());
-  b.enemy->nan_default = 0;
   TEST_EQ(b == a, false);
   TEST_EQ(b != a, true);
   b.enemy->mana = 33;
@@ -490,7 +483,6 @@ void EqualOperatorTest() {
   TEST_EQ(b == a, false);
   TEST_EQ(b != a, true);
   a.enemy.reset(new MonsterT());
-  a.enemy->nan_default = 0;
   TEST_EQ(b == a, true);
   TEST_EQ(b != a, false);
 
@@ -504,29 +496,23 @@ void EqualOperatorTest() {
   {
     // Two tables are equal by default.
     MonsterT a, b;
-    a.nan_default = 0;
-    b.nan_default = 0;
     TEST_EQ(a == b, true);
 
     // Adding only a table to one of the monster vectors should make it not
     // equal (due to size mistmatch).
     a.testarrayoftables.push_back(
         flatbuffers::unique_ptr<MonsterT>(new MonsterT));
-    a.testarrayoftables.back()->nan_default = 0;
     TEST_EQ(a == b, false);
 
     // Adding an equalivant table to the other monster vector should make it
     // equal again.
     b.testarrayoftables.push_back(
         flatbuffers::unique_ptr<MonsterT>(new MonsterT));
-    b.testarrayoftables.back()->nan_default = 0;
     TEST_EQ(a == b, true);
 
     // Create two new monsters that are different.
     auto c = flatbuffers::unique_ptr<MonsterT>(new MonsterT);
     auto d = flatbuffers::unique_ptr<MonsterT>(new MonsterT);
-    c->nan_default = 0;
-    d->nan_default = 0;
     c->hp = 1;
     d->hp = 2;
     TEST_EQ(c == d, false);
@@ -546,6 +532,84 @@ void EqualOperatorTest() {
     b.testarrayoftables.push_back(
         flatbuffers::unique_ptr<MonsterT>(new MonsterT));
     TEST_EQ(a == b, false);
+  }
+}
+
+// Generated operator== compares floats and doubles so that NaN equals NaN, so
+// an object holding a NaN, such as MonsterT's `nan_default:float = nan`,
+// equals itself.
+void EqualOperatorNanTest() {
+  const float nan_f = std::numeric_limits<float>::quiet_NaN();
+  const double nan_d = std::numeric_limits<double>::quiet_NaN();
+
+  // A default MonsterT equals itself.
+  {
+    const MonsterT a;
+    TEST_ASSERT(std::isnan(a.nan_default));
+    TEST_ASSERT(a == a);
+  }
+
+  // So does a default Monster after a Pack/UnPack round trip.
+  {
+    const MonsterT original;
+    flatbuffers::FlatBufferBuilder fbb;
+    FinishMonsterBuffer(fbb, Monster::Pack(fbb, &original));
+    MonsterT unpacked;
+    GetMonster(fbb.GetBufferPointer())->UnPackTo(&unpacked);
+    TEST_ASSERT(std::isnan(unpacked.nan_default));
+    TEST_ASSERT(unpacked == original);
+  }
+
+  // As with ==, -0.0 equals +0.0, and NaN does not equal a number.
+  {
+    MonsterT a;
+    MonsterT b;
+    a.testf = 0.0f;
+    b.testf = -0.0f;
+    TEST_ASSERT(a == b);
+    a.nan_default = 0.0f;
+    TEST_ASSERT(a != b);
+    TEST_ASSERT(b != a);
+  }
+
+  // Vectors of floats and doubles compare element by element.
+  {
+    MonsterT a;
+    MonsterT b;
+    a.vector_of_doubles = {1.0, nan_d, 0.0};
+    b.vector_of_doubles = {1.0, nan_d, -0.0};
+    TEST_ASSERT(a == b);
+    b.vector_of_doubles.back() = nan_d;
+    TEST_ASSERT(a != b);
+    b.vector_of_doubles.pop_back();
+    TEST_ASSERT(a != b);
+  }
+
+  // Struct members compare the same way, through their accessors.
+  {
+    const Vec3 v(nan_f, 1.0f, -0.0f, nan_d, Color_Red, Test(1, 2));
+    TEST_ASSERT(v == v);
+    TEST_ASSERT(v == Vec3(nan_f, 1.0f, 0.0f, nan_d, Color_Red, Test(1, 2)));
+    TEST_ASSERT(v != Vec3(nan_f, 1.0f, 0.0f, 0.0, Color_Red, Test(1, 2)));
+  }
+
+  // Map values are looked up by key and compared the same way.
+  {
+    MapSetTest::ConfigT a;
+    MapSetTest::ConfigT b;
+    a.color_scores[MapSetTest::Color_Red] = nan_f;
+    a.color_scores[MapSetTest::Color_Blue] = 0.0f;
+    b.color_scores[MapSetTest::Color_Blue] = -0.0f;
+    b.color_scores[MapSetTest::Color_Red] = nan_f;
+    TEST_ASSERT(a == a);
+    TEST_ASSERT(a == b);
+    b.color_scores[MapSetTest::Color_Red] = 0.5f;
+    TEST_ASSERT(a != b);
+    b.color_scores.erase(MapSetTest::Color_Red);
+    b.color_scores[MapSetTest::Color_Green] = nan_f;
+    TEST_ASSERT(a != b);
+    b.color_scores.erase(MapSetTest::Color_Green);
+    TEST_ASSERT(a != b);
   }
 }
 
@@ -1676,6 +1740,54 @@ void UnionUnderlyingTypeTest() {
   TEST_ASSERT(unpacked.test_vector_of_union == buffer.test_vector_of_union);
 }
 
+// A union's type is stored as the union's underlying type, so the generated
+// verifier must check that it is aligned for that type: for `union ABC: int`,
+// that test_union_type is 4-byte aligned, not 1-byte aligned as a UType is.
+void UnionUnderlyingTypeVerifierAlignmentTest() {
+  using namespace UnionUnderlyingType;
+  const auto verifies = [](const flatbuffers::FlatBufferBuilder& fbb,
+                           const bool check_alignment) {
+    flatbuffers::Verifier::Options options;
+    options.check_alignment = check_alignment;
+    flatbuffers::Verifier verifier(fbb.GetBufferPointer(), fbb.GetSize(),
+                                   options);
+    return verifier.VerifyBuffer<D>(nullptr);
+  };
+
+  BT b;
+  b.b = "foo";
+  DT d;
+  d.test_union.Set(b);
+
+  flatbuffers::FlatBufferBuilder aligned;
+  aligned.Finish(D::Pack(aligned, &d));
+  TEST_EQ(verifies(aligned, true), true);
+
+  // The same table with its type 1 byte past a 4-byte boundary, where only a
+  // 1-byte type may be. The builder aligns every scalar it adds to its size,
+  // so the type is pushed as bytes and tracked, as CopyTable() copies a field.
+  flatbuffers::FlatBufferBuilder misaligned;
+  const auto member = B::Pack(misaligned, &b);
+  const auto start = misaligned.StartTable();
+  misaligned.AddOffset(D::VT_TEST_UNION, member.Union());
+  misaligned.Align(sizeof(int32_t));
+  misaligned.PushElement<uint8_t>(0);
+  const auto type = flatbuffers::EndianScalar(static_cast<int32_t>(ABC::B));
+  misaligned.PushBytes(reinterpret_cast<const uint8_t*>(&type), sizeof(type));
+  misaligned.TrackField(D::VT_TEST_UNION_TYPE, misaligned.GetSize());
+  misaligned.Finish(flatbuffers::Offset<D>(misaligned.EndTable(start)));
+  const uint8_t* buf = misaligned.GetBufferPointer();
+  const uint8_t* type_ptr =
+      flatbuffers::GetRoot<flatbuffers::Table>(buf)->GetAddressOf(
+          D::VT_TEST_UNION_TYPE);
+  TEST_NOTNULL(type_ptr);
+  TEST_EQ(static_cast<size_t>(type_ptr - buf) % sizeof(int32_t), size_t{3});
+
+  TEST_EQ(verifies(misaligned, true), false);
+  // Misalignment is the only thing wrong with it.
+  TEST_EQ(verifies(misaligned, false), true);
+}
+
 void StructsInHashTableTest() {
 #if defined(HAS_ABSL_CONTAINERS) && (!defined(_MSC_VER) || _MSC_VER >= 1700)
   absl::flat_hash_set<ArrayStruct> hash_set;
@@ -1722,6 +1834,15 @@ static void Offset64Tests() {
   Offset64SizePrefix();
   Offset64ManyVectors();
   Offset64ForceAlign();
+  Offset64ObjectApiRoundTrip();
+  Offset64ReflectionVerify();
+  Offset64ReflectionVerifyRequired();
+  Offset64ReflectionVerifyZeroOffset();
+  Offset64ReflectionVerifySizePrefixed();
+  Offset64ReflectionVerifyRoot();
+  Offset64ReflectionVerifyMaxSize();
+  Offset64SizePrefixedIdentifierBounds();
+  Offset64ReflectionVerifyAlignment();
 #endif
 }
 
@@ -1818,8 +1939,8 @@ void MapSetRoundTripTest() {
   TEST_EQ(ids_vec->Get(0)->key(), 10u);
   TEST_EQ(ids_vec->Get(1)->key(), 20u);
 
-  // Write the binary for cross-language round-trip testing.
-  // Go and TypeScript tests read this file to verify interop.
+  // Write the binary out for cross-language round-trip testing. Nothing in
+  // the tree reads it yet; .gitignore keeps it out of commits.
   flatbuffers::SaveFile("tests/map_set_test_data.bin",
                         reinterpret_cast<const char*>(buf),
                         fbb.GetSize(), /*binary=*/true);
@@ -2156,6 +2277,9 @@ int FlatBufferTests(const std::string& tests_data_path) {
 
   MiniReflectFlatBuffersTest(flatbuf.data());
   MiniReflectFixedLengthArrayTest();
+  MiniReflectUnionUnderlyingTypeTest();
+  ReflectionVerifyOffsetFieldsTest();
+  ReflectionVerifyRequiredOffsetFieldsTest();
 
   SizePrefixedTest();
 
@@ -2166,13 +2290,24 @@ int FlatBufferTests(const std::string& tests_data_path) {
   ParseAndGenerateTextTest(tests_data_path, true);
   FixedLengthArrayJsonTest(tests_data_path, false);
   FixedLengthArrayJsonTest(tests_data_path, true);
+  SetStringTest(tests_data_path);
   ReflectionTest(tests_data_path, flatbuf.data(), flatbuf.size());
   ReflectionVerifyUnionByValueTest(tests_data_path);
+  ReflectionVerifyUnionTypeSlotsTest(tests_data_path);
   ForAllFieldsReverseTest(tests_data_path);
+  AnnotateDeprecatedRequiredFieldTest(tests_data_path);
+  ReflectionVerifyUnionValueSlotTest(tests_data_path);
+  ReflectionVerifyUnionTypesSlotTest(tests_data_path);
+  AnnotateVTableSlotsOnceTest(tests_data_path);
+  AnnotateUnionByValueTest(tests_data_path);
+  AnnotateUnionUnderlyingTypeTest(tests_data_path);
+  AnnotateUnionVectorTest(tests_data_path);
+  AnnotateUnionWithoutTypeTest(tests_data_path);
   ParseProtoTest(tests_data_path);
   EvolutionTest(tests_data_path);
   UnionDeprecationTest(tests_data_path);
   UnionVectorTest(tests_data_path);
+  ReflectionVerifyUnionVectorWithoutTypesTest(tests_data_path);
   GenerateTableTextTest(tests_data_path);
   TestEmbeddedBinarySchema(tests_data_path);
   JsonOptionalTest(tests_data_path, false);
@@ -2183,9 +2318,11 @@ int FlatBufferTests(const std::string& tests_data_path) {
   JsonEnumsTest(tests_data_path);
   TestMonsterExtraFloats(tests_data_path);
   ParseIncorrectMonsterJsonTest(tests_data_path);
+  JsonUnionUnderlyingTypeParseTest(tests_data_path);
   FixedLengthArraySpanTest(tests_data_path);
   DoNotRequireEofTest(tests_data_path);
   JsonUnionStructTest();
+  JsonUnionUnderlyingTypeGenTextTest(tests_data_path);
   VectorTableNakedPtrTest();
 #else
   // Guard against -Wunused-parameter.
@@ -2215,6 +2352,7 @@ int FlatBufferTests(const std::string& tests_data_path) {
   InvalidUTF8Test();
   UnknownFieldsTest();
   ParseUnionTest();
+  UnionUnderlyingTypeSizeTest();
   ValidSameNameDifferentNamespaceTest();
   ConformTest();
   ParseProtoBufAsciiTest();
@@ -2226,6 +2364,7 @@ int FlatBufferTests(const std::string& tests_data_path) {
   FlexBuffersDeprecatedTest();
   UninitializedVectorTest();
   EqualOperatorTest();
+  EqualOperatorNanTest();
   NumericUtilsTest();
   IsAsciiUtilsTest();
   ValidFloatTest();
@@ -2263,6 +2402,7 @@ int FlatBufferTests(const std::string& tests_data_path) {
   EmbeddedSchemaAccess();
   Offset64Tests();
   UnionUnderlyingTypeTest();
+  UnionUnderlyingTypeVerifierAlignmentTest();
   StructsInHashTableTest();
   DefaultVectorsStringsTest();
   CrossNamespacePackTest();

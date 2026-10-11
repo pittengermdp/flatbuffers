@@ -6,6 +6,7 @@
 #include "monster_test_generated.h"
 #include "optional_scalars_generated.h"
 #include "test_assert.h"
+#include "union_underlying_type_test_generated.h"
 
 namespace flatbuffers {
 namespace tests {
@@ -146,6 +147,112 @@ void ParseIncorrectMonsterJsonTest(const std::string& tests_data_path) {
   TEST_EQ(parser.ParseJson("{name:+f}"), false);
 }
 
+// A union declared with an underlying type stores its types as that type:
+// `union ABC: int { A = 555, B = 666, C = 777 }` makes test_union_type an int,
+// and test_vector_of_union_type a vector of ints. JSON must accept their
+// values, which do not fit in a byte, and store them at that width.
+void JsonUnionUnderlyingTypeParseTest(const std::string& tests_data_path) {
+  using namespace UnionUnderlyingType;
+  std::string schemafile;
+  TEST_EQ(flatbuffers::LoadFile(
+              (tests_data_path + "union_underlying_type_test.fbs").c_str(),
+              false, &schemafile),
+          true);
+  // Parses `json` as a D, checks that the generated verifier accepts it, and
+  // returns whether it unpacks to `expected`.
+  const auto parses_to = [&](const char* json, const DT& expected) {
+    flatbuffers::Parser parser;
+    TEST_EQ(parser.Parse(schemafile.c_str()), true);
+    TEST_EQ(parser.SetRootType("UnionUnderlyingType.D"), true);
+    if (!parser.ParseJson(json)) {
+      TEST_OUTPUT_LINE("%s", parser.error_.c_str());
+      return false;
+    }
+    flatbuffers::Verifier verifier(parser.builder_.GetBufferPointer(),
+                                   parser.builder_.GetSize());
+    TEST_EQ(verifier.VerifyBuffer<D>(nullptr), true);
+    DT parsed;
+    flatbuffers::GetRoot<D>(parser.builder_.GetBufferPointer())
+        ->UnPackTo(&parsed);
+    return parsed == expected;
+  };
+
+  AT a;
+  a.a = 42;
+  BT b;
+  b.b = "foo";
+  CT c;
+  c.c = true;
+
+  DT all;
+  all.test_union.Set(c);
+  all.test_vector_of_union.resize(3);
+  all.test_vector_of_union[0].Set(a);
+  all.test_vector_of_union[1].Set(b);
+  all.test_vector_of_union[2].Set(c);
+  TEST_EQ(parses_to("{ test_union_type: \"C\", test_union: { c: true }, "
+                    "test_vector_of_union_type: [ \"A\", \"B\", \"C\" ], "
+                    "test_vector_of_union: "
+                    "[ { a: 42 }, { b: \"foo\" }, { c: true } ] }",
+                    all),
+          true);
+
+  // A type after its union is found by scanning ahead for it.
+  DT single_b;
+  single_b.test_union.Set(b);
+  TEST_EQ(parses_to("{ test_union: { b: \"foo\" }, test_union_type: \"B\" }",
+                    single_b),
+          true);
+
+  // A type may be given as its value.
+  DT single_a;
+  single_a.test_union.Set(a);
+  TEST_EQ(
+      parses_to("{ test_union_type: 555, test_union: { a: 42 } }", single_a),
+      true);
+
+  // 811 names no member, though its low byte is A's, 555's: it is rejected,
+  // in a union field and in a vector of unions.
+  const char* unknown_types[] = {
+      "{ test_union_type: 811, test_union: { a: 42 } }",
+      "{ test_vector_of_union_type: [ 811 ], test_vector_of_union: [ { a: 42 } "
+      "] }",
+  };
+  for (auto json : unknown_types) {
+    flatbuffers::Parser parser;
+    TEST_EQ(parser.Parse(schemafile.c_str()), true);
+    TEST_EQ(parser.SetRootType("UnionUnderlyingType.D"), true);
+    TEST_EQ(parser.ParseJson(json), false);
+    TEST_EQ(parser.error_.find("illegal type id") != std::string::npos, true);
+  }
+
+  // An unsigned 64-bit type above INT64_MAX names its member too, in a union
+  // field and in a vector of unions.
+  flatbuffers::Parser wide;
+  TEST_EQ(
+      wide.Parse("table A { a: int; } table B { b: int; }"
+                 "union W: ulong { A = 1, B = 9223372036854775808 }"
+                 "table T { w: W; ws: [W]; } root_type T;"
+                 "{ w_type: \"B\", w: { b: 7 },"
+                 "  ws_type: [ \"B\", \"A\" ], ws: [ { b: 1 }, { a: 2 } ] }"),
+      true);
+  // Both are stored 8 bytes wide.
+  const uint64_t b_type = 9223372036854775808ULL;
+  auto t_def = wide.structs_.Lookup("T");
+  TEST_NOTNULL(t_def);
+  auto t = flatbuffers::GetRoot<flatbuffers::Table>(
+      wide.builder_.GetBufferPointer());
+  TEST_EQ(
+      t->GetField<uint64_t>(t_def->fields.Lookup("w_type")->value.offset, 0),
+      b_type);
+  auto ws_type = t->GetPointer<const flatbuffers::Vector<uint64_t>*>(
+      t_def->fields.Lookup("ws_type")->value.offset);
+  TEST_NOTNULL(ws_type);
+  TEST_EQ(ws_type->size(), 2u);
+  TEST_EQ(ws_type->Get(0), b_type);
+  TEST_EQ(ws_type->Get(1), uint64_t{1});
+}
+
 void JsonUnsortedArrayTest() {
   flatbuffers::Parser parser;
   TEST_EQ(parser.Deserialize(MyGame::Example::MonsterBinarySchema::data(),
@@ -201,6 +308,63 @@ root_type JsonUnionStructTest;
       GenText(parser, parser.builder_.GetBufferPointer(), &json_generated);
   TEST_NULL(generate_result);
   TEST_EQ_STR(json_source, json_generated.c_str());
+}
+
+// A union declared with an underlying type stores its types as that type:
+// `union ABC: int { A = 555, B = 666, C = 777 }` makes test_union_type an int,
+// and test_vector_of_union_type a vector of ints. The text generator must read
+// them at that width, to name them and to find the members they type.
+void JsonUnionUnderlyingTypeGenTextTest(const std::string& tests_data_path) {
+  using namespace UnionUnderlyingType;
+  std::string schemafile;
+  TEST_EQ(flatbuffers::LoadFile(
+              (tests_data_path + "union_underlying_type_test.fbs").c_str(),
+              false, &schemafile),
+          true);
+  flatbuffers::Parser parser;
+  TEST_EQ(parser.Parse(schemafile.c_str()), true);
+  TEST_EQ(parser.SetRootType("UnionUnderlyingType.D"), true);
+
+  AT a;
+  a.a = 42;
+  BT b;
+  b.b = "foo";
+  CT c;
+  c.c = true;
+  DT d;
+  d.test_union.Set(c);
+  d.test_vector_of_union.resize(3);
+  d.test_vector_of_union[0].Set(a);
+  d.test_vector_of_union[1].Set(b);
+  d.test_vector_of_union[2].Set(c);
+  flatbuffers::FlatBufferBuilder fbb;
+  fbb.Finish(D::Pack(fbb, &d));
+
+  std::string json;
+  TEST_NULL(GenText(parser, fbb.GetBufferPointer(), &json));
+  TEST_EQ_STR(json.c_str(),
+              "{\n"
+              "  test_union_type: \"C\",\n"
+              "  test_union: {\n"
+              "    c: true\n"
+              "  },\n"
+              "  test_vector_of_union_type: [\n"
+              "    \"A\",\n"
+              "    \"B\",\n"
+              "    \"C\"\n"
+              "  ],\n"
+              "  test_vector_of_union: [\n"
+              "    {\n"
+              "      a: 42\n"
+              "    },\n"
+              "    {\n"
+              "      b: \"foo\"\n"
+              "    },\n"
+              "    {\n"
+              "      c: true\n"
+              "    }\n"
+              "  ]\n"
+              "}\n");
 }
 
 }  // namespace tests

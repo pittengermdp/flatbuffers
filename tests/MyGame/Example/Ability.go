@@ -58,9 +58,9 @@ func (rcv_ *Ability) MutateDistance(n_ uint32) bool {
 	return rcv_._tab.MutateUint32(rcv_._tab.Pos+flatbuffers.UOffsetT(4), n_)
 }
 
-func CreateAbility(builder_ *flatbuffers.Builder, id_ uint32, distance_ uint32) flatbuffers.UOffsetT {
+func CreateAbility(builder_ *flatbuffers.Builder, idArg_ uint32, distanceArg_ uint32) flatbuffers.UOffsetT {
 	builder_.Prep(4, 8)
-	builder_.PrependUint32(distance_)
-	builder_.PrependUint32(id_)
+	builder_.PrependUint32(distanceArg_)
+	builder_.PrependUint32(idArg_)
 	return builder_.Offset()
 }
