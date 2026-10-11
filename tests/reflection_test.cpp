@@ -1278,6 +1278,24 @@ static Offset<const Table*> CopyMovie(FlatBufferBuilder& fbb,
                    use_string_pooling);
 }
 
+static bool VerifyMovie(const uint8_t* const buf, const size_t size) {
+  Verifier verifier(buf, size);
+  return VerifyMovieBuffer(verifier);
+}
+
+// Checks the Movie in `buf` verifies, with the generated verifier and with
+// reflection, and unpacks to `movie`.
+static void CheckMovie(const reflection::Schema& schema,
+                       const uint8_t* const buf, const size_t size,
+                       const MovieT& movie) {
+  const bool verified = VerifyMovie(buf, size);
+  TEST_EQ(verified, true);
+  TEST_EQ(Verify(schema, *schema.root_table(), buf, size), true);
+  // A buffer that does not verify could send UnPack anywhere.
+  if (!verified) return;
+  TEST_ASSERT(*UnPackMovie(buf) == movie);
+}
+
 // Copies `movie` into `fbb`, after whatever fbb already holds, and checks the
 // copy verifies and unpacks to `movie` again.
 static void CheckMovieCopy(FlatBufferBuilder& fbb,
@@ -1288,21 +1306,14 @@ static void CheckMovieCopy(FlatBufferBuilder& fbb,
   TEST_EQ(copy.IsNull(), false);
   if (copy.IsNull()) return;
   FinishMovieBuffer(fbb, Offset<Movie>(copy.o));
-  Verifier verifier(fbb.GetBufferPointer(), fbb.GetSize());
-  const bool verified = VerifyMovieBuffer(verifier);
-  TEST_EQ(verified, true);
-  TEST_EQ(Verify(schema, *schema.root_table(), fbb.GetBufferPointer(),
-                 fbb.GetSize()),
-          true);
-  // A copy that does not verify could send UnPack anywhere.
-  if (!verified) return;
-  TEST_ASSERT(*UnPackMovie(fbb.GetBufferPointer()) == movie);
+  CheckMovie(schema, fbb.GetBufferPointer(), fbb.GetSize(), movie);
 }
 
-// CopyTable on union_vector.fbs, whose Character union has a table, structs
-// and strings for members, as a single union (main_character) and as a vector
-// of unions (characters).
-void CopyTableUnionTest(const std::string& tests_data_path) {
+// The binary schema of union_vector.fbs, whose Character union has a table,
+// structs and strings for members, as a single union (main_character) and as a
+// vector of unions (characters).
+static std::vector<uint8_t> UnionVectorSchema(
+    const std::string& tests_data_path) {
   std::string source;
   TEST_EQ(LoadFile((tests_data_path + "union_vector/union_vector.fbs").c_str(),
                    false, &source),
@@ -1313,8 +1324,44 @@ void CopyTableUnionTest(const std::string& tests_data_path) {
   Parser parser(opts);
   TEST_EQ(parser.Parse(source.c_str()), true);
   parser.Serialize();
-  const reflection::Schema& schema =
-      *reflection::GetSchema(parser.builder_.GetBufferPointer());
+  return std::vector<uint8_t>(
+      parser.builder_.GetBufferPointer(),
+      parser.builder_.GetBufferPointer() + parser.builder_.GetSize());
+}
+
+// A type Character does not have, as in a buffer written with a newer schema.
+static const uint8_t kUnknownCharacter =
+    static_cast<uint8_t>(Character_MAX + 1);
+
+// A Movie the Object API may not write: `main`, if any, a string under
+// `main_type`, and a string for each of `characters` under `types`, which may
+// not pair up with them, or be missing. No vector of unions if `characters` is
+// empty, as Pack() writes it.
+static std::vector<uint8_t> BuildMovie(
+    const Character main_type, const char* const main,
+    const std::vector<uint8_t>* const types,
+    const std::vector<std::string>& characters) {
+  FlatBufferBuilder fbb;
+  const Offset<void> main_character =
+      main ? fbb.CreateString(main).Union() : Offset<void>();
+  std::vector<Offset<void>> values;
+  for (const std::string& character : characters) {
+    values.push_back(fbb.CreateString(character).Union());
+  }
+  const Offset<Vector<uint8_t>> characters_type =
+      types ? fbb.CreateVector(*types) : Offset<Vector<uint8_t>>();
+  const Offset<Vector<Offset<void>>> characters_vector =
+      values.empty() ? Offset<Vector<Offset<void>>>()
+                     : fbb.CreateVector(values);
+  return FinishedMovie(fbb, CreateMovie(fbb, main_type, main_character,
+                                        characters_type, characters_vector));
+}
+
+// CopyTable on union_vector.fbs, of each member of a union, alone and in a
+// vector of unions.
+void CopyTableUnionTest(const std::string& tests_data_path) {
+  const std::vector<uint8_t> bfbs = UnionVectorSchema(tests_data_path);
+  const reflection::Schema& schema = *reflection::GetSchema(bfbs.data());
 
   for (const bool use_string_pooling : {false, true}) {
     // Each element of a vector of unions is copied, and referred to, in the
@@ -1352,36 +1399,110 @@ void CopyTableUnionTest(const std::string& tests_data_path) {
   // A value under NONE, which has none to copy, and under a type the schema
   // does not have, as in a buffer written with a newer schema, whose value has
   // a shape this schema cannot tell.
-  const uint8_t unknown = static_cast<uint8_t>(Character_MAX + 1);
-  for (const uint8_t type : {static_cast<uint8_t>(Character_NONE), unknown}) {
-    FlatBufferBuilder fbb;
-    const Offset<void> value = fbb.CreateString("Other").Union();
-    check_rejected(FinishedMovie(
-        fbb, CreateMovie(fbb, static_cast<Character>(type), value)));
+  for (const uint8_t type :
+       {static_cast<uint8_t>(Character_NONE), kUnknownCharacter}) {
+    check_rejected(
+        BuildMovie(static_cast<Character>(type), "Other", nullptr, {}));
   }
   // The same in a vector of unions, and types that do not pair up with values.
-  const auto pack_characters = [](const std::vector<uint8_t>* const types,
-                                  const size_t count) {
-    FlatBufferBuilder fbb;
-    std::vector<Offset<void>> characters;
-    for (size_t i = 0; i < count; i++) {
-      characters.push_back(fbb.CreateString("Other").Union());
-    }
-    const Offset<Vector<uint8_t>> characters_type =
-        types ? fbb.CreateVector(*types) : Offset<Vector<uint8_t>>();
-    const auto characters_vector = fbb.CreateVector(characters);
-    return FinishedMovie(fbb, CreateMovie(fbb, Character_NONE, 0,
-                                          characters_type, characters_vector));
-  };
   const std::vector<uint8_t> none = {Character_NONE};
-  const std::vector<uint8_t> unknowns = {unknown};
+  const std::vector<uint8_t> unknowns = {kUnknownCharacter};
   const std::vector<uint8_t> one = {Character_Other};
   const std::vector<uint8_t> two = {Character_Other, Character_Other};
-  check_rejected(pack_characters(&none, 1));
-  check_rejected(pack_characters(&unknowns, 1));
-  check_rejected(pack_characters(nullptr, 1));
-  check_rejected(pack_characters(&one, 2));
-  check_rejected(pack_characters(&two, 1));
+  check_rejected(BuildMovie(Character_NONE, nullptr, &none, {"Other"}));
+  check_rejected(BuildMovie(Character_NONE, nullptr, &unknowns, {"Other"}));
+  check_rejected(BuildMovie(Character_NONE, nullptr, nullptr, {"Other"}));
+  check_rejected(BuildMovie(Character_NONE, nullptr, &one, {"Other", "Other"}));
+  check_rejected(BuildMovie(Character_NONE, nullptr, &two, {"Other"}));
+}
+
+// The string that is element `index` of the vector of unions in `movie`.
+static const String* CharacterString(const Movie& movie,
+                                     const uoffset_t index) {
+  return reinterpret_cast<const String*>(movie.characters()->Get(index));
+}
+
+// Sets the string that is element `index` of the vector of unions in `buf` to
+// `value`, with SetString, which resizes `buf` in place.
+static void SetCharacterString(const reflection::Schema& schema,
+                               std::vector<uint8_t>& buf, const uoffset_t index,
+                               const std::string& value) {
+  SetString(schema, value, CharacterString(*GetMovie(buf.data()), index), &buf);
+}
+
+// ResizeContext on union_vector.fbs. Resizing a string in place moves what
+// follows it, so each offset that spans it, to a member of a union or of a
+// vector of unions, or held in a member table, must move by as much.
+void ResizeContextUnionTest(const std::string& tests_data_path) {
+  const std::vector<uint8_t> bfbs = UnionVectorSchema(tests_data_path);
+  const reflection::Schema& schema = *reflection::GetSchema(bfbs.data());
+  const std::string longer = "resized, to a longer string than it was";
+
+  // Each member as main_character, and one struct more: a hair_length that,
+  // read as the offset from a table to its vtable, reaches back past the
+  // resized string, so a struct taken for a table would be rewritten.
+  std::vector<CharacterUnion> main_characters = EveryCharacter();
+  main_characters.push_back(
+      MakeCharacter(Character_Rapunzel, new Rapunzel(/*hair_length=*/1 << 30)));
+  for (CharacterUnion& main_character : main_characters) {
+    // The string resized sits among the characters, which Pack() writes
+    // from the end of the buffer back: the offsets to those ahead of it span
+    // it, and the Attacker after it shares the vtable of the one ahead.
+    MovieT movie;
+    movie.main_character = std::move(main_character);
+    movie.characters = EveryCharacter();
+    const uoffset_t resized = static_cast<uoffset_t>(movie.characters.size());
+    movie.characters.push_back(
+        MakeCharacter(Character_Other, new std::string("resized")));
+    for (CharacterUnion& character : EveryCharacter()) {
+      movie.characters.push_back(std::move(character));
+    }
+    std::vector<uint8_t> buf = PackMovie(movie);
+    SetCharacterString(schema, buf, resized, longer);
+    *movie.characters[resized].AsOther() = longer;
+    CheckMovie(schema, buf.data(), buf.size(), movie);
+
+    // Shrink the vector of unions, and its types, by two, which moves
+    // everything after it, and so each of the characters it refers to.
+    const uoffset_t kept = static_cast<uoffset_t>(movie.characters.size() - 2);
+    ResizeVector<Offset<void>>(schema, kept, 0,
+                               GetMovie(buf.data())->characters(), &buf);
+    ResizeVector<uint8_t>(schema, kept, 0,
+                          GetMovie(buf.data())->characters_type(), &buf);
+    movie.characters.resize(kept);
+    CheckMovie(schema, buf.data(), buf.size(), movie);
+  }
+
+  // A value under NONE or an unknown type, and a vector of unions whose types
+  // do not pair up with its values: each offset still moves, so each string
+  // reads back, and the buffer verifies, or does not, as it did before.
+  const auto check_resized = [&](const Character main_type,
+                                 const std::vector<uint8_t>* const types,
+                                 std::vector<std::string> characters) {
+    std::vector<uint8_t> buf = BuildMovie(main_type, "main", types, characters);
+    const bool verified = VerifyMovie(buf.data(), buf.size());
+    // The last of the characters, written after the other strings, and so
+    // ahead of them in the buffer: each offset to one of them spans it.
+    const uoffset_t resized = static_cast<uoffset_t>(characters.size() - 1);
+    SetCharacterString(schema, buf, resized, longer);
+    characters[resized] = longer;
+    TEST_EQ(VerifyMovie(buf.data(), buf.size()), verified);
+    const Movie& movie = *GetMovie(buf.data());
+    TEST_EQ_STR(
+        reinterpret_cast<const String*>(movie.main_character())->c_str(),
+        "main");
+    for (uoffset_t i = 0; i < characters.size(); i++) {
+      TEST_EQ_STR(CharacterString(movie, i)->c_str(), characters[i].c_str());
+    }
+  };
+  const std::vector<uint8_t> other = {Character_Other};
+  const std::vector<uint8_t> mixed = {Character_NONE, kUnknownCharacter,
+                                      Character_Other};
+  check_resized(Character_NONE, &other, {"resized"});
+  check_resized(static_cast<Character>(kUnknownCharacter), &other, {"resized"});
+  check_resized(Character_Other, &mixed, {"none", "unknown", "resized"});
+  check_resized(Character_Other, nullptr, {"kept", "resized"});
+  check_resized(Character_Other, &other, {"kept", "resized"});
 }
 
 // CopyTable on a vector of structs that must be 8-aligned, wider than the 4

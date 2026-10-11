@@ -25,6 +25,7 @@ void ReflectionUnionUnderlyingTypeAnyFieldTest(
     const std::string& tests_data_path);
 void CopyTableUnionTest(const std::string& tests_data_path);
 void CopyTableStructVectorAlignmentTest();
+void ResizeContextUnionTest(const std::string& tests_data_path);
 void MiniReflectFixedLengthArrayTest();
 void MiniReflectFlatBuffersTest(uint8_t* flatbuf);
 void ReflectionVerifyUnionVectorWithoutTypesTest(

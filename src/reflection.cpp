@@ -609,6 +609,14 @@ void SetAnyValueS(reflection::BaseType type, uint8_t* data, const char* val) {
   }
 }
 
+// The `<name>_type` field flatc pairs with a union, or a vector of unions, to
+// hold its type, or types. Null if the schema has none.
+static const reflection::Field* GetUnionTypeField(
+    const reflection::Object& objectdef, const reflection::Field& unionfield) {
+  return objectdef.fields()->LookupByKey(
+      (unionfield.name()->str() + UnionTypeFieldSuffix()).c_str());
+}
+
 // Resize a FlatBuffer in-place by iterating through all offsets in the buffer
 // and adjusting them by "delta" if they straddle the start offset.
 // Once that is done, bytes can now be inserted/deleted safely.
@@ -708,7 +716,9 @@ class ResizeContext {
           }
           case reflection::Vector: {
             auto elem_type = fielddef.type()->element();
-            if (elem_type != reflection::Obj && elem_type != reflection::String)
+            if (elem_type != reflection::Obj &&
+                elem_type != reflection::String &&
+                elem_type != reflection::Union)
               break;
             auto vec = reinterpret_cast<Vector<uoffset_t>*>(ref);
             auto elemobjectdef =
@@ -716,6 +726,16 @@ class ResizeContext {
                     ? schema_.objects()->Get(fielddef.type()->index())
                     : nullptr;
             if (elemobjectdef && elemobjectdef->is_struct()) break;
+            // Without its types, the element offsets of a vector of unions
+            // are still adjusted, but no member is recursed into.
+            auto types = elem_type == reflection::Union
+                             ? GetUnionTypes(objectdef, fielddef, *table)
+                             : nullptr;
+            // The types are as wide as the union's underlying type.
+            const auto types_base_type =
+                types ? GetUnionUnderlyingType(
+                            schema_, *GetUnionTypeField(objectdef, fielddef))
+                      : reflection::UType;
             for (uoffset_t i = 0; i < vec->size(); i++) {
               auto loc = vec->Data() + i * sizeof(uoffset_t);
               if (DagCheck(loc)) continue;  // This offset already visited.
@@ -723,12 +743,18 @@ class ResizeContext {
               Straddle<uoffset_t, 1>(loc, dest, loc);
               if (elemobjectdef)
                 ResizeTable(*elemobjectdef, reinterpret_cast<Table*>(dest));
+              else if (types && i < types->size())
+                ResizeUnionValue(fielddef,
+                                 GetAnyVectorElemI(types, types_base_type, i),
+                                 dest);
             }
             break;
           }
           case reflection::Union: {
-            ResizeTable(GetUnionType(schema_, objectdef, fielddef, *table),
-                        reinterpret_cast<Table*>(ref));
+            auto type_field = GetUnionTypeField(objectdef, fielddef);
+            if (type_field)
+              ResizeUnionValue(fielddef,
+                               GetAnyFieldI(*table, *type_field, schema_), ref);
             break;
           }
           case reflection::String:
@@ -745,6 +771,39 @@ class ResizeContext {
   }
 
  private:
+  // Recurses into a value of `unionfield`, of type `type`, if its member is a
+  // table. A struct or a string has no offsets of its own, and NONE, or a type
+  // the schema does not have, no shape the schema can tell. The caller adjusts
+  // the offset to the value either way.
+  void ResizeUnionValue(const reflection::Field& unionfield, int64_t type,
+                        uint8_t* value) {
+    auto enumdef = schema_.enums()->Get(unionfield.type()->index());
+    auto enumval = enumdef->values()->LookupByKey(type);
+    if (!enumval) return;
+    auto& member = *enumval->union_type();
+    if (member.base_type() != reflection::Obj) return;
+    auto& memberdef = *schema_.objects()->Get(member.index());
+    if (!memberdef.is_struct())
+      ResizeTable(memberdef, reinterpret_cast<Table*>(value));
+  }
+
+  // The `<name>_type` vector of a vector of unions, null if the schema or the
+  // table has none. Its offset may have been adjusted already, on an earlier
+  // visit to a table referred to more than once, so it is read as it was
+  // before the resize.
+  const VectorOfAny* GetUnionTypes(const reflection::Object& objectdef,
+                                       const reflection::Field& unionfield,
+                                       const Table& table) {
+    auto type_field = GetUnionTypeField(objectdef, unionfield);
+    if (!type_field) return nullptr;
+    auto offset = table.GetOptionalFieldOffset(type_field->offset());
+    if (!offset) return nullptr;
+    auto offsetloc = reinterpret_cast<const uint8_t*>(&table) + offset;
+    auto ref = ReadScalar<uoffset_t>(offsetloc);
+    if (DagCheck(offsetloc)) ref -= static_cast<uoffset_t>(delta_);
+    return reinterpret_cast<const VectorOfAny*>(offsetloc + ref);
+  }
+
   const reflection::Schema& schema_;
   uint8_t* startptr_;
   int delta_;
@@ -822,14 +881,6 @@ const uint8_t* AddFlatBuffer(std::vector<uint8_t>& flatbuf,
   flatbuf.insert(flatbuf.end(), newbuf + sizeof(uoffset_t), newbuf + newlen);
   auto root_offset = root - sizeof(uoffset_t);
   return flatbuf.data() + insertion_point + root_offset;
-}
-
-// The `<name>_type` field flatc pairs with a union, or a vector of unions, to
-// hold its type, or types. Null if the schema has none.
-static const reflection::Field* GetUnionTypeField(
-    const reflection::Object& objectdef, const reflection::Field& unionfield) {
-  return objectdef.fields()->LookupByKey(
-      (unionfield.name()->str() + UnionTypeFieldSuffix()).c_str());
 }
 
 // Copies the value of a union, or of one element of a vector of unions, whose
