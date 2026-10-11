@@ -14,14 +14,8 @@ use alloc::vec::Vec;
 
 // struct NestedStruct, aligned to 8
 #[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Default)]
 pub struct NestedStruct(pub [u8; 32]);
-
-impl Default for NestedStruct {
-    fn default() -> Self {
-        Self([0; 32])
-    }
-}
 
 impl ::core::fmt::Debug for NestedStruct {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
@@ -61,7 +55,7 @@ impl ::flatbuffers::Push for NestedStruct {
     unsafe fn push(&self, dst: &mut [u8], _written_len: usize) {
         let src = unsafe {
             ::core::slice::from_raw_parts(
-                self as *const NestedStruct as *const u8,
+                ::core::ptr::addr_of!(*self).cast::<u8>(),
                 <Self as ::flatbuffers::Push>::size(),
             )
         };
@@ -127,7 +121,7 @@ impl NestedStruct {
         ::flatbuffers::EndianScalar::from_little_endian(unsafe {
             ::core::ptr::copy_nonoverlapping(
                 self.0[8..].as_ptr(),
-                mem.as_mut_ptr() as *mut u8,
+                mem.as_mut_ptr().cast::<u8>(),
                 ::core::mem::size_of::<<TestEnum as ::flatbuffers::EndianScalar>::Scalar>(),
             );
             mem.assume_init()
@@ -141,7 +135,7 @@ impl NestedStruct {
         // Which contains a valid value in this slot
         unsafe {
             ::core::ptr::copy_nonoverlapping(
-                &x_le as *const _ as *const u8,
+                ::core::ptr::addr_of!(x_le).cast::<u8>(),
                 self.0[8..].as_mut_ptr(),
                 ::core::mem::size_of::<<TestEnum as ::flatbuffers::EndianScalar>::Scalar>(),
             );
@@ -162,7 +156,7 @@ impl NestedStruct {
         // Created from a valid Table for this object
         // Which contains a valid array in this slot
         unsafe {
-            ::core::ptr::copy(x.as_ptr() as *const u8, self.0.as_mut_ptr().add(9), 2);
+            ::core::ptr::copy(x.as_ptr().cast::<u8>(), self.0.as_mut_ptr().add(9), 2);
         }
     }
 
@@ -193,22 +187,12 @@ impl NestedStruct {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Default, Eq, Hash)]
 pub struct NestedStructT {
     pub a: [i32; 2],
     pub b: TestEnum,
     pub c: [TestEnum; 2],
     pub d: [i64; 2],
-}
-impl Default for NestedStructT {
-    fn default() -> Self {
-        Self {
-            a: [0; 2],
-            b: TestEnum::A,
-            c: ::flatbuffers::array_init(|_| Default::default()),
-            d: [0; 2],
-        }
-    }
 }
 
 impl NestedStructT {

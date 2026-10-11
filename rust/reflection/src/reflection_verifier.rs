@@ -34,6 +34,8 @@
 //!   control these.
 //!
 //! [`SafeBuffer`]: crate::safe_buffer::SafeBuffer
+//! [`SafeBuffer::new`]: crate::safe_buffer::SafeBuffer::new
+//! [`SafeBuffer::new_with_options`]: crate::safe_buffer::SafeBuffer::new_with_options
 
 use crate::reflection_generated::reflection::{BaseType, Field, Object, Schema};
 use crate::{FlatbufferError, FlatbufferResult, get_type_size};
@@ -79,7 +81,7 @@ pub(crate) fn verify_with_options(
     let mut verifier = Verifier::new(opts, buffer);
     let mut buf_loc_to_obj_idx = HashMap::new();
     if let Some(table_object) = schema.root_table()
-        && let Ok(table_pos) = verifier.get_uoffset(0)
+        && let core::result::Result::Ok(table_pos) = verifier.get_uoffset(0)
     {
         buf_loc_to_obj_idx.insert(table_pos.try_into()?, -1);
         let mut verified = HashSet::with_capacity(opts.max_tables.min(4096));

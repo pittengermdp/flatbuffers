@@ -14,14 +14,8 @@ use alloc::vec::Vec;
 
 // struct Vec3, aligned to 8
 #[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Default)]
 pub struct Vec3(pub [u8; 32]);
-
-impl Default for Vec3 {
-    fn default() -> Self {
-        Self([0; 32])
-    }
-}
 
 impl ::core::fmt::Debug for Vec3 {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
@@ -63,7 +57,7 @@ impl ::flatbuffers::Push for Vec3 {
     unsafe fn push(&self, dst: &mut [u8], _written_len: usize) {
         let src = unsafe {
             ::core::slice::from_raw_parts(
-                self as *const Vec3 as *const u8,
+                ::core::ptr::addr_of!(*self).cast::<u8>(),
                 <Self as ::flatbuffers::Push>::size(),
             )
         };
@@ -115,7 +109,7 @@ impl Vec3 {
         ::flatbuffers::EndianScalar::from_little_endian(unsafe {
             ::core::ptr::copy_nonoverlapping(
                 self.0[0..].as_ptr(),
-                mem.as_mut_ptr() as *mut u8,
+                mem.as_mut_ptr().cast::<u8>(),
                 ::core::mem::size_of::<<f32 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
             mem.assume_init()
@@ -129,7 +123,7 @@ impl Vec3 {
         // Which contains a valid value in this slot
         unsafe {
             ::core::ptr::copy_nonoverlapping(
-                &x_le as *const _ as *const u8,
+                ::core::ptr::addr_of!(x_le).cast::<u8>(),
                 self.0[0..].as_mut_ptr(),
                 ::core::mem::size_of::<<f32 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
@@ -146,7 +140,7 @@ impl Vec3 {
         ::flatbuffers::EndianScalar::from_little_endian(unsafe {
             ::core::ptr::copy_nonoverlapping(
                 self.0[4..].as_ptr(),
-                mem.as_mut_ptr() as *mut u8,
+                mem.as_mut_ptr().cast::<u8>(),
                 ::core::mem::size_of::<<f32 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
             mem.assume_init()
@@ -160,7 +154,7 @@ impl Vec3 {
         // Which contains a valid value in this slot
         unsafe {
             ::core::ptr::copy_nonoverlapping(
-                &x_le as *const _ as *const u8,
+                ::core::ptr::addr_of!(x_le).cast::<u8>(),
                 self.0[4..].as_mut_ptr(),
                 ::core::mem::size_of::<<f32 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
@@ -177,7 +171,7 @@ impl Vec3 {
         ::flatbuffers::EndianScalar::from_little_endian(unsafe {
             ::core::ptr::copy_nonoverlapping(
                 self.0[8..].as_ptr(),
-                mem.as_mut_ptr() as *mut u8,
+                mem.as_mut_ptr().cast::<u8>(),
                 ::core::mem::size_of::<<f32 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
             mem.assume_init()
@@ -191,7 +185,7 @@ impl Vec3 {
         // Which contains a valid value in this slot
         unsafe {
             ::core::ptr::copy_nonoverlapping(
-                &x_le as *const _ as *const u8,
+                ::core::ptr::addr_of!(x_le).cast::<u8>(),
                 self.0[8..].as_mut_ptr(),
                 ::core::mem::size_of::<<f32 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
@@ -208,7 +202,7 @@ impl Vec3 {
         ::flatbuffers::EndianScalar::from_little_endian(unsafe {
             ::core::ptr::copy_nonoverlapping(
                 self.0[16..].as_ptr(),
-                mem.as_mut_ptr() as *mut u8,
+                mem.as_mut_ptr().cast::<u8>(),
                 ::core::mem::size_of::<<f64 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
             mem.assume_init()
@@ -222,7 +216,7 @@ impl Vec3 {
         // Which contains a valid value in this slot
         unsafe {
             ::core::ptr::copy_nonoverlapping(
-                &x_le as *const _ as *const u8,
+                ::core::ptr::addr_of!(x_le).cast::<u8>(),
                 self.0[16..].as_mut_ptr(),
                 ::core::mem::size_of::<<f64 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
@@ -239,7 +233,7 @@ impl Vec3 {
         ::flatbuffers::EndianScalar::from_little_endian(unsafe {
             ::core::ptr::copy_nonoverlapping(
                 self.0[24..].as_ptr(),
-                mem.as_mut_ptr() as *mut u8,
+                mem.as_mut_ptr().cast::<u8>(),
                 ::core::mem::size_of::<<Color as ::flatbuffers::EndianScalar>::Scalar>(),
             );
             mem.assume_init()
@@ -253,7 +247,7 @@ impl Vec3 {
         // Which contains a valid value in this slot
         unsafe {
             ::core::ptr::copy_nonoverlapping(
-                &x_le as *const _ as *const u8,
+                ::core::ptr::addr_of!(x_le).cast::<u8>(),
                 self.0[24..].as_mut_ptr(),
                 ::core::mem::size_of::<<Color as ::flatbuffers::EndianScalar>::Scalar>(),
             );
@@ -265,7 +259,7 @@ impl Vec3 {
         // Safety:
         // Created from a valid Table for this object
         // Which contains a valid struct in this slot
-        unsafe { &*(self.0[26..].as_ptr() as *const Test) }
+        unsafe { &*self.0[26..].as_ptr().cast::<Test>() }
     }
 
     #[allow(clippy::identity_op)]
@@ -276,17 +270,17 @@ impl Vec3 {
     #[must_use]
     pub fn unpack(&self) -> Vec3T {
         Vec3T {
-            x: self.x().into(),
-            y: self.y().into(),
-            z: self.z().into(),
-            test1: self.test1().into(),
+            x: self.x(),
+            y: self.y(),
+            z: self.z(),
+            test1: self.test1(),
             test2: self.test2(),
             test3: self.test3().unpack(),
         }
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct Vec3T {
     pub x: f32,
     pub y: f32,
@@ -294,18 +288,6 @@ pub struct Vec3T {
     pub test1: f64,
     pub test2: Color,
     pub test3: TestT,
-}
-impl Default for Vec3T {
-    fn default() -> Self {
-        Self {
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            test1: 0.0,
-            test2: Default::default(),
-            test3: Default::default(),
-        }
-    }
 }
 
 impl Vec3T {

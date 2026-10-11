@@ -16,14 +16,8 @@ use super::*;
 
 // struct StructOfStructs, aligned to 4
 #[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Default)]
 pub struct StructOfStructs(pub [u8; 20]);
-
-impl Default for StructOfStructs {
-    fn default() -> Self {
-        Self([0; 20])
-    }
-}
 
 impl ::core::fmt::Debug for StructOfStructs {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
@@ -62,7 +56,7 @@ impl ::flatbuffers::Push for StructOfStructs {
     unsafe fn push(&self, dst: &mut [u8], _written_len: usize) {
         let src = unsafe {
             ::core::slice::from_raw_parts(
-                self as *const StructOfStructs as *const u8,
+                ::core::ptr::addr_of!(*self).cast::<u8>(),
                 <Self as ::flatbuffers::Push>::size(),
             )
         };
@@ -119,7 +113,7 @@ impl StructOfStructs {
         // Safety:
         // Created from a valid Table for this object
         // Which contains a valid struct in this slot
-        unsafe { &*(self.0[0..].as_ptr() as *const Ability) }
+        unsafe { &*self.0[0..].as_ptr().cast::<Ability>() }
     }
 
     #[allow(clippy::identity_op)]
@@ -132,7 +126,7 @@ impl StructOfStructs {
         // Safety:
         // Created from a valid Table for this object
         // Which contains a valid struct in this slot
-        unsafe { &*(self.0[8..].as_ptr() as *const Test) }
+        unsafe { &*self.0[8..].as_ptr().cast::<Test>() }
     }
 
     #[allow(clippy::identity_op)]
@@ -145,7 +139,7 @@ impl StructOfStructs {
         // Safety:
         // Created from a valid Table for this object
         // Which contains a valid struct in this slot
-        unsafe { &*(self.0[12..].as_ptr() as *const Ability) }
+        unsafe { &*self.0[12..].as_ptr().cast::<Ability>() }
     }
 
     #[allow(clippy::identity_op)]
@@ -163,20 +157,11 @@ impl StructOfStructs {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Default, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct StructOfStructsT {
     pub a: AbilityT,
     pub b: TestT,
     pub c: AbilityT,
-}
-impl Default for StructOfStructsT {
-    fn default() -> Self {
-        Self {
-            a: Default::default(),
-            b: Default::default(),
-            c: Default::default(),
-        }
-    }
 }
 
 impl StructOfStructsT {

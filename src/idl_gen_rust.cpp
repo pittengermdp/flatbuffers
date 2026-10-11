@@ -273,6 +273,83 @@ static bool IsBitFlagsEnum(const EnumDef& enum_def) {
   return enum_def.attributes.Lookup("bit_flags") != nullptr;
 }
 
+// The standard library implements Default for arrays of at most this many
+// elements, so only types whose arrays fit can #[derive(Default)].
+static const size_t kMaxDefaultArrayLen = 32;
+
+// The exact decimal spelling of `v` ("0.5", "-3.0", "-0.0"), or "" unless `v`
+// is a whole number below 2^64 or that spelling has at most `max_digits`
+// significant digits. Every finite double is a dyadic rational I / 2^k, whose
+// decimal expansion is exactly I * 5^k / 10^k.
+static std::string ExactDecimal(double v, size_t max_digits) {
+  const bool negative = std::signbit(v);
+  double mag = std::fabs(v);
+  int k = 0;
+  // Doubling is exact here: a non-integral double is below 2^52.
+  for (; mag != std::floor(mag); ++k) mag *= 2;
+  if (mag >= 18446744073709551616.0) return "";  // 2^64
+  uint64_t n = static_cast<uint64_t>(mag);
+  for (int i = 0; i < k; ++i) {
+    if (n > (std::numeric_limits<uint64_t>::max)() / 5) return "";
+    n *= 5;
+  }
+  std::string digits = NumToString(n);
+  if (k > 0 && digits.size() > max_digits) return "";
+  if (digits.size() <= static_cast<size_t>(k)) {
+    digits.insert(0, k + 1 - digits.size(), '0');
+  }
+  const size_t int_len = digits.size() - k;
+  return (negative ? "-" : "") + digits.substr(0, int_len) + "." +
+         (k ? digits.substr(int_len) : "0");
+}
+
+// `0x` followed by the hex digits of `bits`, grouped by four.
+template <typename Bits>
+static std::string HexBits(Bits bits) {
+  std::string s = "0x";
+  for (int i = static_cast<int>(2 * sizeof(Bits)) - 1; i >= 0; --i) {
+    s += "0123456789abcdef"[(bits >> (4 * i)) & 0xF];
+    if (i && i % 4 == 0) s += '_';
+  }
+  return s;
+}
+
+// Float defaults as Rust literals that denote exactly the value flatc stores.
+// The schema text is not echoed: it may be hex (`0x1.8p1`) or signed (`+2.5`),
+// neither of which Rust accepts. A decimal is emitted only when it is exact and
+// short; otherwise (3.14159, 0.1, 1e-3) the IEEE-754 bit pattern is, which is
+// what the decimal would round to anyway.
+//
+// This keeps the output free of two default clippy lints. approx_constant
+// (deny) rejects decimal approximations of std constants such as PI; those
+// constants are irrational, so no approximation of one is ever exact.
+// excessive_precision rejects decimals longer than their shortest spelling; an
+// exact decimal of at most DIGITS (6 for f32, 15 for f64) significant digits is
+// already the shortest one, as no two such decimals share a value.
+class RustFloatConstantGenerator : public TypedFloatConstantGenerator {
+ public:
+  RustFloatConstantGenerator()
+      : TypedFloatConstantGenerator("f64::", "f32::", "NAN", "INFINITY",
+                                    "NEG_INFINITY") {}
+
+ private:
+  std::string Value(double v, const std::string&) const FLATBUFFERS_OVERRIDE {
+    return Literal<uint64_t>(v, "f64");
+  }
+  std::string Value(float v, const std::string&) const FLATBUFFERS_OVERRIDE {
+    return Literal<uint32_t>(v, "f32");
+  }
+
+  template <typename Bits, typename T>
+  static std::string Literal(T v, const char* type) {
+    const std::string exact = ExactDecimal(v, std::numeric_limits<T>::digits10);
+    if (!exact.empty()) return exact;
+    Bits bits = 0;
+    memcpy(&bits, &v, sizeof(bits));
+    return std::string(type) + "::from_bits(" + HexBits(bits) + ")";
+  }
+};
+
 // TableArgs make required non-scalars "Option<_>".
 // TODO(cneo): Rework how we do defaults and stuff.
 static bool IsOptionalToBuilder(const FieldDef& field) {
@@ -1242,6 +1319,13 @@ class RustGenerator : public BaseGenerator {
 
     // Implement serde::Serialize
     if (parser_.opts.rust_serialize) {
+      // Bit-flags round-trip through u64; a u64-backed enum needs no cast
+      // (clippy::unnecessary_cast).
+      const bool bits_are_u64 =
+          enum_def.underlying_type.base_type == BASE_TYPE_ULONG;
+      code_.SetValue("AS_U64", bits_are_u64 ? "" : " as u64");
+      code_.SetValue("AS_BASE_TYPE",
+                     bits_are_u64 ? "" : " as " + code_.GetValue("BASE_TYPE"));
       code_ += "impl Serialize for {{ENUM_TY}} {";
       code_ +=
           "    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, "
@@ -1253,7 +1337,7 @@ class RustGenerator : public BaseGenerator {
         // Serialize as u64 so this is correct for every bit-flags underlying
         // width (u8..u64). `u32::from(self.bits())` failed to compile for
         // `long`-backed flags, and serialize_u32 would truncate them.
-        code_ += "        serializer.serialize_u64(self.bits() as u64)";
+        code_ += "        serializer.serialize_u64(self.bits(){{AS_U64}})";
       } else {
         // A value not present in the schema (e.g. written by a newer peer) has
         // no variant name; serialize it as its numeric discriminant rather than
@@ -1329,7 +1413,7 @@ class RustGenerator : public BaseGenerator {
         code_ +=
             "        let bits = <u64 as "
             "serde::Deserialize>::deserialize(deserializer)?;";
-        code_ += "        Ok(Self::from_bits_retain(bits as {{BASE_TYPE}}))";
+        code_ += "        Ok(Self::from_bits_retain(bits{{AS_BASE_TYPE}}))";
         code_ += "    }";
         code_ += "}";
         code_ += "";
@@ -1437,21 +1521,15 @@ class RustGenerator : public BaseGenerator {
     code_ += "";
     code_ += "#[allow(clippy::upper_case_acronyms)]";  // NONE's spelling is
                                                        // intended.
-    code_ += ObjectDerives(UnionIsHashable(enum_def));
+    // Default is NONE. `#[default]` on an enum variant needs Rust 1.62.
+    code_ += ObjectDerives(UnionIsHashable(enum_def), true);
     code_ += "{{ACCESS_TYPE}} enum {{ENUM_OTY}} {";
+    code_ += "    #[default]";
     code_ += "    NONE,";
     ForAllUnionObjectVariantsBesidesNone(enum_def, [&] {
       code_ +=
           "{{NATIVE_VARIANT}}(Box<{{U_ELEMENT_TABLE_TYPE}}>),";
     });
-    code_ += "}";
-    code_ += "";
-
-    // Generate Default (NONE).
-    code_ += "impl Default for {{ENUM_OTY}} {";
-    code_ += "    fn default() -> Self {";
-    code_ += "        Self::NONE";
-    code_ += "    }";
     code_ += "}";
     code_ += "";
 
@@ -1546,8 +1624,9 @@ class RustGenerator : public BaseGenerator {
     code_ += "";
   }
 
-  // Check if all object table fields have their type's natural default value,
-  // meaning we can derive Default instead of writing a manual impl.
+  // Check if all fields of a table's or struct's Object API type have their
+  // type's natural default value, meaning we can derive Default instead of
+  // writing a manual impl.
   bool AllFieldsHaveNaturalDefault(const StructDef& table) {
     for (auto it = table.fields.vec.begin(); it != table.fields.vec.end();
          ++it) {
@@ -1562,8 +1641,11 @@ class RustGenerator : public BaseGenerator {
           break;
         }
         case ftFloat: {
-          if (field.value.constant != "0.0" && field.value.constant != "0")
+          // Judge the literal GetDefaultValue emits, so `0e0` and `0x0p0`
+          // count as zero and `-0.0` does not.
+          if (float_constant_gen_.GenFloatConstant(field) != "0.0") {
             return false;
+          }
           break;
         }
         case ftBool: {
@@ -1599,6 +1681,13 @@ class RustGenerator : public BaseGenerator {
         case ftTable: {
           // These all produce their natural defaults (NONE, String::new(),
           // Vec::new(), Default::default(), Box::default()).
+          break;
+        }
+        case ftArrayOfBuiltin:
+        case ftArrayOfEnum:
+        case ftArrayOfStruct: {
+          // Struct arrays hold zeroes, but std's Default stops at 32 elements.
+          if (field.value.type.fixed_length > kMaxDefaultArrayLen) return false;
           break;
         }
         default:
@@ -1653,22 +1742,11 @@ class RustGenerator : public BaseGenerator {
         return GroupIntLiteral(field.value.constant);
       }
       case ftFloat: {
-        const std::string float_prefix =
-            (field.value.type.base_type == BASE_TYPE_FLOAT) ? "f32::" : "f64::";
-        std::string raw_value;
-        if (StringIsFlatbufferNan(field.value.constant)) {
-          raw_value = float_prefix + "NAN";
-        } else if (StringIsFlatbufferPositiveInfinity(field.value.constant)) {
-          raw_value = float_prefix + "INFINITY";
-        } else if (StringIsFlatbufferNegativeInfinity(field.value.constant)) {
-          raw_value = float_prefix + "NEG_INFINITY";
-        } else {
-          raw_value = field.value.constant;
-        }
+        const std::string value = float_constant_gen_.GenFloatConstant(field);
         if (context == kObject && parser_.opts.rust_object_api_hashable_floats) {
-          return "::flatbuffers::ordered_float::OrderedFloat(" + raw_value + ")";
+          return "::flatbuffers::ordered_float::OrderedFloat(" + value + ")";
         }
-        return raw_value;
+        return value;
       }
       case ftBool: {
         return field.value.constant == "0" ? "false" : "true";
@@ -1707,7 +1785,7 @@ class RustGenerator : public BaseGenerator {
           }
           return defval + ".to_string()";
         }
-        if (context == kAccessor) return "&" + defval;
+        if (context == kAccessor) return defval;
         FLATBUFFERS_ASSERT(false);
         return "INVALID_CODE_GENERATION";
       }
@@ -2467,14 +2545,12 @@ class RustGenerator : public BaseGenerator {
             return;
           }
           case ftFloat: {
-            if (field.IsOptional()) {
-              if (parser_.opts.rust_object_api_hashable_floats) {
-                code_ +=
-                    "  let {{FIELD}} = self.{{FIELD}}()"
-                    ".map(::flatbuffers::ordered_float::OrderedFloat);";
-              } else {
-                code_ += "  let {{FIELD}} = self.{{FIELD}}();";
-              }
+            if (!parser_.opts.rust_object_api_hashable_floats) {
+              code_ += "  let {{FIELD}} = self.{{FIELD}}();";
+            } else if (field.IsOptional()) {
+              code_ +=
+                  "  let {{FIELD}} = self.{{FIELD}}()"
+                  ".map(::flatbuffers::ordered_float::OrderedFloat);";
             } else {
               code_ += "  let {{FIELD}} = self.{{FIELD}}().into();";
             }
@@ -3109,11 +3185,7 @@ class RustGenerator : public BaseGenerator {
     const bool can_derive_default = AllFieldsHaveNaturalDefault(table);
 
     // Generate the native object.
-    if (can_derive_default) {
-      code_ += ObjectDerivesWithDefault(TypeIsHashable(table));
-    } else {
-      code_ += ObjectDerives(TypeIsHashable(table));
-    }
+    code_ += ObjectDerives(TypeIsHashable(table), can_derive_default);
     code_ += "{{ACCESS_TYPE}} struct {{STRUCT_OTY}} {";
     ForAllObjectTableFields(table, [&](const FieldDef& field) {
       // Union objects combine both the union discriminant and value, so we
@@ -3650,18 +3722,23 @@ class RustGenerator : public BaseGenerator {
     // PartialEq is useful to derive because we can correctly compare structs
     // for equality by just comparing their underlying byte data. This doesn't
     // hold for PartialOrd/Ord.
+    const bool can_derive_default = struct_def.bytesize <= kMaxDefaultArrayLen;
     code_ += "// struct {{STRUCT_TY}}, aligned to {{ALIGN}}";
     code_ += "#[repr(transparent)]";
-    code_ += "#[derive(Clone, Copy, PartialEq, Eq)]";
+    code_ += can_derive_default
+                 ? "#[derive(Clone, Copy, PartialEq, Eq, Default)]"
+                 : "#[derive(Clone, Copy, PartialEq, Eq)]";
     code_ += "{{ACCESS_TYPE}} struct {{STRUCT_TY}}(pub [u8; {{STRUCT_SIZE}}]);";
     code_ += "";
 
-    code_ += "impl Default for {{STRUCT_TY}} {";
-    code_ += "    fn default() -> Self {";
-    code_ += "        Self([0; {{STRUCT_SIZE}}])";
-    code_ += "    }";
-    code_ += "}";
-    code_ += "";
+    if (!can_derive_default) {
+      code_ += "impl Default for {{STRUCT_TY}} {";
+      code_ += "    fn default() -> Self {";
+      code_ += "        Self([0; {{STRUCT_SIZE}}])";
+      code_ += "    }";
+      code_ += "}";
+      code_ += "";
+    }
 
     // Debug for structs.
     code_ += "impl ::core::fmt::Debug for {{STRUCT_TY}} {";
@@ -3712,9 +3789,9 @@ class RustGenerator : public BaseGenerator {
     code_ += "    #[inline]";
     code_ += "    unsafe fn push(&self, dst: &mut [u8], _written_len: usize) {";
     code_ +=
-        "        let src = unsafe { ::core::slice::from_raw_parts(self as "
-        "*const "
-        "{{STRUCT_TY}} as *const u8, <Self as ::flatbuffers::Push>::size()) };";
+        "        let src = unsafe { ::core::slice::from_raw_parts("
+        "::core::ptr::addr_of!(*self).cast::<u8>(), "
+        "<Self as ::flatbuffers::Push>::size()) };";
     code_ += "        dst.copy_from_slice(src);";
     code_ += "    }";
     code_ += "";
@@ -3806,8 +3883,7 @@ class RustGenerator : public BaseGenerator {
         code_ += "    // Which contains a valid struct in this slot";
         code_ +=
             "    unsafe {"
-            " &*(self.0[{{FIELD_OFFSET}}..].as_ptr() as *const"
-            " {{FIELD_TYPE}}) }";
+            " &*self.0[{{FIELD_OFFSET}}..].as_ptr().cast::<{{FIELD_TYPE}}>() }";
       } else if (IsArray(field.value.type)) {
         code_.SetValue("ARRAY_SIZE",
                        NumToString(field.value.type.fixed_length));
@@ -3835,7 +3911,7 @@ class RustGenerator : public BaseGenerator {
         code_ += "    ::flatbuffers::EndianScalar::from_little_endian(unsafe {";
         code_ += "        ::core::ptr::copy_nonoverlapping(";
         code_ += "            self.0[{{FIELD_OFFSET}}..].as_ptr(),";
-        code_ += "            mem.as_mut_ptr() as *mut u8,";
+        code_ += "            mem.as_mut_ptr().cast::<u8>(),";
         code_ +=
             "            ::core::mem::size_of::<<{{FIELD_TYPE}} as "
             "::flatbuffers::EndianScalar>::Scalar>(),";
@@ -3877,7 +3953,7 @@ class RustGenerator : public BaseGenerator {
           code_ += "    // Which contains a valid array in this slot";
           code_ += "    unsafe {";
           code_ += "        ::core::ptr::copy(";
-          code_ += "            x.as_ptr() as *const u8,";
+          code_ += "            x.as_ptr().cast::<u8>(),";
           code_ += "            self.0.as_mut_ptr().add({{FIELD_OFFSET}}),";
           code_ += "            {{FIELD_SIZE}},";
           code_ += "        );";
@@ -3892,7 +3968,7 @@ class RustGenerator : public BaseGenerator {
         code_ += "    // Which contains a valid value in this slot";
         code_ += "    unsafe {";
         code_ += "        ::core::ptr::copy_nonoverlapping(";
-        code_ += "            &x_le as *const _ as *const u8,";
+        code_ += "            ::core::ptr::addr_of!(x_le).cast::<u8>(),";
         code_ += "            self.0[{{FIELD_OFFSET}}..].as_mut_ptr(),";
         code_ +=
             "            ::core::mem::size_of::<<{{FIELD_TYPE}} as "
@@ -3937,7 +4013,8 @@ class RustGenerator : public BaseGenerator {
           } else {
             code_ += "        {{FIELD}}: self.{{FIELD}}().into(),";
           }
-        } else if (IsFloat(field.value.type.base_type)) {
+        } else if (IsFloat(field.value.type.base_type) &&
+                   parser_.opts.rust_object_api_hashable_floats) {
           code_ += "    {{FIELD}}: self.{{FIELD}}().into(),";
         } else {
           std::string unpack = IsStruct(field.value.type) ? ".unpack()" : "";
@@ -3952,60 +4029,21 @@ class RustGenerator : public BaseGenerator {
 
     // Generate Struct Object.
     if (parser_.opts.generate_object_based_api) {
+      const bool can_derive_object_default =
+          AllFieldsHaveNaturalDefault(struct_def);
+
       // Struct declaration
       code_ += "";
-      code_ += ObjectDerives(TypeIsHashable(struct_def));
+      code_ +=
+          ObjectDerives(TypeIsHashable(struct_def), can_derive_object_default);
       code_ += "{{ACCESS_TYPE}} struct {{STRUCT_OTY}} {";
       ForAllStructFields(struct_def, [&](const FieldDef& field) {
         (void)field;  // unused.
         code_ += "pub {{FIELD}}: {{FIELD_OTY}},";
       });
       code_ += "}";
-      // Manual impl Default to avoid issues with arrays > 32 elements
-      // where #[derive(Default)] fails on older Rust versions.
-      code_ += "impl Default for {{STRUCT_OTY}} {";
-      code_ += "    fn default() -> Self {";
-      code_ += "        Self {";
-      ForAllStructFields(struct_def, [&](const FieldDef& field) {
-        const auto full_type = GetFullType(field.value.type);
-        switch (full_type) {
-          case ftArrayOfBuiltin: {
-            // Use the correct zero literal for each element type:
-            // bool -> false, float/double -> 0.0, integers -> 0
-            const auto elem_type = field.value.type.VectorType().base_type;
-            std::string zero;
-            if (elem_type == BASE_TYPE_BOOL) {
-              zero = "false";
-            } else if (IsFloat(elem_type)) {
-              zero = parser_.opts.rust_object_api_hashable_floats
-                         ? "::flatbuffers::ordered_float::OrderedFloat(0.0)"
-                         : "0.0";
-            } else {
-              zero = "0";
-            }
-            code_ += "        {{FIELD}}: [" + zero + "; " +
-                     NumToString(field.value.type.fixed_length) + "],";
-            break;
-          }
-          case ftArrayOfEnum:
-          case ftArrayOfStruct: {
-            code_ +=
-                "        {{FIELD}}: ::flatbuffers::array_init(|_| "
-                "Default::default()),";
-            break;
-          }
-          default: {
-            std::string default_value =
-                GetDefaultValue(field, kObject);
-            code_ += "        {{FIELD}}: " + default_value + ",";
-            break;
-          }
-        }
-      });
-      code_ += "        }";
-      code_ += "    }";
-      code_ += "}";
       code_ += "";
+      if (!can_derive_object_default) GenStructObjectDefault(struct_def);
       // The `pack` method that turns the native struct into its Flatbuffers
       // counterpart.
       code_ += "impl {{STRUCT_OTY}} {";
@@ -4298,9 +4336,13 @@ class RustGenerator : public BaseGenerator {
     return true;
   }
 
-  // Build the derive string for Object API *T types.
-  std::string ObjectDerives(bool hashable) const {
+  // Build the derive string for Object API *T types. `with_default` derives
+  // Default too, for types where every field has its natural default value.
+  std::string ObjectDerives(bool hashable, bool with_default) const {
     std::string derives = "#[derive(Debug, Clone, PartialEq";
+    if (with_default) {
+      derives += ", Default";
+    }
     if (hashable) {
       derives += ", Eq, Hash";
     }
@@ -4311,18 +4353,51 @@ class RustGenerator : public BaseGenerator {
     return derives;
   }
 
-  // Build derive string including Default for types where all fields
-  // have their natural default values.
-  std::string ObjectDerivesWithDefault(bool hashable) const {
-    std::string derives = "#[derive(Debug, Clone, PartialEq, Default";
-    if (hashable) {
-      derives += ", Eq, Hash";
-    }
-    if (parser_.opts.rust_serialize) {
-      derives += ", serde::Serialize, serde::Deserialize";
-    }
-    derives += ")]";
-    return derives;
+  // A manual Default for a struct's Object API type, used when one of its
+  // arrays is too long to #[derive(Default)].
+  void GenStructObjectDefault(const StructDef& struct_def) {
+    code_ += "impl Default for {{STRUCT_OTY}} {";
+    code_ += "    fn default() -> Self {";
+    code_ += "        Self {";
+    ForAllStructFields(struct_def, [&](const FieldDef& field) {
+      const auto full_type = GetFullType(field.value.type);
+      switch (full_type) {
+        case ftArrayOfBuiltin: {
+          // Use the correct zero literal for each element type:
+          // bool -> false, float/double -> 0.0, integers -> 0
+          const auto elem_type = field.value.type.VectorType().base_type;
+          std::string zero;
+          if (elem_type == BASE_TYPE_BOOL) {
+            zero = "false";
+          } else if (IsFloat(elem_type)) {
+            zero = parser_.opts.rust_object_api_hashable_floats
+                       ? "::flatbuffers::ordered_float::OrderedFloat(0.0)"
+                       : "0.0";
+          } else {
+            zero = "0";
+          }
+          code_ += "        {{FIELD}}: [" + zero + "; " +
+                   NumToString(field.value.type.fixed_length) + "],";
+          break;
+        }
+        case ftArrayOfEnum:
+        case ftArrayOfStruct: {
+          code_ +=
+              "        {{FIELD}}: ::flatbuffers::array_init(|_| "
+              "Default::default()),";
+          break;
+        }
+        default: {
+          std::string default_value = GetDefaultValue(field, kObject);
+          code_ += "        {{FIELD}}: " + default_value + ",";
+          break;
+        }
+      }
+    });
+    code_ += "        }";
+    code_ += "    }";
+    code_ += "}";
+    code_ += "";
   }
 
   // Check if any namespace in the schema defines a table named "String".
@@ -4361,6 +4436,7 @@ class RustGenerator : public BaseGenerator {
 
  private:
   IdlNamer namer_;
+  const RustFloatConstantGenerator float_constant_gen_;
 };
 
 }  // namespace rust

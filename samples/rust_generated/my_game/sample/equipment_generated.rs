@@ -115,16 +115,11 @@ impl ::flatbuffers::SimpleToVerifyInSlice for Equipment {}
 pub struct EquipmentUnionTableOffset {}
 
 #[allow(clippy::upper_case_acronyms)]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Default, Eq, Hash)]
 pub enum EquipmentT {
+    #[default]
     NONE,
     Weapon(Box<WeaponT>),
-}
-
-impl Default for EquipmentT {
-    fn default() -> Self {
-        Self::NONE
-    }
 }
 
 impl EquipmentT {

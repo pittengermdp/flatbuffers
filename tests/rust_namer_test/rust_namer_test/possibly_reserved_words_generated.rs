@@ -14,14 +14,8 @@ use alloc::vec::Vec;
 
 // struct PossiblyReservedWords, aligned to 4
 #[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Default)]
 pub struct PossiblyReservedWords(pub [u8; 16]);
-
-impl Default for PossiblyReservedWords {
-    fn default() -> Self {
-        Self([0; 16])
-    }
-}
 
 impl ::core::fmt::Debug for PossiblyReservedWords {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
@@ -61,7 +55,7 @@ impl ::flatbuffers::Push for PossiblyReservedWords {
     unsafe fn push(&self, dst: &mut [u8], _written_len: usize) {
         let src = unsafe {
             ::core::slice::from_raw_parts(
-                self as *const PossiblyReservedWords as *const u8,
+                ::core::ptr::addr_of!(*self).cast::<u8>(),
                 <Self as ::flatbuffers::Push>::size(),
             )
         };
@@ -111,7 +105,7 @@ impl PossiblyReservedWords {
         ::flatbuffers::EndianScalar::from_little_endian(unsafe {
             ::core::ptr::copy_nonoverlapping(
                 self.0[0..].as_ptr(),
-                mem.as_mut_ptr() as *mut u8,
+                mem.as_mut_ptr().cast::<u8>(),
                 ::core::mem::size_of::<<f32 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
             mem.assume_init()
@@ -125,7 +119,7 @@ impl PossiblyReservedWords {
         // Which contains a valid value in this slot
         unsafe {
             ::core::ptr::copy_nonoverlapping(
-                &x_le as *const _ as *const u8,
+                ::core::ptr::addr_of!(x_le).cast::<u8>(),
                 self.0[0..].as_mut_ptr(),
                 ::core::mem::size_of::<<f32 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
@@ -142,7 +136,7 @@ impl PossiblyReservedWords {
         ::flatbuffers::EndianScalar::from_little_endian(unsafe {
             ::core::ptr::copy_nonoverlapping(
                 self.0[4..].as_ptr(),
-                mem.as_mut_ptr() as *mut u8,
+                mem.as_mut_ptr().cast::<u8>(),
                 ::core::mem::size_of::<<f32 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
             mem.assume_init()
@@ -156,7 +150,7 @@ impl PossiblyReservedWords {
         // Which contains a valid value in this slot
         unsafe {
             ::core::ptr::copy_nonoverlapping(
-                &x_le as *const _ as *const u8,
+                ::core::ptr::addr_of!(x_le).cast::<u8>(),
                 self.0[4..].as_mut_ptr(),
                 ::core::mem::size_of::<<f32 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
@@ -173,7 +167,7 @@ impl PossiblyReservedWords {
         ::flatbuffers::EndianScalar::from_little_endian(unsafe {
             ::core::ptr::copy_nonoverlapping(
                 self.0[8..].as_ptr(),
-                mem.as_mut_ptr() as *mut u8,
+                mem.as_mut_ptr().cast::<u8>(),
                 ::core::mem::size_of::<<f32 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
             mem.assume_init()
@@ -187,7 +181,7 @@ impl PossiblyReservedWords {
         // Which contains a valid value in this slot
         unsafe {
             ::core::ptr::copy_nonoverlapping(
-                &x_le as *const _ as *const u8,
+                ::core::ptr::addr_of!(x_le).cast::<u8>(),
                 self.0[8..].as_mut_ptr(),
                 ::core::mem::size_of::<<f32 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
@@ -204,7 +198,7 @@ impl PossiblyReservedWords {
         ::flatbuffers::EndianScalar::from_little_endian(unsafe {
             ::core::ptr::copy_nonoverlapping(
                 self.0[12..].as_ptr(),
-                mem.as_mut_ptr() as *mut u8,
+                mem.as_mut_ptr().cast::<u8>(),
                 ::core::mem::size_of::<<f32 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
             mem.assume_init()
@@ -218,7 +212,7 @@ impl PossiblyReservedWords {
         // Which contains a valid value in this slot
         unsafe {
             ::core::ptr::copy_nonoverlapping(
-                &x_le as *const _ as *const u8,
+                ::core::ptr::addr_of!(x_le).cast::<u8>(),
                 self.0[12..].as_mut_ptr(),
                 ::core::mem::size_of::<<f32 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
@@ -228,30 +222,20 @@ impl PossiblyReservedWords {
     #[must_use]
     pub fn unpack(&self) -> PossiblyReservedWordsT {
         PossiblyReservedWordsT {
-            follow_: self.follow_().into(),
-            push_: self.push_().into(),
-            size: self.size().into(),
-            alignment: self.alignment().into(),
+            follow_: self.follow_(),
+            push_: self.push_(),
+            size: self.size(),
+            alignment: self.alignment(),
         }
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct PossiblyReservedWordsT {
     pub follow_: f32,
     pub push_: f32,
     pub size: f32,
     pub alignment: f32,
-}
-impl Default for PossiblyReservedWordsT {
-    fn default() -> Self {
-        Self {
-            follow_: 0.0,
-            push_: 0.0,
-            size: 0.0,
-            alignment: 0.0,
-        }
-    }
 }
 
 impl PossiblyReservedWordsT {

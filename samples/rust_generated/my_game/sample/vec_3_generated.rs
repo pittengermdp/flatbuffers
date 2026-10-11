@@ -14,14 +14,8 @@ use alloc::vec::Vec;
 
 // struct Vec3, aligned to 4
 #[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Default)]
 pub struct Vec3(pub [u8; 12]);
-
-impl Default for Vec3 {
-    fn default() -> Self {
-        Self([0; 12])
-    }
-}
 
 impl ::core::fmt::Debug for Vec3 {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
@@ -60,7 +54,7 @@ impl ::flatbuffers::Push for Vec3 {
     unsafe fn push(&self, dst: &mut [u8], _written_len: usize) {
         let src = unsafe {
             ::core::slice::from_raw_parts(
-                self as *const Vec3 as *const u8,
+                ::core::ptr::addr_of!(*self).cast::<u8>(),
                 <Self as ::flatbuffers::Push>::size(),
             )
         };
@@ -109,7 +103,7 @@ impl Vec3 {
         ::flatbuffers::EndianScalar::from_little_endian(unsafe {
             ::core::ptr::copy_nonoverlapping(
                 self.0[0..].as_ptr(),
-                mem.as_mut_ptr() as *mut u8,
+                mem.as_mut_ptr().cast::<u8>(),
                 ::core::mem::size_of::<<f32 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
             mem.assume_init()
@@ -123,7 +117,7 @@ impl Vec3 {
         // Which contains a valid value in this slot
         unsafe {
             ::core::ptr::copy_nonoverlapping(
-                &x_le as *const _ as *const u8,
+                ::core::ptr::addr_of!(x_le).cast::<u8>(),
                 self.0[0..].as_mut_ptr(),
                 ::core::mem::size_of::<<f32 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
@@ -140,7 +134,7 @@ impl Vec3 {
         ::flatbuffers::EndianScalar::from_little_endian(unsafe {
             ::core::ptr::copy_nonoverlapping(
                 self.0[4..].as_ptr(),
-                mem.as_mut_ptr() as *mut u8,
+                mem.as_mut_ptr().cast::<u8>(),
                 ::core::mem::size_of::<<f32 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
             mem.assume_init()
@@ -154,7 +148,7 @@ impl Vec3 {
         // Which contains a valid value in this slot
         unsafe {
             ::core::ptr::copy_nonoverlapping(
-                &x_le as *const _ as *const u8,
+                ::core::ptr::addr_of!(x_le).cast::<u8>(),
                 self.0[4..].as_mut_ptr(),
                 ::core::mem::size_of::<<f32 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
@@ -171,7 +165,7 @@ impl Vec3 {
         ::flatbuffers::EndianScalar::from_little_endian(unsafe {
             ::core::ptr::copy_nonoverlapping(
                 self.0[8..].as_ptr(),
-                mem.as_mut_ptr() as *mut u8,
+                mem.as_mut_ptr().cast::<u8>(),
                 ::core::mem::size_of::<<f32 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
             mem.assume_init()
@@ -185,7 +179,7 @@ impl Vec3 {
         // Which contains a valid value in this slot
         unsafe {
             ::core::ptr::copy_nonoverlapping(
-                &x_le as *const _ as *const u8,
+                ::core::ptr::addr_of!(x_le).cast::<u8>(),
                 self.0[8..].as_mut_ptr(),
                 ::core::mem::size_of::<<f32 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
@@ -195,27 +189,18 @@ impl Vec3 {
     #[must_use]
     pub fn unpack(&self) -> Vec3T {
         Vec3T {
-            x: self.x().into(),
-            y: self.y().into(),
-            z: self.z().into(),
+            x: self.x(),
+            y: self.y(),
+            z: self.z(),
         }
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct Vec3T {
     pub x: f32,
     pub y: f32,
     pub z: f32,
-}
-impl Default for Vec3T {
-    fn default() -> Self {
-        Self {
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-        }
-    }
 }
 
 impl Vec3T {

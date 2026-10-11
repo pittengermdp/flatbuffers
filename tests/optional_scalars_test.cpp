@@ -1,5 +1,6 @@
 #include "optional_scalars_test.h"
 
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -96,6 +97,26 @@ void OptionalScalarsTest() {
   TEST_EQ(opts->maybe_i32().value(), -1);
   TEST_EQ(opts->maybe_enum().value(), optional_scalars::OptionalByte_Two);
   TEST_ASSERT(opts->maybe_i32() == flatbuffers::Optional<int64_t>(-1));
+
+  // Generated operator== treats two NaNs as equal in an optional float too,
+  // while null still only equals null.
+  {
+    optional_scalars::ScalarStuffT a;
+    optional_scalars::ScalarStuffT b;
+    TEST_ASSERT(a == b);
+    a.maybe_f32 = std::numeric_limits<float>::quiet_NaN();
+    TEST_ASSERT(a == a);
+    TEST_ASSERT(a != b);
+    TEST_ASSERT(b != a);
+    b.maybe_f32 = std::numeric_limits<float>::quiet_NaN();
+    TEST_ASSERT(a == b);
+    b.maybe_f32 = 0.0f;
+    TEST_ASSERT(a != b);
+    a.maybe_f64 = -0.0;
+    b.maybe_f32 = a.maybe_f32;
+    b.maybe_f64 = 0.0;
+    TEST_ASSERT(a == b);
+  }
 }
 
 }  // namespace tests

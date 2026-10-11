@@ -2314,248 +2314,248 @@ func (rcv_ *Monster) MutateDoubleInfDefault(n_ float64) bool {
 func MonsterStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(62)
 }
-func MonsterAddPos(builder_ *flatbuffers.Builder, pos_ flatbuffers.UOffsetT) {
-	builder_.PrependStructSlot(0, flatbuffers.UOffsetT(pos_), 0)
+func MonsterAddPos(builder_ *flatbuffers.Builder, posArg_ flatbuffers.UOffsetT) {
+	builder_.PrependStructSlot(0, flatbuffers.UOffsetT(posArg_), 0)
 }
-func MonsterAddMana(builder_ *flatbuffers.Builder, mana_ int16) {
-	builder_.PrependInt16Slot(1, mana_, 150)
+func MonsterAddMana(builder_ *flatbuffers.Builder, manaArg_ int16) {
+	builder_.PrependInt16Slot(1, manaArg_, 150)
 }
-func MonsterAddHp(builder_ *flatbuffers.Builder, hp_ int16) {
-	builder_.PrependInt16Slot(2, hp_, 100)
+func MonsterAddHp(builder_ *flatbuffers.Builder, hpArg_ int16) {
+	builder_.PrependInt16Slot(2, hpArg_, 100)
 }
-func MonsterAddName(builder_ *flatbuffers.Builder, name_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(name_), 0)
+func MonsterAddName(builder_ *flatbuffers.Builder, nameArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(nameArg_), 0)
 }
-func MonsterAddInventory(builder_ *flatbuffers.Builder, inventory_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(5, flatbuffers.UOffsetT(inventory_), 0)
+func MonsterAddInventory(builder_ *flatbuffers.Builder, inventoryArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(5, flatbuffers.UOffsetT(inventoryArg_), 0)
 }
 func MonsterStartInventoryVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(1, numElems_, 1)
 }
-func MonsterAddColor(builder_ *flatbuffers.Builder, color_ Color) {
-	builder_.PrependByteSlot(6, byte(color_), 8)
+func MonsterAddColor(builder_ *flatbuffers.Builder, colorArg_ Color) {
+	builder_.PrependByteSlot(6, byte(colorArg_), 8)
 }
-func MonsterAddTestType(builder_ *flatbuffers.Builder, testType_ Any) {
-	builder_.PrependByteSlot(7, byte(testType_), 0)
+func MonsterAddTestType(builder_ *flatbuffers.Builder, testTypeArg_ Any) {
+	builder_.PrependByteSlot(7, byte(testTypeArg_), 0)
 }
-func MonsterAddTest(builder_ *flatbuffers.Builder, test_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(8, flatbuffers.UOffsetT(test_), 0)
+func MonsterAddTest(builder_ *flatbuffers.Builder, testArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(8, flatbuffers.UOffsetT(testArg_), 0)
 }
-func MonsterAddTest4(builder_ *flatbuffers.Builder, test4_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(9, flatbuffers.UOffsetT(test4_), 0)
+func MonsterAddTest4(builder_ *flatbuffers.Builder, test4Arg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(9, flatbuffers.UOffsetT(test4Arg_), 0)
 }
 func MonsterStartTest4Vector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(4, numElems_, 2)
 }
-func MonsterAddTestarrayofstring(builder_ *flatbuffers.Builder, testarrayofstring_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(10, flatbuffers.UOffsetT(testarrayofstring_), 0)
+func MonsterAddTestarrayofstring(builder_ *flatbuffers.Builder, testarrayofstringArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(10, flatbuffers.UOffsetT(testarrayofstringArg_), 0)
 }
 func MonsterStartTestarrayofstringVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(4, numElems_, 4)
 }
-func MonsterAddTestarrayoftables(builder_ *flatbuffers.Builder, testarrayoftables_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(11, flatbuffers.UOffsetT(testarrayoftables_), 0)
+func MonsterAddTestarrayoftables(builder_ *flatbuffers.Builder, testarrayoftablesArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(11, flatbuffers.UOffsetT(testarrayoftablesArg_), 0)
 }
 func MonsterStartTestarrayoftablesVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(4, numElems_, 4)
 }
-func MonsterAddEnemy(builder_ *flatbuffers.Builder, enemy_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(12, flatbuffers.UOffsetT(enemy_), 0)
+func MonsterAddEnemy(builder_ *flatbuffers.Builder, enemyArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(12, flatbuffers.UOffsetT(enemyArg_), 0)
 }
-func MonsterAddTestnestedflatbuffer(builder_ *flatbuffers.Builder, testnestedflatbuffer_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(13, flatbuffers.UOffsetT(testnestedflatbuffer_), 0)
+func MonsterAddTestnestedflatbuffer(builder_ *flatbuffers.Builder, testnestedflatbufferArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(13, flatbuffers.UOffsetT(testnestedflatbufferArg_), 0)
 }
 func MonsterStartTestnestedflatbufferVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(1, numElems_, 1)
 }
-func MonsterAddTestempty(builder_ *flatbuffers.Builder, testempty_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(14, flatbuffers.UOffsetT(testempty_), 0)
+func MonsterAddTestempty(builder_ *flatbuffers.Builder, testemptyArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(14, flatbuffers.UOffsetT(testemptyArg_), 0)
 }
-func MonsterAddTestbool(builder_ *flatbuffers.Builder, testbool_ bool) {
-	builder_.PrependBoolSlot(15, testbool_, false)
+func MonsterAddTestbool(builder_ *flatbuffers.Builder, testboolArg_ bool) {
+	builder_.PrependBoolSlot(15, testboolArg_, false)
 }
-func MonsterAddTesthashs32Fnv1(builder_ *flatbuffers.Builder, testhashs32Fnv1_ int32) {
-	builder_.PrependInt32Slot(16, testhashs32Fnv1_, 0)
+func MonsterAddTesthashs32Fnv1(builder_ *flatbuffers.Builder, testhashs32Fnv1Arg_ int32) {
+	builder_.PrependInt32Slot(16, testhashs32Fnv1Arg_, 0)
 }
-func MonsterAddTesthashu32Fnv1(builder_ *flatbuffers.Builder, testhashu32Fnv1_ uint32) {
-	builder_.PrependUint32Slot(17, testhashu32Fnv1_, 0)
+func MonsterAddTesthashu32Fnv1(builder_ *flatbuffers.Builder, testhashu32Fnv1Arg_ uint32) {
+	builder_.PrependUint32Slot(17, testhashu32Fnv1Arg_, 0)
 }
-func MonsterAddTesthashs64Fnv1(builder_ *flatbuffers.Builder, testhashs64Fnv1_ int64) {
-	builder_.PrependInt64Slot(18, testhashs64Fnv1_, 0)
+func MonsterAddTesthashs64Fnv1(builder_ *flatbuffers.Builder, testhashs64Fnv1Arg_ int64) {
+	builder_.PrependInt64Slot(18, testhashs64Fnv1Arg_, 0)
 }
-func MonsterAddTesthashu64Fnv1(builder_ *flatbuffers.Builder, testhashu64Fnv1_ uint64) {
-	builder_.PrependUint64Slot(19, testhashu64Fnv1_, 0)
+func MonsterAddTesthashu64Fnv1(builder_ *flatbuffers.Builder, testhashu64Fnv1Arg_ uint64) {
+	builder_.PrependUint64Slot(19, testhashu64Fnv1Arg_, 0)
 }
-func MonsterAddTesthashs32Fnv1a(builder_ *flatbuffers.Builder, testhashs32Fnv1a_ int32) {
-	builder_.PrependInt32Slot(20, testhashs32Fnv1a_, 0)
+func MonsterAddTesthashs32Fnv1a(builder_ *flatbuffers.Builder, testhashs32Fnv1aArg_ int32) {
+	builder_.PrependInt32Slot(20, testhashs32Fnv1aArg_, 0)
 }
-func MonsterAddTesthashu32Fnv1a(builder_ *flatbuffers.Builder, testhashu32Fnv1a_ uint32) {
-	builder_.PrependUint32Slot(21, testhashu32Fnv1a_, 0)
+func MonsterAddTesthashu32Fnv1a(builder_ *flatbuffers.Builder, testhashu32Fnv1aArg_ uint32) {
+	builder_.PrependUint32Slot(21, testhashu32Fnv1aArg_, 0)
 }
-func MonsterAddTesthashs64Fnv1a(builder_ *flatbuffers.Builder, testhashs64Fnv1a_ int64) {
-	builder_.PrependInt64Slot(22, testhashs64Fnv1a_, 0)
+func MonsterAddTesthashs64Fnv1a(builder_ *flatbuffers.Builder, testhashs64Fnv1aArg_ int64) {
+	builder_.PrependInt64Slot(22, testhashs64Fnv1aArg_, 0)
 }
-func MonsterAddTesthashu64Fnv1a(builder_ *flatbuffers.Builder, testhashu64Fnv1a_ uint64) {
-	builder_.PrependUint64Slot(23, testhashu64Fnv1a_, 0)
+func MonsterAddTesthashu64Fnv1a(builder_ *flatbuffers.Builder, testhashu64Fnv1aArg_ uint64) {
+	builder_.PrependUint64Slot(23, testhashu64Fnv1aArg_, 0)
 }
-func MonsterAddTestarrayofbools(builder_ *flatbuffers.Builder, testarrayofbools_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(24, flatbuffers.UOffsetT(testarrayofbools_), 0)
+func MonsterAddTestarrayofbools(builder_ *flatbuffers.Builder, testarrayofboolsArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(24, flatbuffers.UOffsetT(testarrayofboolsArg_), 0)
 }
 func MonsterStartTestarrayofboolsVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(1, numElems_, 1)
 }
-func MonsterAddTestf(builder_ *flatbuffers.Builder, testf_ float32) {
-	builder_.PrependFloat32Slot(25, testf_, 3.14159)
+func MonsterAddTestf(builder_ *flatbuffers.Builder, testfArg_ float32) {
+	builder_.PrependFloat32Slot(25, testfArg_, 3.14159)
 }
-func MonsterAddTestf2(builder_ *flatbuffers.Builder, testf2_ float32) {
-	builder_.PrependFloat32Slot(26, testf2_, 3.0)
+func MonsterAddTestf2(builder_ *flatbuffers.Builder, testf2Arg_ float32) {
+	builder_.PrependFloat32Slot(26, testf2Arg_, 3.0)
 }
-func MonsterAddTestf3(builder_ *flatbuffers.Builder, testf3_ float32) {
-	builder_.PrependFloat32Slot(27, testf3_, 0.0)
+func MonsterAddTestf3(builder_ *flatbuffers.Builder, testf3Arg_ float32) {
+	builder_.PrependFloat32Slot(27, testf3Arg_, 0.0)
 }
-func MonsterAddTestarrayofstring2(builder_ *flatbuffers.Builder, testarrayofstring2_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(28, flatbuffers.UOffsetT(testarrayofstring2_), 0)
+func MonsterAddTestarrayofstring2(builder_ *flatbuffers.Builder, testarrayofstring2Arg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(28, flatbuffers.UOffsetT(testarrayofstring2Arg_), 0)
 }
 func MonsterStartTestarrayofstring2Vector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(4, numElems_, 4)
 }
-func MonsterAddTestarrayofsortedstruct(builder_ *flatbuffers.Builder, testarrayofsortedstruct_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(29, flatbuffers.UOffsetT(testarrayofsortedstruct_), 0)
+func MonsterAddTestarrayofsortedstruct(builder_ *flatbuffers.Builder, testarrayofsortedstructArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(29, flatbuffers.UOffsetT(testarrayofsortedstructArg_), 0)
 }
 func MonsterStartTestarrayofsortedstructVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(8, numElems_, 4)
 }
-func MonsterAddFlex(builder_ *flatbuffers.Builder, flex_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(30, flatbuffers.UOffsetT(flex_), 0)
+func MonsterAddFlex(builder_ *flatbuffers.Builder, flexArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(30, flatbuffers.UOffsetT(flexArg_), 0)
 }
 func MonsterStartFlexVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(1, numElems_, 1)
 }
-func MonsterAddTest5(builder_ *flatbuffers.Builder, test5_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(31, flatbuffers.UOffsetT(test5_), 0)
+func MonsterAddTest5(builder_ *flatbuffers.Builder, test5Arg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(31, flatbuffers.UOffsetT(test5Arg_), 0)
 }
 func MonsterStartTest5Vector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(4, numElems_, 2)
 }
-func MonsterAddVectorOfLongs(builder_ *flatbuffers.Builder, vectorOfLongs_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(32, flatbuffers.UOffsetT(vectorOfLongs_), 0)
+func MonsterAddVectorOfLongs(builder_ *flatbuffers.Builder, vectorOfLongsArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(32, flatbuffers.UOffsetT(vectorOfLongsArg_), 0)
 }
 func MonsterStartVectorOfLongsVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(8, numElems_, 8)
 }
-func MonsterAddVectorOfDoubles(builder_ *flatbuffers.Builder, vectorOfDoubles_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(33, flatbuffers.UOffsetT(vectorOfDoubles_), 0)
+func MonsterAddVectorOfDoubles(builder_ *flatbuffers.Builder, vectorOfDoublesArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(33, flatbuffers.UOffsetT(vectorOfDoublesArg_), 0)
 }
 func MonsterStartVectorOfDoublesVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(8, numElems_, 8)
 }
-func MonsterAddParentNamespaceTest(builder_ *flatbuffers.Builder, parentNamespaceTest_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(34, flatbuffers.UOffsetT(parentNamespaceTest_), 0)
+func MonsterAddParentNamespaceTest(builder_ *flatbuffers.Builder, parentNamespaceTestArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(34, flatbuffers.UOffsetT(parentNamespaceTestArg_), 0)
 }
-func MonsterAddVectorOfReferrables(builder_ *flatbuffers.Builder, vectorOfReferrables_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(35, flatbuffers.UOffsetT(vectorOfReferrables_), 0)
+func MonsterAddVectorOfReferrables(builder_ *flatbuffers.Builder, vectorOfReferrablesArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(35, flatbuffers.UOffsetT(vectorOfReferrablesArg_), 0)
 }
 func MonsterStartVectorOfReferrablesVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(4, numElems_, 4)
 }
-func MonsterAddSingleWeakReference(builder_ *flatbuffers.Builder, singleWeakReference_ uint64) {
-	builder_.PrependUint64Slot(36, singleWeakReference_, 0)
+func MonsterAddSingleWeakReference(builder_ *flatbuffers.Builder, singleWeakReferenceArg_ uint64) {
+	builder_.PrependUint64Slot(36, singleWeakReferenceArg_, 0)
 }
-func MonsterAddVectorOfWeakReferences(builder_ *flatbuffers.Builder, vectorOfWeakReferences_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(37, flatbuffers.UOffsetT(vectorOfWeakReferences_), 0)
+func MonsterAddVectorOfWeakReferences(builder_ *flatbuffers.Builder, vectorOfWeakReferencesArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(37, flatbuffers.UOffsetT(vectorOfWeakReferencesArg_), 0)
 }
 func MonsterStartVectorOfWeakReferencesVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(8, numElems_, 8)
 }
-func MonsterAddVectorOfStrongReferrables(builder_ *flatbuffers.Builder, vectorOfStrongReferrables_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(38, flatbuffers.UOffsetT(vectorOfStrongReferrables_), 0)
+func MonsterAddVectorOfStrongReferrables(builder_ *flatbuffers.Builder, vectorOfStrongReferrablesArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(38, flatbuffers.UOffsetT(vectorOfStrongReferrablesArg_), 0)
 }
 func MonsterStartVectorOfStrongReferrablesVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(4, numElems_, 4)
 }
-func MonsterAddCoOwningReference(builder_ *flatbuffers.Builder, coOwningReference_ uint64) {
-	builder_.PrependUint64Slot(39, coOwningReference_, 0)
+func MonsterAddCoOwningReference(builder_ *flatbuffers.Builder, coOwningReferenceArg_ uint64) {
+	builder_.PrependUint64Slot(39, coOwningReferenceArg_, 0)
 }
-func MonsterAddVectorOfCoOwningReferences(builder_ *flatbuffers.Builder, vectorOfCoOwningReferences_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(40, flatbuffers.UOffsetT(vectorOfCoOwningReferences_), 0)
+func MonsterAddVectorOfCoOwningReferences(builder_ *flatbuffers.Builder, vectorOfCoOwningReferencesArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(40, flatbuffers.UOffsetT(vectorOfCoOwningReferencesArg_), 0)
 }
 func MonsterStartVectorOfCoOwningReferencesVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(8, numElems_, 8)
 }
-func MonsterAddNonOwningReference(builder_ *flatbuffers.Builder, nonOwningReference_ uint64) {
-	builder_.PrependUint64Slot(41, nonOwningReference_, 0)
+func MonsterAddNonOwningReference(builder_ *flatbuffers.Builder, nonOwningReferenceArg_ uint64) {
+	builder_.PrependUint64Slot(41, nonOwningReferenceArg_, 0)
 }
-func MonsterAddVectorOfNonOwningReferences(builder_ *flatbuffers.Builder, vectorOfNonOwningReferences_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(42, flatbuffers.UOffsetT(vectorOfNonOwningReferences_), 0)
+func MonsterAddVectorOfNonOwningReferences(builder_ *flatbuffers.Builder, vectorOfNonOwningReferencesArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(42, flatbuffers.UOffsetT(vectorOfNonOwningReferencesArg_), 0)
 }
 func MonsterStartVectorOfNonOwningReferencesVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(8, numElems_, 8)
 }
-func MonsterAddAnyUniqueType(builder_ *flatbuffers.Builder, anyUniqueType_ AnyUniqueAliases) {
-	builder_.PrependByteSlot(43, byte(anyUniqueType_), 0)
+func MonsterAddAnyUniqueType(builder_ *flatbuffers.Builder, anyUniqueTypeArg_ AnyUniqueAliases) {
+	builder_.PrependByteSlot(43, byte(anyUniqueTypeArg_), 0)
 }
-func MonsterAddAnyUnique(builder_ *flatbuffers.Builder, anyUnique_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(44, flatbuffers.UOffsetT(anyUnique_), 0)
+func MonsterAddAnyUnique(builder_ *flatbuffers.Builder, anyUniqueArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(44, flatbuffers.UOffsetT(anyUniqueArg_), 0)
 }
-func MonsterAddAnyAmbiguousType(builder_ *flatbuffers.Builder, anyAmbiguousType_ AnyAmbiguousAliases) {
-	builder_.PrependByteSlot(45, byte(anyAmbiguousType_), 0)
+func MonsterAddAnyAmbiguousType(builder_ *flatbuffers.Builder, anyAmbiguousTypeArg_ AnyAmbiguousAliases) {
+	builder_.PrependByteSlot(45, byte(anyAmbiguousTypeArg_), 0)
 }
-func MonsterAddAnyAmbiguous(builder_ *flatbuffers.Builder, anyAmbiguous_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(46, flatbuffers.UOffsetT(anyAmbiguous_), 0)
+func MonsterAddAnyAmbiguous(builder_ *flatbuffers.Builder, anyAmbiguousArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(46, flatbuffers.UOffsetT(anyAmbiguousArg_), 0)
 }
-func MonsterAddVectorOfEnums(builder_ *flatbuffers.Builder, vectorOfEnums_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(47, flatbuffers.UOffsetT(vectorOfEnums_), 0)
+func MonsterAddVectorOfEnums(builder_ *flatbuffers.Builder, vectorOfEnumsArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(47, flatbuffers.UOffsetT(vectorOfEnumsArg_), 0)
 }
 func MonsterStartVectorOfEnumsVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(1, numElems_, 1)
 }
-func MonsterAddSignedEnum(builder_ *flatbuffers.Builder, signedEnum_ Race) {
-	builder_.PrependInt8Slot(48, int8(signedEnum_), -1)
+func MonsterAddSignedEnum(builder_ *flatbuffers.Builder, signedEnumArg_ Race) {
+	builder_.PrependInt8Slot(48, int8(signedEnumArg_), -1)
 }
-func MonsterAddTestrequirednestedflatbuffer(builder_ *flatbuffers.Builder, testrequirednestedflatbuffer_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(49, flatbuffers.UOffsetT(testrequirednestedflatbuffer_), 0)
+func MonsterAddTestrequirednestedflatbuffer(builder_ *flatbuffers.Builder, testrequirednestedflatbufferArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(49, flatbuffers.UOffsetT(testrequirednestedflatbufferArg_), 0)
 }
 func MonsterStartTestrequirednestedflatbufferVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(1, numElems_, 1)
 }
-func MonsterAddScalarKeySortedTables(builder_ *flatbuffers.Builder, scalarKeySortedTables_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(50, flatbuffers.UOffsetT(scalarKeySortedTables_), 0)
+func MonsterAddScalarKeySortedTables(builder_ *flatbuffers.Builder, scalarKeySortedTablesArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(50, flatbuffers.UOffsetT(scalarKeySortedTablesArg_), 0)
 }
 func MonsterStartScalarKeySortedTablesVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(4, numElems_, 4)
 }
-func MonsterAddNativeInline(builder_ *flatbuffers.Builder, nativeInline_ flatbuffers.UOffsetT) {
-	builder_.PrependStructSlot(51, flatbuffers.UOffsetT(nativeInline_), 0)
+func MonsterAddNativeInline(builder_ *flatbuffers.Builder, nativeInlineArg_ flatbuffers.UOffsetT) {
+	builder_.PrependStructSlot(51, flatbuffers.UOffsetT(nativeInlineArg_), 0)
 }
-func MonsterAddLongEnumNonEnumDefault(builder_ *flatbuffers.Builder, longEnumNonEnumDefault_ LongEnum) {
-	builder_.PrependUint64Slot(52, uint64(longEnumNonEnumDefault_), 0)
+func MonsterAddLongEnumNonEnumDefault(builder_ *flatbuffers.Builder, longEnumNonEnumDefaultArg_ LongEnum) {
+	builder_.PrependUint64Slot(52, uint64(longEnumNonEnumDefaultArg_), 0)
 }
-func MonsterAddLongEnumNormalDefault(builder_ *flatbuffers.Builder, longEnumNormalDefault_ LongEnum) {
-	builder_.PrependUint64Slot(53, uint64(longEnumNormalDefault_), 2)
+func MonsterAddLongEnumNormalDefault(builder_ *flatbuffers.Builder, longEnumNormalDefaultArg_ LongEnum) {
+	builder_.PrependUint64Slot(53, uint64(longEnumNormalDefaultArg_), 2)
 }
-func MonsterAddNanDefault(builder_ *flatbuffers.Builder, nanDefault_ float32) {
-	builder_.PrependFloat32Slot(54, nanDefault_, float32(math.NaN()))
+func MonsterAddNanDefault(builder_ *flatbuffers.Builder, nanDefaultArg_ float32) {
+	builder_.PrependFloat32Slot(54, nanDefaultArg_, float32(math.NaN()))
 }
-func MonsterAddInfDefault(builder_ *flatbuffers.Builder, infDefault_ float32) {
-	builder_.PrependFloat32Slot(55, infDefault_, float32(math.Inf(1)))
+func MonsterAddInfDefault(builder_ *flatbuffers.Builder, infDefaultArg_ float32) {
+	builder_.PrependFloat32Slot(55, infDefaultArg_, float32(math.Inf(1)))
 }
-func MonsterAddPositiveInfDefault(builder_ *flatbuffers.Builder, positiveInfDefault_ float32) {
-	builder_.PrependFloat32Slot(56, positiveInfDefault_, float32(math.Inf(1)))
+func MonsterAddPositiveInfDefault(builder_ *flatbuffers.Builder, positiveInfDefaultArg_ float32) {
+	builder_.PrependFloat32Slot(56, positiveInfDefaultArg_, float32(math.Inf(1)))
 }
-func MonsterAddInfinityDefault(builder_ *flatbuffers.Builder, infinityDefault_ float32) {
-	builder_.PrependFloat32Slot(57, infinityDefault_, float32(math.Inf(1)))
+func MonsterAddInfinityDefault(builder_ *flatbuffers.Builder, infinityDefaultArg_ float32) {
+	builder_.PrependFloat32Slot(57, infinityDefaultArg_, float32(math.Inf(1)))
 }
-func MonsterAddPositiveInfinityDefault(builder_ *flatbuffers.Builder, positiveInfinityDefault_ float32) {
-	builder_.PrependFloat32Slot(58, positiveInfinityDefault_, float32(math.Inf(1)))
+func MonsterAddPositiveInfinityDefault(builder_ *flatbuffers.Builder, positiveInfinityDefaultArg_ float32) {
+	builder_.PrependFloat32Slot(58, positiveInfinityDefaultArg_, float32(math.Inf(1)))
 }
-func MonsterAddNegativeInfDefault(builder_ *flatbuffers.Builder, negativeInfDefault_ float32) {
-	builder_.PrependFloat32Slot(59, negativeInfDefault_, float32(math.Inf(-1)))
+func MonsterAddNegativeInfDefault(builder_ *flatbuffers.Builder, negativeInfDefaultArg_ float32) {
+	builder_.PrependFloat32Slot(59, negativeInfDefaultArg_, float32(math.Inf(-1)))
 }
-func MonsterAddNegativeInfinityDefault(builder_ *flatbuffers.Builder, negativeInfinityDefault_ float32) {
-	builder_.PrependFloat32Slot(60, negativeInfinityDefault_, float32(math.Inf(-1)))
+func MonsterAddNegativeInfinityDefault(builder_ *flatbuffers.Builder, negativeInfinityDefaultArg_ float32) {
+	builder_.PrependFloat32Slot(60, negativeInfinityDefaultArg_, float32(math.Inf(-1)))
 }
-func MonsterAddDoubleInfDefault(builder_ *flatbuffers.Builder, doubleInfDefault_ float64) {
-	builder_.PrependFloat64Slot(61, doubleInfDefault_, float64(math.Inf(1)))
+func MonsterAddDoubleInfDefault(builder_ *flatbuffers.Builder, doubleInfDefaultArg_ float64) {
+	builder_.PrependFloat64Slot(61, doubleInfDefaultArg_, float64(math.Inf(1)))
 }
 func MonsterEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder_.EndObject()

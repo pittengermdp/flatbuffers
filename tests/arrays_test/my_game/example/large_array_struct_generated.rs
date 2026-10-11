@@ -62,7 +62,7 @@ impl ::flatbuffers::Push for LargeArrayStruct {
     unsafe fn push(&self, dst: &mut [u8], _written_len: usize) {
         let src = unsafe {
             ::core::slice::from_raw_parts(
-                self as *const LargeArrayStruct as *const u8,
+                ::core::ptr::addr_of!(*self).cast::<u8>(),
                 <Self as ::flatbuffers::Push>::size(),
             )
         };
@@ -171,7 +171,7 @@ impl LargeArrayStruct {
         // Created from a valid Table for this object
         // Which contains a valid array in this slot
         unsafe {
-            ::core::ptr::copy(x.as_ptr() as *const u8, self.0.as_mut_ptr().add(384), 2048);
+            ::core::ptr::copy(x.as_ptr().cast::<u8>(), self.0.as_mut_ptr().add(384), 2048);
         }
     }
 
@@ -189,7 +189,7 @@ impl LargeArrayStruct {
         // Created from a valid Table for this object
         // Which contains a valid array in this slot
         unsafe {
-            ::core::ptr::copy(x.as_ptr() as *const u8, self.0.as_mut_ptr().add(2432), 64);
+            ::core::ptr::copy(x.as_ptr().cast::<u8>(), self.0.as_mut_ptr().add(2432), 64);
         }
     }
 
@@ -219,6 +219,7 @@ pub struct LargeArrayStructT {
     pub g: [NestedStructT; 64],
     pub h: [TestEnum; 64],
 }
+
 impl Default for LargeArrayStructT {
     fn default() -> Self {
         Self {

@@ -298,14 +298,8 @@ pub mod my_game {
 
         // struct Unused, aligned to 4
         #[repr(transparent)]
-        #[derive(Clone, Copy, PartialEq, Eq)]
+        #[derive(Clone, Copy, PartialEq, Eq, Default)]
         pub struct Unused(pub [u8; 4]);
-
-        impl Default for Unused {
-            fn default() -> Self {
-                Self([0; 4])
-            }
-        }
 
         impl ::core::fmt::Debug for Unused {
             fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
@@ -340,7 +334,7 @@ pub mod my_game {
             unsafe fn push(&self, dst: &mut [u8], _written_len: usize) {
                 let src = unsafe {
                     ::core::slice::from_raw_parts(
-                        self as *const Unused as *const u8,
+                        ::core::ptr::addr_of!(*self).cast::<u8>(),
                         <Self as ::flatbuffers::Push>::size(),
                     )
                 };
@@ -388,7 +382,7 @@ pub mod my_game {
                 ::flatbuffers::EndianScalar::from_little_endian(unsafe {
                     ::core::ptr::copy_nonoverlapping(
                         self.0[0..].as_ptr(),
-                        mem.as_mut_ptr() as *mut u8,
+                        mem.as_mut_ptr().cast::<u8>(),
                         ::core::mem::size_of::<<i32 as ::flatbuffers::EndianScalar>::Scalar>(),
                     );
                     mem.assume_init()
@@ -402,7 +396,7 @@ pub mod my_game {
                 // Which contains a valid value in this slot
                 unsafe {
                     ::core::ptr::copy_nonoverlapping(
-                        &x_le as *const _ as *const u8,
+                        ::core::ptr::addr_of!(x_le).cast::<u8>(),
                         self.0[0..].as_mut_ptr(),
                         ::core::mem::size_of::<<i32 as ::flatbuffers::EndianScalar>::Scalar>(),
                     );
@@ -415,14 +409,9 @@ pub mod my_game {
             }
         }
 
-        #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+        #[derive(Debug, Clone, PartialEq, Default, Eq, Hash)]
         pub struct UnusedT {
             pub a: i32,
-        }
-        impl Default for UnusedT {
-            fn default() -> Self {
-                Self { a: 0 }
-            }
         }
 
         impl UnusedT {

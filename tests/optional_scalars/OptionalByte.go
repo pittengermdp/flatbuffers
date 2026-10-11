@@ -24,9 +24,9 @@ var EnumValuesOptionalByte = map[string]OptionalByte{
 	"Two":  OptionalByteTwo,
 }
 
-func (v OptionalByte) String() string {
-	if s, ok := EnumNamesOptionalByte[v]; ok {
-		return s
+func (v_ OptionalByte) String() string {
+	if s_, ok_ := EnumNamesOptionalByte[v_]; ok_ {
+		return s_
 	}
-	return "OptionalByte(" + strconv.FormatInt(int64(v), 10) + ")"
+	return "OptionalByte(" + strconv.FormatInt(int64(v_), 10) + ")"
 }

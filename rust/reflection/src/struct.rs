@@ -35,20 +35,20 @@ impl<'a> Struct<'a> {
 
     /// # Safety
     ///
-    /// [buf] must contain a valid struct at [loc]
+    /// `buf` must contain a valid struct at `loc`
     #[inline]
     pub unsafe fn new(buf: &'a [u8], loc: usize) -> Self {
         Struct { buf, loc }
     }
 
-    /// Retrieves the value at the provided [byte_loc]. No field in [Struct] is optional.
+    /// Retrieves the value at the provided `byte_loc`. No field in [Struct] is optional.
     ///
     /// # Safety
     ///
     /// The value of the corresponding slot must have type T
     #[inline]
     pub unsafe fn get<T: Follow<'a> + 'a>(&self, byte_loc: usize) -> T::Inner {
-        // SAFETY: the caller guarantees the slot at `byte_loc` holds a `T`.
+        // SAFETY: the caller guarantees the value at `byte_loc` has type `T`.
         unsafe { <T>::follow(self.buf, self.loc + byte_loc) }
     }
 }

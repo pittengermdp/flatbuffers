@@ -16,14 +16,8 @@ use super::*;
 
 // struct Test, aligned to 2
 #[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Default)]
 pub struct Test(pub [u8; 4]);
-
-impl Default for Test {
-    fn default() -> Self {
-        Self([0; 4])
-    }
-}
 
 impl ::core::fmt::Debug for Test {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
@@ -61,7 +55,7 @@ impl ::flatbuffers::Push for Test {
     unsafe fn push(&self, dst: &mut [u8], _written_len: usize) {
         let src = unsafe {
             ::core::slice::from_raw_parts(
-                self as *const Test as *const u8,
+                ::core::ptr::addr_of!(*self).cast::<u8>(),
                 <Self as ::flatbuffers::Push>::size(),
             )
         };
@@ -121,7 +115,7 @@ impl Test {
         ::flatbuffers::EndianScalar::from_little_endian(unsafe {
             ::core::ptr::copy_nonoverlapping(
                 self.0[0..].as_ptr(),
-                mem.as_mut_ptr() as *mut u8,
+                mem.as_mut_ptr().cast::<u8>(),
                 ::core::mem::size_of::<<i16 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
             mem.assume_init()
@@ -135,7 +129,7 @@ impl Test {
         // Which contains a valid value in this slot
         unsafe {
             ::core::ptr::copy_nonoverlapping(
-                &x_le as *const _ as *const u8,
+                ::core::ptr::addr_of!(x_le).cast::<u8>(),
                 self.0[0..].as_mut_ptr(),
                 ::core::mem::size_of::<<i16 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
@@ -152,7 +146,7 @@ impl Test {
         ::flatbuffers::EndianScalar::from_little_endian(unsafe {
             ::core::ptr::copy_nonoverlapping(
                 self.0[2..].as_ptr(),
-                mem.as_mut_ptr() as *mut u8,
+                mem.as_mut_ptr().cast::<u8>(),
                 ::core::mem::size_of::<<i8 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
             mem.assume_init()
@@ -166,7 +160,7 @@ impl Test {
         // Which contains a valid value in this slot
         unsafe {
             ::core::ptr::copy_nonoverlapping(
-                &x_le as *const _ as *const u8,
+                ::core::ptr::addr_of!(x_le).cast::<u8>(),
                 self.0[2..].as_mut_ptr(),
                 ::core::mem::size_of::<<i8 as ::flatbuffers::EndianScalar>::Scalar>(),
             );
@@ -182,15 +176,10 @@ impl Test {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Default, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct TestT {
     pub a: i16,
     pub b: i8,
-}
-impl Default for TestT {
-    fn default() -> Self {
-        Self { a: 0, b: 0 }
-    }
 }
 
 impl TestT {
