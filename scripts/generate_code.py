@@ -473,7 +473,13 @@ flatc(
 )
 
 flatc(
-    ["--cpp", "--gen-compare", "--gen-mutable", "--gen-object-api", "--reflect-names"],
+    [
+        "--cpp",
+        "--gen-compare",
+        "--gen-mutable",
+        "--gen-object-api",
+        "--reflect-names",
+    ],
     schema="native_type_test.fbs",
 )
 
@@ -489,7 +495,13 @@ flatc(
 )
 
 flatc(
-    ["--cpp", "--gen-compare", "--gen-mutable", "--gen-object-api", "--reflect-names"],
+    [
+        "--cpp",
+        "--gen-compare",
+        "--gen-mutable",
+        "--gen-object-api",
+        "--reflect-names",
+    ],
     schema="cross_namespace_pack_test.fbs",
 )
 
@@ -1051,7 +1063,8 @@ def format_generated_code():
 
   def sources(path, pattern):
     files = [
-        f for f in glob(path, pattern)
+        f
+        for f in glob(path, pattern)
         if not skip_dirs.intersection(Path(f).parts)
     ]
     # Hand the formatters LF no matter how the tree was checked out.
