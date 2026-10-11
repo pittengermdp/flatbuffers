@@ -68,7 +68,7 @@ fn heterogenous_vector_of_string_because_width() {
         expected.extend(offset.to_le_bytes().iter());
     }
     for _ in 0..test_data.len() {
-        expected.push(5 << 2 | 0); // String, W8.
+        expected.push(5 << 2); // String, W8.
     }
     expected.push(24); // Offset to Vector.
     expected.push(10 << 2 | 1); // Vector, W16.
@@ -141,7 +141,7 @@ fn singleton_vector_uint_4_16bit() {
 }
 #[test]
 fn store_u64() {
-    let buf = singleton(u64::max_value() - 10);
+    let buf = singleton(u64::MAX - 10);
     assert_eq!(
         &buf,
         &[
@@ -173,10 +173,10 @@ fn vector_uint4() {
             2,
             3,
             5,
-            7,           // data
-            4,           // Root (offset)
-            23 << 2 | 0, // Root type VectorUInt4, BitWidth::W8
-            1,           // Root bitwidth W8
+            7,       // data
+            4,       // Root (offset)
+            23 << 2, // Root type VectorUInt4, BitWidth::W8
+            1,       // Root bitwidth W8
         ]
     );
 }
@@ -202,13 +202,13 @@ fn nested_vector() {
             3,
             0,
             5,
-            214,         // Root Vector: size, v[0], v[1] (offset), v[2] as u8
-            2 << 2 | 0,  // v[0]: (UInt, W8)
-            20 << 2 | 0, // v[1]: (VectorUInt3, W8)
-            1 << 2 | 0,  // v[2]: (Int, W8)
-            6,           // Root points to Root vector
-            10 << 2 | 0, // Root type and width (Vector, W8)
-            1,           // Root bytes
+            214,     // Root Vector: size, v[0], v[1] (offset), v[2] as u8
+            2 << 2,  // v[0]: (UInt, W8)
+            20 << 2, // v[1]: (VectorUInt3, W8)
+            1 << 2,  // v[2]: (Int, W8)
+            6,       // Root points to Root vector
+            10 << 2, // Root type and width (Vector, W8)
+            1,       // Root bytes
         ]
     )
 }
@@ -230,13 +230,13 @@ fn nested_vector_push_direct() {
             3,
             0,
             5,
-            214,         // Root Vector: size, v[0], v[1] (offset), v[2] as u8
-            2 << 2 | 0,  // v[0]: (UInt, W8)
-            20 << 2 | 0, // v[1]: (VectorUInt3, W8)
-            1 << 2 | 0,  // v[2]: (Int, W8)
-            6,           // Root points to Root vector
-            10 << 2 | 0, // Root type and width (Vector, W8)
-            1,           // Root bytes
+            214,     // Root Vector: size, v[0], v[1] (offset), v[2] as u8
+            2 << 2,  // v[0]: (UInt, W8)
+            20 << 2, // v[1]: (VectorUInt3, W8)
+            1 << 2,  // v[2]: (Int, W8)
+            6,       // Root points to Root vector
+            10 << 2, // Root type and width (Vector, W8)
+            1,       // Root bytes
         ]
     )
 }
@@ -276,10 +276,10 @@ fn store_map_index_into_it() {
             17, // values
             8,
             8,
-            8,          // types (UInt, W8) ~ (2 << 2 | 0)
-            6,          // Offset to map (root)
-            9 << 2 | 0, // Root type (map)
-            1,          // Root bytes
+            8,      // types (UInt, W8) ~ (2 << 2 | 0)
+            6,      // Offset to map (root)
+            9 << 2, // Root type (map)
+            1,      // Root bytes
         ]
     );
 }
@@ -317,8 +317,8 @@ fn utf8_snowman() {
 fn indirect_numbers() {
     let mut fxb = Builder::default();
     let mut v = fxb.start_vector();
-    v.push(IndirectUInt(u64::max_value()));
-    v.push(IndirectInt(i64::min_value()));
+    v.push(IndirectUInt(u64::MAX));
+    v.push(IndirectInt(i64::MIN));
     // TODO(cneo): Something about Float EPSILON and casting leads to a different binary format.
     v.push(IndirectFloat(core::f64::consts::PI));
     v.push(0u32); // This is stored in 8 bits instead of 64 because of indirection.
@@ -354,14 +354,14 @@ fn indirect_numbers() {
             25,
             18,
             11,
-            0,           // offsets to the indirect numbers and zero.
-            7 << 2 | 3,  // IndirectUInt 64 bit
-            6 << 2 | 3,  // IndirectInt 64 bit
-            8 << 2 | 3,  // IndirectFloat 64 bit
-            2 << 2 | 0,  // (inline) UInt 8 bit
-            8,           // Offset to Root.
-            10 << 2 | 0, // Vector 8 bit
-            1,           // 1 byte root
+            0,          // offsets to the indirect numbers and zero.
+            7 << 2 | 3, // IndirectUInt 64 bit
+            6 << 2 | 3, // IndirectInt 64 bit
+            8 << 2 | 3, // IndirectFloat 64 bit
+            2 << 2,     // (inline) UInt 8 bit
+            8,          // Offset to Root.
+            10 << 2,    // Vector 8 bit
+            1,          // 1 byte root
         ]
         .as_slice()
     )
@@ -373,7 +373,7 @@ fn indirect_2p5x_smaller() {
     for i in 0..512 {
         v.push(i);
     }
-    v.push(i64::max_value());
+    v.push(i64::MAX);
     v.end_vector();
     let len_without_indirect = builder.view().len() as f32;
 
@@ -381,7 +381,7 @@ fn indirect_2p5x_smaller() {
     for i in 0..512 {
         v.push(i);
     }
-    v.push(IndirectInt(i64::max_value()));
+    v.push(IndirectInt(i64::MAX));
     v.end_vector();
     let len_with_indirect = builder.view().len() as f32;
     assert!(len_with_indirect * 2.5 < len_without_indirect);
@@ -484,7 +484,7 @@ fn align_8byte() {
     let mut b = Builder::default();
     let mut v = b.start_vector();
     v.push(IndirectUInt(42));
-    v.push(&[u64::max_value(); 2]);
+    v.push(&[u64::MAX; 2]);
     v.end_vector();
     assert_eq!(
         b.view()[..16],
@@ -499,7 +499,7 @@ fn align_4byte() {
     let mut b = Builder::default();
     let mut v = b.start_vector();
     v.push(IndirectUInt(42));
-    v.push(&[u32::max_value(); 2]);
+    v.push(&[u32::MAX; 2]);
     v.end_vector();
     assert_eq!(
         b.view()[..8],
@@ -514,7 +514,7 @@ fn align_2byte() {
     let mut b = Builder::default();
     let mut v = b.start_vector();
     v.push(IndirectUInt(42));
-    v.push(&[u16::max_value(); 2]);
+    v.push(&[u16::MAX; 2]);
     v.end_vector();
     assert_eq!(
         b.view()[..4],
@@ -529,7 +529,7 @@ fn align_1byte() {
     let mut b = Builder::default();
     let mut v = b.start_vector();
     v.push(IndirectUInt(42));
-    v.push(&[u8::max_value(); 2]);
+    v.push(&[u8::MAX; 2]);
     v.end_vector();
     assert_eq!(b.view()[..2], [42, 255]); // No padding.
 }

@@ -40,9 +40,6 @@ extern crate rand;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-#[cfg(not(miri))] // slow.
-#[macro_use]
-extern crate quickcheck_derive;
 
 mod flexbuffers_tests;
 mod more_defaults_test;
@@ -73,7 +70,7 @@ mod keyword_test_generated;
 // Test rust namer, should not cause compiling issues
 #[allow(dead_code, unused_imports, clippy::all)]
 #[path = "../../rust_namer_test/mod.rs"]
-mod rust_namer_test;
+mod rust_namer_test_generated;
 
 #[rustfmt::skip] // TODO: Use standard rust formatting and remove dead code.
 #[allow(dead_code)]
@@ -83,10 +80,10 @@ use super::*;
 // Include simple random number generator to ensure results will be the
 // same across platforms.
 // http://en.wikipedia.org/wiki/Park%E2%80%93Miller_random_number_generator
-struct LCG(u64);
-impl LCG {
+struct Lcg(u64);
+impl Lcg {
     fn new() -> Self {
-        LCG { 0: 48271 }
+        Lcg(48271)
     }
     fn next(&mut self) -> u64 {
         let old = self.0;
@@ -149,8 +146,11 @@ fn object_api_defaults() {
             b: 0
         }
     });
-    let mut default_without_nan = MonsterT::default();
-    default_without_nan.nan_default = 0.0;
+    // NaN != NaN, so swap the NaN default for a comparable value.
+    let default_without_nan = MonsterT {
+        nan_default: 0.0,
+        ..MonsterT::default()
+    };
     assert_eq!(
         default_without_nan,
         MonsterT {
@@ -180,7 +180,7 @@ fn object_api_defaults() {
             testhashu32_fnv1a: 0,
             testhashs64_fnv1a: 0,
             testhashu64_fnv1a: 0,
-            testf: 3.14159,
+            testf: f32::from_bits(0x4049_0fd0), // the schema default, 3.14159
             testf2: 3.0,
             testf3: 0.0,
             flex: None,
@@ -272,7 +272,7 @@ fn create_serialized_example_with_library_code(builder: &mut flatbuffers::FlatBu
     let table_start = builder.start_table();
     builder.push_slot(my_game::example::Monster::VT_HP, 80i16, 100);
     builder.push_slot_always(my_game::example::Monster::VT_NAME, name);
-    builder.push_slot_always(my_game::example::Monster::VT_POS, &pos);
+    builder.push_slot_always(my_game::example::Monster::VT_POS, pos);
     builder.push_slot(my_game::example::Monster::VT_TEST_TYPE, my_game::example::Any::Monster, my_game::example::Any::NONE);
     builder.push_slot_always(my_game::example::Monster::VT_TEST, nested_union_mon);
     builder.push_slot_always(my_game::example::Monster::VT_INVENTORY, inv);
@@ -449,9 +449,10 @@ fn verifier_too_many_tables() {
     b.finish(m, None);
 
     let data = b.finished_data();
-    let mut opts = flatbuffers::VerifierOptions::default();
-
-    opts.max_tables = 500;
+    let mut opts = flatbuffers::VerifierOptions {
+        max_tables: 500,
+        ..Default::default()
+    };
     let res = flatbuffers::root_with_opts::<Monster>(&opts, data);
     assert_eq!(res.unwrap_err(), flatbuffers::InvalidFlatbuffer::TooManyTables);
 
@@ -465,7 +466,7 @@ fn verifier_apparent_size_too_large() {
     let b = &mut flatbuffers::FlatBufferBuilder::new();
     let name = Some(b.create_string("foo"));
     // String amplification attack.
-    let s = b.create_string(&(core::iter::repeat("X").take(1000).collect::<String>()));
+    let s = b.create_string(&"X".repeat(1000));
     let testarrayofstring = Some(b.create_vector(&vec![s; 1000]));
     let m = Monster::create(b, &MonsterArgs {
         testarrayofstring,
@@ -475,8 +476,10 @@ fn verifier_apparent_size_too_large() {
     b.finish(m, None);
     let data = b.finished_data();
     assert!(data.len() < 5200);  // est 4000 for the vector + 1000 for the string + 200 overhead.
-    let mut opts = flatbuffers::VerifierOptions::default();
-    opts.max_apparent_size = 1_000_000;
+    let mut opts = flatbuffers::VerifierOptions {
+        max_apparent_size: 1_000_000,
+        ..Default::default()
+    };
 
     let res = flatbuffers::root_with_opts::<Monster>(&opts, data);
     assert_eq!(res.unwrap_err(), flatbuffers::InvalidFlatbuffer::ApparentSizeTooLarge);
@@ -498,8 +501,10 @@ fn verifier_in_too_deep() {
         }));
     };
     b.finish(prev_monster.unwrap(), None);
-    let mut opts = flatbuffers::VerifierOptions::default();
-    opts.max_depth = 10;
+    let mut opts = flatbuffers::VerifierOptions {
+        max_depth: 10,
+        ..Default::default()
+    };
 
     let data = b.finished_data();
     let res = flatbuffers::root_with_opts::<Monster>(&opts, data);
@@ -621,8 +626,8 @@ mod roundtrip_generated_code {
 
     use super::my_game;
 
-    fn build_mon<'a, 'b>(builder: &'a mut flatbuffers::FlatBufferBuilder, args: &'b my_game::example::MonsterArgs) -> my_game::example::Monster<'a> {
-        let mon = my_game::example::Monster::create(builder, &args);
+    fn build_mon<'a>(builder: &'a mut flatbuffers::FlatBufferBuilder, args: &my_game::example::MonsterArgs) -> my_game::example::Monster<'a> {
+        let mon = my_game::example::Monster::create(builder, args);
         my_game::example::finish_monster_buffer(builder, mon);
         my_game::example::root_as_monster(builder.finished_data()).unwrap()
     }
@@ -909,22 +914,22 @@ mod roundtrip_generated_code {
     #[test]
     fn vector_of_f64_store() {
         let mut b = flatbuffers::FlatBufferBuilder::new();
-        let v = b.create_vector(&[3.14159265359f64][..]);
+        let v = b.create_vector(&[1.234_567_890_123f64][..]);
         let name = b.create_string("foo");
         let m = build_mon(&mut b, &my_game::example::MonsterArgs{
             name: Some(name),
             vector_of_doubles: Some(v), ..Default::default()});
         assert_eq!(m.vector_of_doubles().unwrap().len(), 1);
-        assert_eq!(m.vector_of_doubles().unwrap().get(0), 3.14159265359f64);
+        assert_eq!(m.vector_of_doubles().unwrap().get(0), 1.234_567_890_123f64);
 
         let rust_vec_inst = m.vector_of_doubles().unwrap();
         let rust_vec_iter_collect = rust_vec_inst.iter().collect::<Vec<_>>();
         assert_eq!(rust_vec_iter_collect.len(), 1);
-        assert_eq!(rust_vec_iter_collect[0], 3.14159265359f64);
+        assert_eq!(rust_vec_iter_collect[0], 1.234_567_890_123f64);
 
         let rust_vec_iter_rev_collect = rust_vec_inst.iter().rev().collect::<Vec<_>>();
         assert_eq!(rust_vec_iter_rev_collect.len(), 1);
-        assert_eq!(rust_vec_iter_rev_collect[0], 3.14159265359f64);
+        assert_eq!(rust_vec_iter_rev_collect[0], 1.234_567_890_123f64);
     }
     #[test]
     fn vector_of_struct_store() {
@@ -1166,7 +1171,7 @@ mod roundtrip_vectors {
 
             let buf = b.finished_data();
 
-            let got = unsafe { <flatbuffers::ForwardsUOffset<flatbuffers::Vector<T>>>::follow(&buf[..], 0) };
+            let got = unsafe { <flatbuffers::ForwardsUOffset<flatbuffers::Vector<T>>>::follow(buf, 0) };
             let mut result_vec: Vec<T> = Vec::with_capacity(got.len());
             for i in 0..got.len() {
                 result_vec.push(got.get(i));
@@ -1244,8 +1249,8 @@ mod roundtrip_vectors {
             let got = unsafe { <flatbuffers::ForwardsUOffset<flatbuffers::Vector<flatbuffers::ForwardsUOffset<&str>>>>::follow(buf, 0) };
 
             assert_eq!(got.len(), xs.len());
-            for i in 0..xs.len() {
-                assert_eq!(got.get(i), &xs[i][..]);
+            for (i, x) in xs.iter().enumerate() {
+                assert_eq!(got.get(i), &x[..]);
             }
         }
 
@@ -1335,7 +1340,7 @@ mod framing_format {
             name: Some(b.create_string("bob")),
             ..Default::default()
         };
-        let mon = my_game::example::Monster::create(&mut b, &args);
+        let mon = my_game::example::Monster::create(&mut b, args);
         b.finish_size_prefixed(mon, None);
 
         // Access it.
@@ -1358,7 +1363,7 @@ mod roundtrip_table {
     #[cfg(not(miri))]  // slow.
     extern crate quickcheck;
 
-    use super::LCG;
+    use super::Lcg;
 
     #[test]
     #[cfg(not(miri))]  // slow.
@@ -1370,25 +1375,25 @@ mod roundtrip_table {
         let uchar_val: u8 = 0xFF;
         let short_val: i16 = -32222;  // 0x8222;
         let ushort_val: u16 = 0xFEEE;
-        let int_val: i32 = unsafe { ::core::mem::transmute(0x83333333u32) };
+        let int_val: i32 = 0x83333333u32.cast_signed();
         let uint_val: u32 = 0xFDDDDDDD;
-        let long_val: i64 = unsafe { ::core::mem::transmute(0x8444444444444444u64) }; // TODO: byte literal?
+        let long_val: i64 = 0x8444444444444444u64.cast_signed(); // TODO: byte literal?
         let ulong_val: u64 = 0xFCCCCCCCCCCCCCCCu64;
-        let float_val: f32 = 3.14159;
-        let double_val: f64 = 3.14159265359;
+        let float_val: f32 = 1.234_567;
+        let double_val: f64 = 1.234_567_890_123;
 
         let test_value_types_max: isize = 11;
         let max_fields_per_object: flatbuffers::VOffsetT = 100;
         let num_fuzz_objects: isize = 1000;  // The higher, the more thorough :)
 
         let mut builder = flatbuffers::FlatBufferBuilder::new();
-        let mut lcg = LCG::new();
+        let mut lcg = Lcg::new();
 
         let mut objects: Vec<flatbuffers::UOffsetT> = vec![0; num_fuzz_objects as usize];
 
         // Generate num_fuzz_objects random objects each consisting of
         // fields_per_object fields, each of a random type.
-        for i in 0..(num_fuzz_objects as usize) {
+        for object in objects.iter_mut() {
             let fields_per_object = (lcg.next() % (max_fields_per_object as u64)) as flatbuffers::VOffsetT;
             let start = builder.start_table();
 
@@ -1412,7 +1417,7 @@ mod roundtrip_table {
                     _ => { panic!("unknown choice: {}", choice); }
                 }
             }
-            objects[i] = builder.end_table(start).value();
+            *object = builder.end_table(start).value();
         }
 
         // Do some bookkeeping to generate stats on fuzzes:
@@ -1425,10 +1430,10 @@ mod roundtrip_table {
         // Test that all objects we generated are readable and return the
         // expected values. We generate random objects in the same order
         // so this is deterministic:
-        for i in 0..(num_fuzz_objects as usize) {
+        for &object in objects.iter() {
             let table = {
                 let buf = builder.unfinished_data();
-                let loc = buf.len() as flatbuffers::UOffsetT - objects[i];
+                let loc = buf.len() as flatbuffers::UOffsetT - object;
                 unsafe { flatbuffers::Table::new(buf, loc as usize) }
             };
 
@@ -1483,8 +1488,8 @@ mod roundtrip_table {
             let str_offsets: Vec<flatbuffers::WIPOffset<_>> = xs.iter().map(|s| b.create_byte_string(&s[..])).collect();
             let table_start = b.start_table();
 
-            for i in 0..xs.len() {
-                b.push_slot_always(fi2fo(i as flatbuffers::VOffsetT), str_offsets[i]);
+            for (i, &off) in str_offsets.iter().enumerate() {
+                b.push_slot_always(fi2fo(i as flatbuffers::VOffsetT), off);
             }
             let root = b.end_table(table_start);
             b.finish_minimal(root);
@@ -1493,11 +1498,11 @@ mod roundtrip_table {
             let buf = b.finished_data();
             let tab = unsafe { <flatbuffers::ForwardsUOffset<flatbuffers::Table>>::follow(buf, 0) };
 
-            for i in 0..xs.len() {
+            for (i, x) in xs.iter().enumerate() {
                 let v = unsafe { tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<u8>>>(fi2fo(i as flatbuffers::VOffsetT), None) };
                 assert!(v.is_some());
                 let v2 = v.unwrap();
-                assert_eq!(v2.bytes(), &xs[i]);
+                assert_eq!(v2.bytes(), x);
             }
         }
         prop(vec![vec![1,2,3]]);
@@ -1520,8 +1525,8 @@ mod roundtrip_table {
             let str_offsets: Vec<flatbuffers::WIPOffset<_>> = xs.iter().map(|s| b.create_string(&s[..])).collect();
             let table_start = b.start_table();
 
-            for i in 0..xs.len() {
-                b.push_slot_always(fi2fo(i as flatbuffers::VOffsetT), str_offsets[i]);
+            for (i, &off) in str_offsets.iter().enumerate() {
+                b.push_slot_always(fi2fo(i as flatbuffers::VOffsetT), off);
             }
             let root = b.end_table(table_start);
             b.finish_minimal(root);
@@ -1530,9 +1535,9 @@ mod roundtrip_table {
             let buf = b.finished_data();
             let tab = unsafe { <flatbuffers::ForwardsUOffset<flatbuffers::Table>>::follow(buf, 0) };
 
-            for i in 0..xs.len() {
+            for (i, x) in xs.iter().enumerate() {
                 let v = unsafe { tab.get::<flatbuffers::ForwardsUOffset<&str>>(fi2fo(i as flatbuffers::VOffsetT), None) };
-                assert_eq!(v, Some(&xs[i][..]));
+                assert_eq!(v, Some(&x[..]));
             }
         }
         let n = 20;
@@ -1576,8 +1581,8 @@ mod roundtrip_table {
 
             let table_start = b.start_table();
 
-            for i in 0..vecs.len() {
-                b.push_slot_always(fi2fo(i as flatbuffers::VOffsetT), offs[i]);
+            for (i, &off) in offs.iter().enumerate() {
+                b.push_slot_always(fi2fo(i as flatbuffers::VOffsetT), off);
             }
             let root = b.end_table(table_start);
             b.finish_minimal(root);
@@ -1586,15 +1591,15 @@ mod roundtrip_table {
             let buf = b.finished_data();
             let tab = unsafe { <flatbuffers::ForwardsUOffset<flatbuffers::Table>>::follow(buf, 0) };
 
-            for i in 0..vecs.len() {
+            for (i, vec) in vecs.iter().enumerate() {
                 let got = unsafe { tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<T>>>(fi2fo(i as flatbuffers::VOffsetT), None) };
                 assert!(got.is_some());
                 let got2 = got.unwrap();
                 let mut got3: Vec<T> = Vec::with_capacity(got2.len());
-                for i in 0..got2.len() {
-                    got3.push(got2.get(i));
+                for j in 0..got2.len() {
+                    got3.push(got2.get(j));
                 }
-                assert_eq!(vecs[i], got3);
+                assert_eq!(*vec, got3);
             }
         }
 
@@ -1746,7 +1751,7 @@ mod write_and_read_examples {
         let b = &mut flatbuffers::FlatBufferBuilder::new();
         create_serialized_example_with_generated_code(b);
         let buf = b.finished_data();
-        serialized_example_is_accessible_and_correct(&buf[..], true, false).unwrap();
+        serialized_example_is_accessible_and_correct(buf, true, false).unwrap();
     }
 
     #[test]
@@ -1754,10 +1759,10 @@ mod write_and_read_examples {
         let b = &mut flatbuffers::FlatBufferBuilder::new();
         create_serialized_example_with_generated_code(b);
         let buf = b.finished_data();
-        serialized_example_is_accessible_and_correct(&buf, true, false).unwrap();
+        serialized_example_is_accessible_and_correct(buf, true, false).unwrap();
         let m = super::my_game::example::root_as_monster(buf).unwrap();
         assert_eq!(
-            format!("{:.5?}", &m),
+            format!("{:.5?}", m),
             "Monster { pos: Some(Vec3 { x: 1.00000, y: 2.00000, z: 3.00000, \
             test1: 3.00000, test2: Color(Green), test3: Test { a: 5, b: 6 } \
             }), mana: 150, hp: 80, name: \"MyMonster\", inventory: Some([0, 1, \
@@ -1820,7 +1825,7 @@ mod write_and_read_examples {
             create_serialized_example_with_generated_code(b);
             {
                 let buf = b.finished_data();
-                serialized_example_is_accessible_and_correct(&buf[..], true, false).unwrap();
+                serialized_example_is_accessible_and_correct(buf, true, false).unwrap();
             }
             b.reset();
         }
@@ -1831,7 +1836,7 @@ mod write_and_read_examples {
         let b = &mut flatbuffers::FlatBufferBuilder::new();
         create_serialized_example_with_library_code(b);
         let buf = b.finished_data();
-        serialized_example_is_accessible_and_correct(&buf[..], true, false).unwrap();
+        serialized_example_is_accessible_and_correct(buf, true, false).unwrap();
     }
 
     #[test]
@@ -1842,7 +1847,7 @@ mod write_and_read_examples {
             create_serialized_example_with_library_code(b);
             {
                 let buf = b.finished_data();
-                serialized_example_is_accessible_and_correct(&buf[..], true, false).unwrap();
+                serialized_example_is_accessible_and_correct(buf, true, false).unwrap();
             }
             b.reset();
         }
@@ -1896,7 +1901,7 @@ mod generated_code_asserts {
     #[should_panic]
     fn monster_builder_fails_when_name_is_missing() {
         let b = &mut flatbuffers::FlatBufferBuilder::new();
-        my_game::example::Monster::create(b, &my_game::example::MonsterArgs{..Default::default()});
+        let _ = my_game::example::Monster::create(b, &my_game::example::MonsterArgs{..Default::default()});
     }
 }
 
@@ -1912,18 +1917,18 @@ mod generated_key_comparisons {
         let b = my_game::example::Ability::new(2, 1);
         let c = my_game::example::Ability::new(3, 3);
 
-        assert_eq!(a.key_compare_less_than(&a), false);
-        assert_eq!(b.key_compare_less_than(&b), false);
-        assert_eq!(c.key_compare_less_than(&c), false);
+        assert!(!a.key_compare_less_than(&a));
+        assert!(!b.key_compare_less_than(&b));
+        assert!(!c.key_compare_less_than(&c));
 
-        assert_eq!(a.key_compare_less_than(&b), true);
-        assert_eq!(a.key_compare_less_than(&c), true);
+        assert!(a.key_compare_less_than(&b));
+        assert!(a.key_compare_less_than(&c));
 
-        assert_eq!(b.key_compare_less_than(&a), false);
-        assert_eq!(b.key_compare_less_than(&c), true);
+        assert!(!b.key_compare_less_than(&a));
+        assert!(b.key_compare_less_than(&c));
 
-        assert_eq!(c.key_compare_less_than(&a), false);
-        assert_eq!(c.key_compare_less_than(&b), false);
+        assert!(!c.key_compare_less_than(&a));
+        assert!(!c.key_compare_less_than(&b));
     }
 
     #[test]
@@ -1941,18 +1946,18 @@ mod generated_key_comparisons {
         let b = my_game::example::Ability::new(2, 1);
         let c = my_game::example::Ability::new(3, 3);
 
-        assert_eq!(a.key_compare_less_than(&a), false);
-        assert_eq!(b.key_compare_less_than(&b), false);
-        assert_eq!(c.key_compare_less_than(&c), false);
+        assert!(!a.key_compare_less_than(&a));
+        assert!(!b.key_compare_less_than(&b));
+        assert!(!c.key_compare_less_than(&c));
 
-        assert_eq!(a.key_compare_less_than(&b), true);
-        assert_eq!(a.key_compare_less_than(&c), true);
+        assert!(a.key_compare_less_than(&b));
+        assert!(a.key_compare_less_than(&c));
 
-        assert_eq!(b.key_compare_less_than(&a), false);
-        assert_eq!(b.key_compare_less_than(&c), true);
+        assert!(!b.key_compare_less_than(&a));
+        assert!(b.key_compare_less_than(&c));
 
-        assert_eq!(c.key_compare_less_than(&a), false);
-        assert_eq!(c.key_compare_less_than(&b), false);
+        assert!(!c.key_compare_less_than(&a));
+        assert!(!c.key_compare_less_than(&b));
     }
 
     #[test]
@@ -1984,11 +1989,11 @@ mod generated_key_comparisons {
         assert_eq!(a.name(), "MyMonster");
         assert_eq!(b.name(), "Fred");
 
-        assert_eq!(a.key_compare_less_than(&a), false);
-        assert_eq!(a.key_compare_less_than(&b), false);
+        assert!(!a.key_compare_less_than(&a));
+        assert!(!a.key_compare_less_than(&b));
 
-        assert_eq!(b.key_compare_less_than(&a), true);
-        assert_eq!(b.key_compare_less_than(&b), false);
+        assert!(b.key_compare_less_than(&a));
+        assert!(!b.key_compare_less_than(&b));
     }
 }
 
@@ -2040,7 +2045,7 @@ mod builder_asserts {
         #[derive(Copy, Clone, Debug, PartialEq)]
         #[repr(C, packed)]
         struct foo { }
-        impl<'b> flatbuffers::Push for &'b foo {
+        impl flatbuffers::Push for &foo {
             type Output = foo;
             unsafe fn push<'a>(&'a self, _dst: &'a mut [u8], _written_len: usize) { }
         }
@@ -2128,12 +2133,12 @@ mod follow_impls {
     fn to_f32() {
         let vec: Vec<u8> = vec![255, 255, 255, 255, /* start of value */ 208, 15, 73, 64];
         let fs: flatbuffers::FollowStart<f32> = flatbuffers::FollowStart::new();
-        assert_eq!(unsafe { fs.self_follow(&vec[..], 4) }, 3.14159);
+        assert_eq!(unsafe { fs.self_follow(&vec[..], 4) }, f32::from_bits(0x4049_0fd0));
     }
 
     #[test]
     fn to_string() {
-        let vec: Vec<u8> = vec![255,255,255,255, 3, 0, 0, 0, 'f' as u8, 'o' as u8, 'o' as u8, 0];
+        let vec: Vec<u8> = vec![255,255,255,255, 3, 0, 0, 0, b'f', b'o', b'o', 0];
         let off: flatbuffers::FollowStart<&str> = flatbuffers::FollowStart::new();
         assert_eq!(unsafe { off.self_follow(&vec[..], 4) }, "foo");
     }
@@ -2163,7 +2168,7 @@ mod follow_impls {
 
     #[test]
     fn to_vector_of_offset_to_string_elements() {
-        let buf: Vec<u8> = vec![/* vec len */ 1, 0, 0, 0, /* offset to string */ 4, 0, 0, 0, /* str length */ 3, 0, 0, 0, 'f' as u8, 'o' as u8, 'o' as u8, 0];
+        let buf: Vec<u8> = vec![/* vec len */ 1, 0, 0, 0, /* offset to string */ 4, 0, 0, 0, /* str length */ 3, 0, 0, 0, b'f', b'o', b'o', 0];
         let s: flatbuffers::FollowStart<flatbuffers::Vector<flatbuffers::ForwardsUOffset<&str>>> = flatbuffers::FollowStart::new();
         assert_eq!(unsafe {s.self_follow(&buf[..], 0).len() }, 1);
         assert_eq!(unsafe { s.self_follow(&buf[..], 0).get(0) }, "foo");
@@ -2370,7 +2375,7 @@ mod push_impls {
     #[test]
     fn push_f64() {
         let mut b = flatbuffers::FlatBufferBuilder::new();
-        b.push(3.14159265359f64);
+        b.push(f64::from_bits(0x4009_21fb_5444_2eea));
         check(&b, &[234, 46, 68, 84, 251, 33, 9, 64]);
     }
 
@@ -2599,7 +2604,7 @@ mod byte_layouts {
     #[test]
     fn layout_05_2xuint16_vector() {
         let mut b = flatbuffers::FlatBufferBuilder::new();
-        let _off = b.start_vector::<u16>(2);
+        b.start_vector::<u16>(2);
         check(&b, &[]); // align to 4bytes
         b.push(0xABCDu16);
         check(&b, &[0xCD, 0xAB]);
@@ -2844,7 +2849,7 @@ mod byte_layouts {
             _pad2: [u8; 4],
         }
         assert_eq!(::core::mem::size_of::<foo>(), 16);
-        impl<'b> flatbuffers::Push for &'b foo {
+        impl flatbuffers::Push for &foo {
             type Output = foo;
             unsafe fn push<'a>(&'a self, dst: &'a mut [u8], _written_len: usize) {
                 let src = ::core::slice::from_raw_parts(*self as *const foo as *const u8, ::core::mem::size_of::<foo>());
@@ -3502,7 +3507,7 @@ mod try_api {
             .try_push_slot_always(my_game::example::Monster::VT_NAME, name)
             .unwrap();
         builder
-            .try_push_slot_always(my_game::example::Monster::VT_POS, &pos)
+            .try_push_slot_always(my_game::example::Monster::VT_POS, pos)
             .unwrap();
         builder
             .try_push_slot(
@@ -3601,7 +3606,7 @@ mod try_api {
 
         let buf = builder.finished_data();
         let got = unsafe {
-            <flatbuffers::ForwardsUOffset<flatbuffers::Vector<u32>>>::follow(&buf[..], 0)
+            <flatbuffers::ForwardsUOffset<flatbuffers::Vector<u32>>>::follow(buf, 0)
         };
         let result: Vec<u32> = got.iter().collect();
         assert_eq!(result, items);
@@ -3616,7 +3621,7 @@ mod try_api {
 
         let buf = builder.finished_data();
         let got = unsafe {
-            <flatbuffers::ForwardsUOffset<flatbuffers::Vector<i64>>>::follow(&buf[..], 0)
+            <flatbuffers::ForwardsUOffset<flatbuffers::Vector<i64>>>::follow(buf, 0)
         };
         let result: Vec<i64> = got.iter().collect();
         assert_eq!(result, items);
@@ -3625,7 +3630,7 @@ mod try_api {
     #[test]
     fn try_create_vector_from_iter_roundtrip() {
         let mut builder = flatbuffers::FlatBufferBuilder::new();
-        let items: Vec<f64> = vec![1.0, 2.5, -3.14, 0.0];
+        let items: Vec<f64> = vec![1.0, 2.5, -3.75, 0.0];
         let offset = builder
             .try_create_vector_from_iter(items.iter().copied())
             .unwrap();
@@ -3633,7 +3638,7 @@ mod try_api {
 
         let buf = builder.finished_data();
         let got = unsafe {
-            <flatbuffers::ForwardsUOffset<flatbuffers::Vector<f64>>>::follow(&buf[..], 0)
+            <flatbuffers::ForwardsUOffset<flatbuffers::Vector<f64>>>::follow(buf, 0)
         };
         let result: Vec<f64> = got.iter().collect();
         assert_eq!(result, items);
@@ -3648,7 +3653,7 @@ mod try_api {
 
         let buf = builder.finished_data();
         let got = unsafe {
-            <flatbuffers::ForwardsUOffset<&[u8]>>::follow(&buf[..], 0)
+            <flatbuffers::ForwardsUOffset<&[u8]>>::follow(buf, 0)
         };
         assert_eq!(got, data);
     }
@@ -3662,7 +3667,7 @@ mod try_api {
             name: Some(builder.try_create_string("bob").unwrap()),
             ..Default::default()
         };
-        let mon = my_game::example::Monster::create(&mut builder, &args);
+        let mon = my_game::example::Monster::create(&mut builder, args);
         builder.try_finish_size_prefixed(mon, None).unwrap();
 
         let buf = builder.finished_data();
@@ -3681,7 +3686,7 @@ mod try_api {
             hp: 42,
             ..Default::default()
         };
-        let mon = my_game::example::Monster::create(&mut builder, &args);
+        let mon = my_game::example::Monster::create(&mut builder, args);
         builder
             .try_finish(mon, Some(my_game::example::MONSTER_IDENTIFIER))
             .unwrap();

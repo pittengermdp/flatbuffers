@@ -15,7 +15,6 @@
  */
 
 use bencher::{benchmark_group, Bencher};
-use flatbuffers;
 
 #[allow(dead_code, unused_imports)]
 #[path = "../../monster_test/mod.rs"]
@@ -24,8 +23,8 @@ pub use monster_test_generated::my_game;
 
 fn traverse_canonical_buffer(bench: &mut Bencher) {
     let owned_data = {
-        let mut builder = &mut flatbuffers::FlatBufferBuilder::new();
-        create_serialized_example_with_generated_code(&mut builder, true);
+        let builder = &mut flatbuffers::FlatBufferBuilder::new();
+        create_serialized_example_with_generated_code(builder, true);
         builder.finished_data().to_vec()
     };
     let data = &owned_data[..];
@@ -37,14 +36,14 @@ fn traverse_canonical_buffer(bench: &mut Bencher) {
 }
 
 fn create_canonical_buffer_then_reset(bench: &mut Bencher) {
-    let mut builder = &mut flatbuffers::FlatBufferBuilder::new();
+    let builder = &mut flatbuffers::FlatBufferBuilder::new();
     // warmup
-    create_serialized_example_with_generated_code(&mut builder, true);
+    create_serialized_example_with_generated_code(builder, true);
     let n = builder.finished_data().len() as u64;
     builder.reset();
 
     bench.iter(|| {
-        let _ = create_serialized_example_with_generated_code(&mut builder, true);
+        let _ = create_serialized_example_with_generated_code(builder, true);
         builder.reset();
     });
 
@@ -205,7 +204,7 @@ fn create_string_100(bench: &mut Bencher) {
 
 fn create_byte_vector_100_naive(bench: &mut Bencher) {
     let builder = &mut flatbuffers::FlatBufferBuilder::with_capacity(1 << 20);
-    let v_owned = (0u8..100).map(|i| i).collect::<Vec<u8>>();
+    let v_owned = (0u8..100).collect::<Vec<u8>>();
     let v: &[u8] = &v_owned;
 
     let mut i = 0;
@@ -223,7 +222,7 @@ fn create_byte_vector_100_naive(bench: &mut Bencher) {
 
 fn create_byte_vector_100_optimal(bench: &mut Bencher) {
     let builder = &mut flatbuffers::FlatBufferBuilder::with_capacity(1 << 20);
-    let v_owned = (0u8..100).map(|i| i).collect::<Vec<u8>>();
+    let v_owned = (0u8..100).collect::<Vec<u8>>();
     let v: &[u8] = &v_owned;
 
     let mut i = 0;

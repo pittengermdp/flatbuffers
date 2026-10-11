@@ -17,8 +17,6 @@ use alloc::vec::Vec;
 
 // Read what you wrote.
 use flexbuffers::*;
-#[cfg(not(miri))] // slow.
-use quickcheck;
 use serde::{Deserialize, Serialize};
 
 // TODO(cneo): Upstream this to the quickcheck crate. Also, write a macro to derive Arbitrary.
@@ -77,7 +75,7 @@ quickcheck! {
         }
         v.end_vector();
         let r = Reader::get_root(builder.view()).unwrap().as_vector();
-        xs.iter().enumerate().all(|(i, &x)| (r.idx(i).as_f64() - x).abs() < core::f64::EPSILON)
+        xs.iter().enumerate().all(|(i, &x)| (r.idx(i).as_f64() - x).abs() < f64::EPSILON)
     }
     fn qc_vec_string(xs: Vec<String>) -> bool {
         let mut builder = Builder::default();
@@ -87,7 +85,7 @@ quickcheck! {
         }
         v.end_vector();
         let r = Reader::get_root(builder.view()).unwrap().as_vector();
-        xs.iter().enumerate().all(|(i, x)| (r.idx(i).as_str() == x))
+        xs.iter().enumerate().all(|(i, x)| r.idx(i).as_str() == x)
     }
     #[cfg(not(feature = "no_std"))]
     fn qc_map_int(xs: std::collections::BTreeMap<NonNullString, i64>) -> bool {
@@ -128,15 +126,11 @@ quickcheck! {
         )
     }
     fn qc_serde_ints(
-        u8s: Vec<u8>,
-        u16s: Vec<u16>,
-        u32s: Vec<u32>,
-        u64s: Vec<u64>,
-        i8s: Vec<i8>,
-        i16s: Vec<i16>,
-        i32s: Vec<i32>,
-        i64s: Vec<i64>
+        unsigned: (Vec<u8>, Vec<u16>, Vec<u32>, Vec<u64>),
+        signed: (Vec<i8>, Vec<i16>, Vec<i32>, Vec<i64>)
     ) -> bool {
+        let (u8s, u16s, u32s, u64s) = unsigned;
+        let (i8s, i16s, i32s, i64s) = signed;
         #[derive(Serialize, Deserialize, PartialEq)]
         struct Foo {
             u8s: Vec<u8>,
@@ -282,12 +276,12 @@ fn map_64bit() {
     let mut fxb = Builder::default();
     let mut m = fxb.start_map();
     m.push("a", 257u16);
-    m.push("b", u64::max_value() - 3);
+    m.push("b", u64::MAX - 3);
     m.end_map();
 
     let r = Reader::get_root(fxb.view()).unwrap().as_map();
     assert_eq!(r.idx("a").as_u16(), 257);
-    assert_eq!(r.idx("b").as_u64(), u64::max_value() - 3);
+    assert_eq!(r.idx("b").as_u64(), u64::MAX - 3);
 }
 #[test]
 fn index_map() {
@@ -345,9 +339,9 @@ fn map_strings() {
 
 #[test]
 fn store_u64() {
-    let finished = singleton(u64::max_value() - 10);
+    let finished = singleton(u64::MAX - 10);
     let r = Reader::get_root(finished.as_ref()).unwrap();
-    assert_eq!(r.get_u64(), Ok(u64::max_value() - 10));
+    assert_eq!(r.get_u64(), Ok(u64::MAX - 10));
 }
 #[test]
 fn store_indirects() {
@@ -355,12 +349,12 @@ fn store_indirects() {
     let mut v = b.start_vector();
     v.push(IndirectInt(-42));
     v.push(IndirectUInt(9000));
-    v.push(IndirectFloat(3.14));
+    v.push(IndirectFloat(3.3));
     v.end_vector();
     let r = Reader::get_root(b.view()).unwrap().as_vector();
     assert_eq!(r.idx(0).get_i64().unwrap(), -42);
     assert_eq!(r.idx(1).get_u64().unwrap(), 9000);
-    assert_eq!(r.idx(2).get_f64().unwrap(), 3.14);
+    assert_eq!(r.idx(2).get_f64().unwrap(), 3.3);
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -425,7 +419,7 @@ fn serde_serious() {
             MyEnum::Unit,
             MyEnum::NewType([-1, 0, 1]),
             MyEnum::Unit,
-            MyEnum::Tuple(3.14, 2.71),
+            MyEnum::Tuple(3.25, 2.71),
             MyEnum::Struct {
                 a: 32,
                 b: 64,
