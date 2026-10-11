@@ -2283,6 +2283,7 @@ int FlatBufferTests(const std::string& tests_data_path) {
   MiniReflectUnionUnderlyingTypeTest();
   ReflectionVerifyOffsetFieldsTest();
   ReflectionVerifyRequiredOffsetFieldsTest();
+  CopyTableStructVectorAlignmentTest();
 
   SizePrefixedTest();
 

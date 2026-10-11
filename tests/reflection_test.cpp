@@ -1384,6 +1384,70 @@ void CopyTableUnionTest(const std::string& tests_data_path) {
   check_rejected(pack_characters(&two, 1));
 }
 
+// CopyTable on a vector of structs that must be 8-aligned, wider than the 4
+// bytes of the reflection::Obj its elements are recorded as. Whatever the
+// builder already holds, the copied vector's data is aligned for the struct.
+void CopyTableStructVectorAlignmentTest() {
+  Parser parser;
+  TEST_EQ(parser.Parse("struct D { d:double; }"
+                       "table T { pad:ubyte; ds:[D]; }"
+                       "root_type T;"),
+          true);
+  TEST_EQ(parser.ParseJson("{ pad: 7, ds: [{ d: 1.5 }, { d: -2.25 }] }"), true);
+  const std::vector<uint8_t> source(
+      parser.builder_.GetBufferPointer(),
+      parser.builder_.GetBufferPointer() + parser.builder_.GetSize());
+  parser.Serialize();
+  const reflection::Schema& schema =
+      *reflection::GetSchema(parser.builder_.GetBufferPointer());
+  const reflection::Object& root = *schema.root_table();
+  const reflection::Field& pad_field = *root.fields()->LookupByKey("pad");
+  const reflection::Field& ds_field = *root.fields()->LookupByKey("ds");
+  const reflection::Object& d_def = *schema.objects()->LookupByKey("D");
+  const reflection::Field& d_field = *d_def.fields()->LookupByKey("d");
+  TEST_EQ(d_def.minalign(), 8);
+
+  // Data ahead of the copy: 0 to 7 ubytes, alone or after a double. Alone, the
+  // buffer is padded only as far as the copy asks, so the copy's offset is set
+  // by what follows it; after a double, the buffer is padded to 8, and the
+  // copy moves with the number of ubytes.
+  for (size_t lead = 0; lead < 16; lead++) {
+    FlatBufferBuilder fbb;
+    if (lead >= 8) fbb.CreateVector(std::vector<double>(1, 0.5));
+    fbb.CreateVector(std::vector<uint8_t>(lead % 8, 0xEE));
+    const Offset<const Table*> copy =
+        CopyTable(fbb, schema, root, *GetAnyRoot(source.data()));
+    TEST_EQ(copy.IsNull(), false);
+    if (copy.IsNull()) continue;
+    fbb.Finish(copy);
+    const uint8_t* const buf = fbb.GetBufferPointer();
+    const Table& table = *GetAnyRoot(buf);
+    const VectorOfAny* const ds = GetFieldAnyV(table, ds_field);
+    TEST_NOTNULL(ds);
+    if (!ds) continue;
+    TEST_EQ(static_cast<size_t>(ds->Data() - buf) % 8, 0u);
+
+    // The check a generated verifier makes of ds, a Vector<const D*>:
+    // VerifyVector() passes it sizeof(D) and AlignOf<D>(), both 8.
+    Verifier verifier(buf, fbb.GetSize());
+    TEST_EQ(verifier.VerifyVectorOrString(reinterpret_cast<const uint8_t*>(ds),
+                                          8, nullptr, 8),
+            true);
+    TEST_EQ(Verify(schema, root, buf, fbb.GetSize()), true);
+
+    TEST_EQ(GetFieldI<uint8_t>(table, pad_field), 7);
+    TEST_EQ(ds->size(), 2u);
+    if (ds->size() != 2) continue;
+    const auto d = [&](const uoffset_t i) {
+      return GetAnyFieldF(
+          *GetAnyVectorElemAddressOf<const Struct>(ds, i, d_def.bytesize()),
+          d_field);
+    };
+    TEST_EQ(d(0), 1.5);
+    TEST_EQ(d(1), -2.25);
+  }
+}
+
 void MiniReflectFlatBuffersTest(uint8_t* flatbuf) {
   auto s =
       flatbuffers::FlatBufferToString(flatbuf, Monster::MiniReflectTypeTable());
