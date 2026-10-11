@@ -11,6 +11,8 @@ namespace tests {
 void ReflectionTest(const std::string& tests_data_path, uint8_t* flatbuf,
                     size_t length);
 void ReflectionUnionUnderlyingTypeTest(const std::string& tests_data_path);
+void ReflectionUnionUnderlyingTypeToStringTest(
+    const std::string& tests_data_path);
 void ForAllFieldsReverseTest(const std::string& tests_data_path);
 void MiniReflectFixedLengthArrayTest();
 void MiniReflectFlatBuffersTest(uint8_t* flatbuf);
