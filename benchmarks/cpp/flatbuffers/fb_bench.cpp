@@ -45,11 +45,11 @@ struct FlatBufferBench : Bench {
     auto foobarcontainer = GetFooBarContainer(decoded);
     sum = 0;
     Add(foobarcontainer->initialized());
-    Add(foobarcontainer->location()->Length());
+    Add(foobarcontainer->location()->size());
     Add(foobarcontainer->fruit());
-    for (unsigned int i = 0; i < foobarcontainer->list()->Length(); i++) {
+    for (unsigned int i = 0; i < foobarcontainer->list()->size(); i++) {
       auto foobar = foobarcontainer->list()->Get(i);
-      Add(foobar->name()->Length());
+      Add(foobar->name()->size());
       Add(foobar->postfix());
       Add(static_cast<int64_t>(foobar->rating()));
       auto bar = foobar->sibling();

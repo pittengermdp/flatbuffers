@@ -10,7 +10,7 @@ use alloc::borrow::Cow;
 #[cfg(feature = "std")]
 use std::borrow::Cow;
 
-#[cfg(all(nightly, not(feature = "std")))]
+#[cfg(all(core_error, not(feature = "std")))]
 use core::error::Error;
 #[cfg(feature = "std")]
 use std::error::Error;
@@ -86,7 +86,7 @@ pub enum InvalidFlatbuffer {
     DepthLimitReached,
 }
 
-#[cfg(any(nightly, feature = "std"))]
+#[cfg(any(core_error, feature = "std"))]
 impl Error for InvalidFlatbuffer {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         if let InvalidFlatbuffer::Utf8Error { error: source, .. } = self {
@@ -164,13 +164,13 @@ impl core::fmt::Display for InvalidFlatbuffer {
                     position, soffset, error_trace
                 )?;
             }
-            InvalidFlatbuffer::TooManyTables {} => {
+            InvalidFlatbuffer::TooManyTables => {
                 writeln!(f, "Too many tables.")?;
             }
-            InvalidFlatbuffer::ApparentSizeTooLarge {} => {
+            InvalidFlatbuffer::ApparentSizeTooLarge => {
                 writeln!(f, "Apparent size too large.")?;
             }
-            InvalidFlatbuffer::DepthLimitReached {} => {
+            InvalidFlatbuffer::DepthLimitReached => {
                 writeln!(f, "Nested table depth limit reached.")?;
             }
         }
@@ -655,7 +655,7 @@ impl<T: Verifiable> Verifiable for Vector<'_, ForwardsUOffset<T>> {
     }
 }
 
-impl<'a> Verifiable for &'a str {
+impl Verifiable for &str {
     #[inline]
     fn run_verifier(v: &mut Verifier, pos: usize) -> Result<()> {
         let range = verify_vector_range::<u8>(v, pos)?;

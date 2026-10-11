@@ -1238,81 +1238,81 @@ func (rcv_ *Root) PtsLength() int {
 func RootStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(19)
 }
-func RootAddName(builder_ *flatbuffers.Builder, name_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(name_), 0)
+func RootAddName(builder_ *flatbuffers.Builder, nameArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(nameArg_), 0)
 }
-func RootAddFlags(builder_ *flatbuffers.Builder, flags_ CanonicalJsonInc.Flags) {
-	builder_.PrependByteSlot(1, byte(flags_), 5)
+func RootAddFlags(builder_ *flatbuffers.Builder, flagsArg_ CanonicalJsonInc.Flags) {
+	builder_.PrependByteSlot(1, byte(flagsArg_), 5)
 }
-func RootAddMode(builder_ *flatbuffers.Builder, mode_ CanonicalJsonInc.Mode) {
-	builder_.PrependInt16Slot(2, int16(mode_), 7)
+func RootAddMode(builder_ *flatbuffers.Builder, modeArg_ CanonicalJsonInc.Mode) {
+	builder_.PrependInt16Slot(2, int16(modeArg_), 7)
 }
-func RootAddCars(builder_ *flatbuffers.Builder, cars_ byte) {
-	builder_.PrependByteSlot(3, cars_, 3)
+func RootAddCars(builder_ *flatbuffers.Builder, carsArg_ byte) {
+	builder_.PrependByteSlot(3, carsArg_, 3)
 }
-func RootAddRatio(builder_ *flatbuffers.Builder, ratio_ float64) {
-	builder_.PrependFloat64Slot(4, ratio_, 0.5)
+func RootAddRatio(builder_ *flatbuffers.Builder, ratioArg_ float64) {
+	builder_.PrependFloat64Slot(4, ratioArg_, 0.5)
 }
-func RootAddBig(builder_ *flatbuffers.Builder, big_ uint64) {
-	builder_.PrependUint64Slot(5, big_, 7)
+func RootAddBig(builder_ *flatbuffers.Builder, bigArg_ uint64) {
+	builder_.PrependUint64Slot(5, bigArg_, 7)
 }
-func RootAddNeg(builder_ *flatbuffers.Builder, neg_ int64) {
-	builder_.PrependInt64Slot(6, neg_, 0)
+func RootAddNeg(builder_ *flatbuffers.Builder, negArg_ int64) {
+	builder_.PrependInt64Slot(6, negArg_, 0)
 }
-func RootAddMaybeBig(builder_ *flatbuffers.Builder, maybeBig_ int64) {
-	builder_.PrependInt64(maybeBig_)
+func RootAddMaybeBig(builder_ *flatbuffers.Builder, maybeBigArg_ int64) {
+	builder_.PrependInt64(maybeBigArg_)
 	builder_.Slot(7)
 }
-func RootAddBigs(builder_ *flatbuffers.Builder, bigs_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(8, flatbuffers.UOffsetT(bigs_), 0)
+func RootAddBigs(builder_ *flatbuffers.Builder, bigsArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(8, flatbuffers.UOffsetT(bigsArg_), 0)
 }
 func RootStartBigsVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(8, numElems_, 8)
 }
-func RootAddTags(builder_ *flatbuffers.Builder, tags_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(9, flatbuffers.UOffsetT(tags_), 0)
+func RootAddTags(builder_ *flatbuffers.Builder, tagsArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(9, flatbuffers.UOffsetT(tagsArg_), 0)
 }
 func RootStartTagsVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(4, numElems_, 4)
 }
-func RootAddScores(builder_ *flatbuffers.Builder, scores_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(10, flatbuffers.UOffsetT(scores_), 0)
+func RootAddScores(builder_ *flatbuffers.Builder, scoresArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(10, flatbuffers.UOffsetT(scoresArg_), 0)
 }
 func RootStartScoresVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(4, numElems_, 4)
 }
-func RootAddByMode(builder_ *flatbuffers.Builder, byMode_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(11, flatbuffers.UOffsetT(byMode_), 0)
+func RootAddByMode(builder_ *flatbuffers.Builder, byModeArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(11, flatbuffers.UOffsetT(byModeArg_), 0)
 }
 func RootStartByModeVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(4, numElems_, 4)
 }
-func RootAddSeen(builder_ *flatbuffers.Builder, seen_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(12, flatbuffers.UOffsetT(seen_), 0)
+func RootAddSeen(builder_ *flatbuffers.Builder, seenArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(12, flatbuffers.UOffsetT(seenArg_), 0)
 }
 func RootStartSeenVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(4, numElems_, 4)
 }
-func RootAddPt(builder_ *flatbuffers.Builder, pt_ flatbuffers.UOffsetT) {
-	builder_.PrependStructSlot(13, flatbuffers.UOffsetT(pt_), 0)
+func RootAddPt(builder_ *flatbuffers.Builder, ptArg_ flatbuffers.UOffsetT) {
+	builder_.PrependStructSlot(13, flatbuffers.UOffsetT(ptArg_), 0)
 }
-func RootAddPayloadType(builder_ *flatbuffers.Builder, payloadType_ Payload) {
-	builder_.PrependByteSlot(14, byte(payloadType_), 0)
+func RootAddPayloadType(builder_ *flatbuffers.Builder, payloadTypeArg_ Payload) {
+	builder_.PrependByteSlot(14, byte(payloadTypeArg_), 0)
 }
-func RootAddPayload(builder_ *flatbuffers.Builder, payload_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(15, flatbuffers.UOffsetT(payload_), 0)
+func RootAddPayload(builder_ *flatbuffers.Builder, payloadArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(15, flatbuffers.UOffsetT(payloadArg_), 0)
 }
-func RootAddLeaf(builder_ *flatbuffers.Builder, leaf_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(16, flatbuffers.UOffsetT(leaf_), 0)
+func RootAddLeaf(builder_ *flatbuffers.Builder, leafArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(16, flatbuffers.UOffsetT(leafArg_), 0)
 }
-func RootAddLeaves(builder_ *flatbuffers.Builder, leaves_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(17, flatbuffers.UOffsetT(leaves_), 0)
+func RootAddLeaves(builder_ *flatbuffers.Builder, leavesArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(17, flatbuffers.UOffsetT(leavesArg_), 0)
 }
 func RootStartLeavesVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(4, numElems_, 4)
 }
-func RootAddPts(builder_ *flatbuffers.Builder, pts_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(18, flatbuffers.UOffsetT(pts_), 0)
+func RootAddPts(builder_ *flatbuffers.Builder, ptsArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(18, flatbuffers.UOffsetT(ptsArg_), 0)
 }
 func RootStartPtsVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(8, numElems_, 4)

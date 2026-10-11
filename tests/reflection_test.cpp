@@ -1,5 +1,14 @@
 #include "reflection_test.h"
 
+#include <cstring>
+#include <memory>
+#include <vector>
+
+#if defined(__unix__) || defined(__APPLE__)
+#include <sys/mman.h>
+#include <unistd.h>
+#endif
+
 #include "flatbuffers/idl.h"
 #include "flatbuffers/minireflect.h"
 #include "flatbuffers/reflection.h"
@@ -9,6 +18,7 @@
 #include "monster_test_generated.h"
 #include "test_assert.h"
 #include "tests/arrays_test_generated.h"
+#include "tests/union_underlying_type_test_generated.h"
 #include "tests/union_vector/union_vector_generated.h"
 
 namespace flatbuffers {
@@ -248,6 +258,323 @@ void ReflectionTest(const std::string& tests_data_path, uint8_t* flatbuf,
   TEST_EQ(flatbuffers::Verify(schema, *schema.root_table(),
                               fbb.GetBufferPointer(), fbb.GetSize()),
           true);
+}
+
+// Calls `verify` on a copy of `buf` that ends where a page that faults on any
+// access begins, so a verifier that reads past the end of the buffer crashes
+// in every build type. Past an ordinary allocation it reads whatever is there,
+// which only a sanitizer build (FLATBUFFERS_CODE_SANITIZE) reports, and CI
+// runs none. Without mmap(), `verify` gets `buf` itself.
+template <typename F>
+static bool VerifyBeforeGuardPage(const std::vector<uint8_t>& buf, F verify) {
+#if defined(__unix__) || defined(__APPLE__)
+  const size_t page = static_cast<size_t>(sysconf(_SC_PAGESIZE));
+  const size_t mapped = (buf.size() / page + 2) * page;
+  void* const map = mmap(nullptr, mapped, PROT_READ | PROT_WRITE,
+                         MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+  TEST_ASSERT(map != MAP_FAILED);
+  uint8_t* const guard = static_cast<uint8_t*>(map) + mapped - page;
+  TEST_EQ(mprotect(guard, page, PROT_NONE), 0);
+  // FlatBufferBuilder pads a buffer to its alignment, so the copy keeps it.
+  uint8_t* const copy = guard - buf.size();
+  std::memcpy(copy, buf.data(), buf.size());
+  const bool verified = verify(copy, buf.size());
+  TEST_EQ(munmap(map, mapped), 0);
+  return verified;
+#else
+  return verify(buf.data(), buf.size());
+#endif
+}
+
+// The position in `buf` of the root table's vtable entry for `field`, which
+// the vtable must be long enough to hold.
+static size_t RootVTableEntry(const std::vector<uint8_t>& buf,
+                              const voffset_t field) {
+  const uint8_t* const vtable = GetAnyRoot(buf.data())->GetVTable();
+  TEST_ASSERT(field < ReadScalar<voffset_t>(vtable));
+  return static_cast<size_t>(vtable - buf.data()) + field;
+}
+
+// `buf` with the root table's slot for `field` moved to the end of the buffer,
+// wholly past it.
+static std::vector<uint8_t> WithSlotPastEnd(std::vector<uint8_t> buf,
+                                            const voffset_t field) {
+  const size_t table = static_cast<size_t>(
+      reinterpret_cast<const uint8_t*>(GetAnyRoot(buf.data())) - buf.data());
+  WriteScalar(buf.data() + RootVTableEntry(buf, field),
+              static_cast<voffset_t>(buf.size() - table));
+  return buf;
+}
+
+// `buf` with `field` absent from the root table.
+static std::vector<uint8_t> WithFieldAbsent(std::vector<uint8_t> buf,
+                                            const voffset_t field) {
+  WriteScalar<voffset_t>(buf.data() + RootVTableEntry(buf, field), 0);
+  return buf;
+}
+
+// `buf` with `offset` in the root table's slot for `field`.
+static std::vector<uint8_t> WithOffset(std::vector<uint8_t> buf,
+                                       const voffset_t field,
+                                       const uoffset_t offset) {
+  const uint8_t* const slot = GetAnyRoot(buf.data())->GetAddressOf(field);
+  TEST_NOTNULL(slot);
+  WriteScalar(buf.data() + (slot - buf.data()), offset);
+  return buf;
+}
+
+// Expects the generated and the reflection verifier both to reject `buf`, and
+// names it by `what` if one does not. Each verifies it where it is, on the
+// heap, so a sanitizer build reports a read past its end, and again before a
+// guard page.
+template <typename G, typename R>
+static void TestRejected(G generated, R reflected,
+                         const std::vector<uint8_t>& buf,
+                         const std::string& what) {
+  const bool generated_accepts = generated(buf.data(), buf.size()) ||
+                                 VerifyBeforeGuardPage(buf, generated);
+  const bool reflected_accepts = reflected(buf.data(), buf.size()) ||
+                                 VerifyBeforeGuardPage(buf, reflected);
+  if (generated_accepts) {
+    TEST_OUTPUT_LINE("Generated verifier accepts %s", what.c_str());
+  }
+  if (reflected_accepts) {
+    TEST_OUTPUT_LINE("Reflection verifier accepts %s", what.c_str());
+  }
+  TEST_EQ(generated_accepts, false);
+  TEST_EQ(reflected_accepts, false);
+}
+
+// Expects both verifiers to reject `buf` with the slot of each field set in
+// its root table, in turn, moved past its end.
+template <typename G, typename R>
+static void TestSlotsPastEnd(G generated, R reflected,
+                             const reflection::Schema& schema,
+                             const std::vector<uint8_t>& buf) {
+  const Table& root = *GetAnyRoot(buf.data());
+  for (const reflection::Field* const field : *schema.root_table()->fields()) {
+    if (!root.GetAddressOf(field->offset())) continue;
+    TestRejected(generated, reflected, WithSlotPastEnd(buf, field->offset()),
+                 field->name()->str() + " with its slot past the end");
+  }
+}
+
+// The generated verifier calls VerifyOffset(), or VerifyOffsetRequired(), on
+// the slot of every string, vector, table and union field before it reads the
+// offset there. That is what bounds the slot by the buffer, as the vtable can
+// put a field anywhere in the 64KiB past its table. It also rejects an offset
+// of 0, which points a field at its own slot, and one that is negative read
+// as signed. The reflection verifier must reject the same buffers, without
+// reading a slot it has not checked.
+void ReflectionVerifyOffsetFieldsTest() {
+  Verifier schema_verifier(Monster::BinarySchema::data(),
+                           Monster::BinarySchema::size());
+  TEST_EQ(reflection::VerifySchemaBuffer(schema_verifier), true);
+  const reflection::Schema& schema =
+      *reflection::GetSchema(Monster::BinarySchema::data());
+  // `name` is the key, which makes it required.
+  TEST_EQ(schema.root_table()->fields()->LookupByKey("name")->required(), true);
+
+  const auto generated = [](const uint8_t* buf, size_t length) -> bool {
+    Verifier verifier(buf, length);
+    return VerifyMonsterBuffer(verifier);
+  };
+  const auto reflected = [&schema](const uint8_t* buf, size_t length) -> bool {
+    return flatbuffers::Verify(schema, *schema.root_table(), buf, length);
+  };
+
+  // A string, a vector, two tables and a union holding a table. testempty and
+  // the union's table have no required field, so an offset of 0, which puts
+  // an empty table on the slot, is rejected only for being 0. enemy's
+  // required name rejects it too.
+  MonsterT monster;
+  monster.name = "Wilma";
+  monster.inventory = {1, 2, 3};
+  monster.enemy.reset(new MonsterT());
+  monster.enemy->name = "Fred";
+  monster.testempty.reset(new StatT());
+  monster.test.Set(TestSimpleTableWithEnumT());
+  FlatBufferBuilder fbb;
+  FinishMonsterBuffer(fbb, Monster::Pack(fbb, &monster));
+  const std::vector<uint8_t> buf(fbb.GetBufferPointer(),
+                                 fbb.GetBufferPointer() + fbb.GetSize());
+  // MonsterT's operator== is never true, as its nan_default field is unequal
+  // to itself, so compare the fields set here.
+  const std::unique_ptr<MonsterT> unpacked(GetMonster(buf.data())->UnPack());
+  TEST_EQ_STR(unpacked->name.c_str(), "Wilma");
+  TEST_ASSERT(unpacked->inventory == monster.inventory);
+  TEST_EQ_STR(unpacked->enemy->name.c_str(), "Fred");
+  TEST_NOTNULL(unpacked->testempty.get());
+  TEST_ASSERT(unpacked->test.type == Any_TestSimpleTableWithEnum);
+  TEST_EQ(generated(buf.data(), buf.size()), true);
+  TEST_EQ(reflected(buf.data(), buf.size()), true);
+  TEST_EQ(VerifyBeforeGuardPage(buf, reflected), true);
+
+  // Among them `test_type`, the union's type, which the union field reads: it
+  // sorts after `test`.
+  TestSlotsPastEnd(generated, reflected, schema, buf);
+
+  TestRejected(generated, reflected, WithFieldAbsent(buf, Monster::VT_NAME),
+               "a Monster without its required name");
+
+  // Each offset field set above with an offset of 0.
+  const Table& root = *GetAnyRoot(buf.data());
+  size_t offset_fields = 0;
+  for (const reflection::Field* const field : *schema.root_table()->fields()) {
+    const reflection::BaseType type = field->type()->base_type();
+    const bool is_offset =
+        type == reflection::String || type == reflection::Vector ||
+        type == reflection::Union ||
+        (type == reflection::Obj &&
+         !schema.objects()->Get(field->type()->index())->is_struct());
+    if (!is_offset || !root.GetAddressOf(field->offset())) continue;
+    offset_fields++;
+    TestRejected(generated, reflected, WithOffset(buf, field->offset(), 0),
+                 field->name()->str() + " with an offset of 0");
+  }
+  // name, inventory, enemy, testempty and test.
+  TEST_EQ(offset_fields, 5);
+}
+
+// A table with no fields set satisfies only a type without a required field,
+// whatever the kind of the required field, as the generated
+// VerifyOffsetRequired() and VerifyFieldRequired() have it. A deprecated field
+// does not count: the generated builder and verifier both skip it.
+// DeprecatedRequiredStruct, -Structs and -Table hold one kind each, so a
+// failure names the path.
+void ReflectionVerifyRequiredOffsetFieldsTest() {
+  Parser parser;
+  TEST_EQ(parser.Parse("struct Leaf { a:int; }"
+                       "table Child { a:int; }"
+                       "union Choice { Child }"
+                       "table Optional {"
+                       "  s:string;"
+                       "  v:[int];"
+                       "  structs:[Leaf];"
+                       "  t:Child;"
+                       "  u:Choice;"
+                       "  uv:[Choice];"
+                       "}"
+                       "table RequiredString { s:string (required); }"
+                       "table RequiredVector { v:[int] (required); }"
+                       "table RequiredStruct { st:Leaf (required); }"
+                       "table RequiredStructs { v:[Leaf] (required); }"
+                       "table RequiredTable { t:Child (required); }"
+                       "table RequiredUnion { u:Choice (required); }"
+                       "table RequiredUnionVector { u:[Choice] (required); }"
+                       "table DeprecatedRequired {"
+                       "  s:string (required, deprecated);"
+                       "  v:[int] (required, deprecated);"
+                       "  u:Choice (required, deprecated);"
+                       "  uv:[Choice] (required, deprecated);"
+                       "  x:int;"
+                       "}"
+                       "table DeprecatedRequiredStruct {"
+                       "  st:Leaf (required, deprecated);"
+                       "}"
+                       "table DeprecatedRequiredStructs {"
+                       "  v:[Leaf] (required, deprecated);"
+                       "}"
+                       "table DeprecatedRequiredTable {"
+                       "  t:Child (required, deprecated);"
+                       "}"),
+          true);
+  parser.Serialize();
+  const reflection::Schema& schema =
+      *reflection::GetSchema(parser.builder_.GetBufferPointer());
+
+  FlatBufferBuilder fbb;
+  fbb.Finish(Offset<Table>(fbb.EndTable(fbb.StartTable())));
+
+  for (const reflection::Object* const obj : *schema.objects()) {
+    if (obj->is_struct()) continue;
+    bool has_required = false;
+    for (const reflection::Field* const field : *obj->fields()) {
+      has_required =
+          has_required || (field->required() && !field->deprecated());
+    }
+    const bool verified = flatbuffers::Verify(
+        schema, *obj, fbb.GetBufferPointer(), fbb.GetSize());
+    if (verified == has_required) {
+      TEST_OUTPUT_LINE("An empty table %s %s",
+                       verified ? "verifies as" : "fails",
+                       obj->name()->c_str());
+    }
+    TEST_EQ(verified, !has_required);
+  }
+
+  // A deprecated field that is present is still verified, as reflection can
+  // still read it: here, a table field with its slot past the end.
+  const reflection::Object& deprecated_table =
+      *schema.objects()->LookupByKey("DeprecatedRequiredTable");
+  const voffset_t t = deprecated_table.fields()->LookupByKey("t")->offset();
+  FlatBufferBuilder present;
+  const Offset<Table> child(present.EndTable(present.StartTable()));
+  const uoffset_t start = present.StartTable();
+  present.AddOffset(t, child);
+  present.Finish(Offset<Table>(present.EndTable(start)));
+  const std::vector<uint8_t> with_t(
+      present.GetBufferPointer(),
+      present.GetBufferPointer() + present.GetSize());
+  TEST_EQ(flatbuffers::Verify(schema, deprecated_table, with_t.data(),
+                              with_t.size()),
+          true);
+  const std::vector<uint8_t> past_end = WithSlotPastEnd(with_t, t);
+  TEST_EQ(flatbuffers::Verify(schema, deprecated_table, past_end.data(),
+                              past_end.size()),
+          false);
+}
+
+// The reflection verifier visits a table's fields sorted by name, so it
+// reaches a union, or a vector of unions, before its `<name>_type` field. It
+// must check that slot before reading the types from it, as the generated
+// verifier does by verifying the type field first.
+void ReflectionVerifyUnionTypeSlotsTest(const std::string& tests_data_path) {
+  std::string schemafile;
+  TEST_EQ(flatbuffers::LoadFile(
+              (tests_data_path + "union_vector/union_vector.fbs").c_str(),
+              false, &schemafile),
+          true);
+  // The schema's unions of structs and strings need a language to generate.
+  IDLOptions idl_opts;
+  idl_opts.lang_to_generate |= IDLOptions::kBinary;
+  Parser parser(idl_opts);
+  TEST_EQ(parser.Parse(schemafile.c_str()), true);
+  parser.Serialize();
+  const reflection::Schema& schema =
+      *reflection::GetSchema(parser.builder_.GetBufferPointer());
+
+  const auto generated = [](const uint8_t* buf, size_t length) -> bool {
+    Verifier verifier(buf, length);
+    return VerifyMovieBuffer(verifier);
+  };
+  const auto reflected = [&schema](const uint8_t* buf, size_t length) -> bool {
+    return flatbuffers::Verify(schema, *schema.root_table(), buf, length);
+  };
+
+  MovieT movie;
+  movie.main_character.type = Character_MuLan;
+  movie.main_character.value = new AttackerT();
+  movie.characters.resize(2);
+  movie.characters[0].type = Character_MuLan;
+  movie.characters[0].value = new AttackerT();
+  movie.characters[1].type = Character_Rapunzel;
+  movie.characters[1].value = new Rapunzel(7);
+  FlatBufferBuilder fbb;
+  FinishMovieBuffer(fbb, Movie::Pack(fbb, &movie));
+  const std::vector<uint8_t> buf(fbb.GetBufferPointer(),
+                                 fbb.GetBufferPointer() + fbb.GetSize());
+  const std::unique_ptr<MovieT> unpacked(GetMovie(buf.data())->UnPack());
+  TEST_ASSERT(*unpacked == movie);
+  TEST_EQ(generated(buf.data(), buf.size()), true);
+  TEST_EQ(reflected(buf.data(), buf.size()), true);
+  TEST_EQ(VerifyBeforeGuardPage(buf, reflected), true);
+
+  // Both type fields are set, so this moves each of their slots.
+  TEST_NOTNULL(
+      GetAnyRoot(buf.data())->GetAddressOf(Movie::VT_MAIN_CHARACTER_TYPE));
+  TEST_NOTNULL(GetAnyRoot(buf.data())->GetAddressOf(Movie::VT_CHARACTERS_TYPE));
+  TestSlotsPastEnd(generated, reflected, schema, buf);
 }
 
 // Test that ForAllFields with reverse=true iterates fields in descending
@@ -514,6 +841,45 @@ void MiniReflectFixedLengthArrayTest() {
       "}",
       s.c_str());
 #endif
+}
+
+// A union declared with an underlying type stores its types as that type:
+// `union ABC: int` makes test_union_type an int, and test_vector_of_union_type
+// a vector of ints. Mini reflection must read them, and find the members they
+// name, at that width, not as 1-byte UTypes.
+void MiniReflectUnionUnderlyingTypeTest() {
+  using namespace UnionUnderlyingType;
+  AT a;
+  a.a = 42;
+  BT b;
+  b.b = "foo";
+  CT c;
+  c.c = true;
+
+  DT single;
+  single.test_union.Set(a);
+  flatbuffers::FlatBufferBuilder single_fbb;
+  single_fbb.Finish(D::Pack(single_fbb, &single));
+  TEST_EQ_STR(flatbuffers::FlatBufferToString(single_fbb.GetBufferPointer(),
+                                              D::MiniReflectTypeTable())
+                  .c_str(),
+              "{ test_union_type: A, test_union: { a: 42 } }");
+
+  DT many;
+  many.test_union.Set(c);
+  many.test_vector_of_union.resize(3);
+  many.test_vector_of_union[0].Set(a);
+  many.test_vector_of_union[1].Set(b);
+  many.test_vector_of_union[2].Set(c);
+  flatbuffers::FlatBufferBuilder many_fbb;
+  many_fbb.Finish(D::Pack(many_fbb, &many));
+  TEST_EQ_STR(flatbuffers::FlatBufferToString(many_fbb.GetBufferPointer(),
+                                              D::MiniReflectTypeTable())
+                  .c_str(),
+              "{ test_union_type: C, test_union: { c: true }, "
+              "test_vector_of_union_type: [ A, B, C ], "
+              "test_vector_of_union: [ { a: 42 }, { b: \"foo\" }, "
+              "{ c: true } ] }");
 }
 
 }  // namespace tests

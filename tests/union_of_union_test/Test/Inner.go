@@ -3,8 +3,8 @@
 package Test
 
 import (
+	flatbuffers "github.com/google/flatbuffers/go"
 	"strconv"
-	flatbuffers "union_of_union_test/flatbuffers"
 )
 
 type Inner byte
@@ -27,11 +27,11 @@ var EnumValuesInner = map[string]Inner{
 	"TableB": InnerTableB,
 }
 
-func (v Inner) String() string {
-	if s, ok := EnumNamesInner[v]; ok {
-		return s
+func (v_ Inner) String() string {
+	if s_, ok_ := EnumNamesInner[v_]; ok_ {
+		return s_
 	}
-	return "Inner(" + strconv.FormatInt(int64(v), 10) + ")"
+	return "Inner(" + strconv.FormatInt(int64(v_), 10) + ")"
 }
 
 type InnerT struct {
@@ -39,29 +39,51 @@ type InnerT struct {
 	Value interface{}
 }
 
-func (t *InnerT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *InnerT) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	switch t.Type {
+	switch t_.Type {
 	case InnerTableA:
-		return t.Value.(*TableAT).Pack(builder)
+		return t_.Value.(*TableAT).Pack(builder_)
 	case InnerTableB:
-		return t.Value.(*TableBT).Pack(builder)
+		return t_.Value.(*TableBT).Pack(builder_)
 	}
 	return 0
 }
 
-func (rcv Inner) UnPack(table flatbuffers.Table) *InnerT {
-	switch rcv {
+func (rcv_ Inner) UnPack(table_ flatbuffers.Table) *InnerT {
+	switch rcv_ {
 	case InnerTableA:
-		var x TableA
-		x.Init(table.Bytes, table.Pos)
-		return &InnerT{Type: InnerTableA, Value: x.UnPack()}
+		var x_ TableA
+		x_.Init(table_.Bytes, table_.Pos)
+		return &InnerT{Type: InnerTableA, Value: x_.UnPack()}
 	case InnerTableB:
-		var x TableB
-		x.Init(table.Bytes, table.Pos)
-		return &InnerT{Type: InnerTableB, Value: x.UnPack()}
+		var x_ TableB
+		x_.Init(table_.Bytes, table_.Pos)
+		return &InnerT{Type: InnerTableB, Value: x_.UnPack()}
 	}
 	return nil
+}
+
+// Match dispatches to the appropriate callback based on the union variant.
+// Each callback receives the correctly typed value. If the variant is NONE
+// or unrecognized, no callback is invoked.
+func (t_ *InnerT) Match(
+	onTableA_ func(*TableAT),
+	onTableB_ func(*TableBT),
+) {
+	if t_ == nil {
+		return
+	}
+	switch t_.Type {
+	case InnerTableA:
+		if v_, ok_ := t_.Value.(*TableAT); ok_ {
+			onTableA_(v_)
+		}
+	case InnerTableB:
+		if v_, ok_ := t_.Value.(*TableBT); ok_ {
+			onTableB_(v_)
+		}
+	}
 }
