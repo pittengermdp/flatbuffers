@@ -446,12 +446,6 @@ void UninitializedVectorTest() {
 void EqualOperatorTest() {
   MonsterT a;
   MonsterT b;
-  // We have to reset the fields that are NaN to zero to allow the equality
-  // to evaluate to true.
-  TEST_EQ(std::isnan(a.nan_default), true);
-  TEST_EQ(std::isnan(b.nan_default), true);
-  a.nan_default = 0;
-  b.nan_default = 0;
   TEST_EQ(b == a, true);
   TEST_EQ(b != a, false);
 
@@ -470,14 +464,12 @@ void EqualOperatorTest() {
   TEST_EQ(b != a, false);
 
   a.enemy.reset(new MonsterT());
-  a.enemy->nan_default = 0;
   TEST_EQ(b != a, true);
   a.enemy->mana = 33;
   TEST_EQ(b == a, false);
   TEST_EQ(b != a, true);
 
   b.enemy.reset(new MonsterT());
-  b.enemy->nan_default = 0;
   TEST_EQ(b == a, false);
   TEST_EQ(b != a, true);
   b.enemy->mana = 33;
@@ -491,7 +483,6 @@ void EqualOperatorTest() {
   TEST_EQ(b == a, false);
   TEST_EQ(b != a, true);
   a.enemy.reset(new MonsterT());
-  a.enemy->nan_default = 0;
   TEST_EQ(b == a, true);
   TEST_EQ(b != a, false);
 
@@ -505,29 +496,23 @@ void EqualOperatorTest() {
   {
     // Two tables are equal by default.
     MonsterT a, b;
-    a.nan_default = 0;
-    b.nan_default = 0;
     TEST_EQ(a == b, true);
 
     // Adding only a table to one of the monster vectors should make it not
     // equal (due to size mistmatch).
     a.testarrayoftables.push_back(
         flatbuffers::unique_ptr<MonsterT>(new MonsterT));
-    a.testarrayoftables.back()->nan_default = 0;
     TEST_EQ(a == b, false);
 
     // Adding an equalivant table to the other monster vector should make it
     // equal again.
     b.testarrayoftables.push_back(
         flatbuffers::unique_ptr<MonsterT>(new MonsterT));
-    b.testarrayoftables.back()->nan_default = 0;
     TEST_EQ(a == b, true);
 
     // Create two new monsters that are different.
     auto c = flatbuffers::unique_ptr<MonsterT>(new MonsterT);
     auto d = flatbuffers::unique_ptr<MonsterT>(new MonsterT);
-    c->nan_default = 0;
-    d->nan_default = 0;
     c->hp = 1;
     d->hp = 2;
     TEST_EQ(c == d, false);
@@ -547,6 +532,84 @@ void EqualOperatorTest() {
     b.testarrayoftables.push_back(
         flatbuffers::unique_ptr<MonsterT>(new MonsterT));
     TEST_EQ(a == b, false);
+  }
+}
+
+// Generated operator== compares floats and doubles so that NaN equals NaN, so
+// an object holding a NaN, such as MonsterT's `nan_default:float = nan`,
+// equals itself.
+void EqualOperatorNanTest() {
+  const float nan_f = std::numeric_limits<float>::quiet_NaN();
+  const double nan_d = std::numeric_limits<double>::quiet_NaN();
+
+  // A default MonsterT equals itself.
+  {
+    const MonsterT a;
+    TEST_ASSERT(std::isnan(a.nan_default));
+    TEST_ASSERT(a == a);
+  }
+
+  // So does a default Monster after a Pack/UnPack round trip.
+  {
+    const MonsterT original;
+    flatbuffers::FlatBufferBuilder fbb;
+    FinishMonsterBuffer(fbb, Monster::Pack(fbb, &original));
+    MonsterT unpacked;
+    GetMonster(fbb.GetBufferPointer())->UnPackTo(&unpacked);
+    TEST_ASSERT(std::isnan(unpacked.nan_default));
+    TEST_ASSERT(unpacked == original);
+  }
+
+  // As with ==, -0.0 equals +0.0, and NaN does not equal a number.
+  {
+    MonsterT a;
+    MonsterT b;
+    a.testf = 0.0f;
+    b.testf = -0.0f;
+    TEST_ASSERT(a == b);
+    a.nan_default = 0.0f;
+    TEST_ASSERT(a != b);
+    TEST_ASSERT(b != a);
+  }
+
+  // Vectors of floats and doubles compare element by element.
+  {
+    MonsterT a;
+    MonsterT b;
+    a.vector_of_doubles = {1.0, nan_d, 0.0};
+    b.vector_of_doubles = {1.0, nan_d, -0.0};
+    TEST_ASSERT(a == b);
+    b.vector_of_doubles.back() = nan_d;
+    TEST_ASSERT(a != b);
+    b.vector_of_doubles.pop_back();
+    TEST_ASSERT(a != b);
+  }
+
+  // Struct members compare the same way, through their accessors.
+  {
+    const Vec3 v(nan_f, 1.0f, -0.0f, nan_d, Color_Red, Test(1, 2));
+    TEST_ASSERT(v == v);
+    TEST_ASSERT(v == Vec3(nan_f, 1.0f, 0.0f, nan_d, Color_Red, Test(1, 2)));
+    TEST_ASSERT(v != Vec3(nan_f, 1.0f, 0.0f, 0.0, Color_Red, Test(1, 2)));
+  }
+
+  // Map values are looked up by key and compared the same way.
+  {
+    MapSetTest::ConfigT a;
+    MapSetTest::ConfigT b;
+    a.color_scores[MapSetTest::Color_Red] = nan_f;
+    a.color_scores[MapSetTest::Color_Blue] = 0.0f;
+    b.color_scores[MapSetTest::Color_Blue] = -0.0f;
+    b.color_scores[MapSetTest::Color_Red] = nan_f;
+    TEST_ASSERT(a == a);
+    TEST_ASSERT(a == b);
+    b.color_scores[MapSetTest::Color_Red] = 0.5f;
+    TEST_ASSERT(a != b);
+    b.color_scores.erase(MapSetTest::Color_Red);
+    b.color_scores[MapSetTest::Color_Green] = nan_f;
+    TEST_ASSERT(a != b);
+    b.color_scores.erase(MapSetTest::Color_Green);
+    TEST_ASSERT(a != b);
   }
 }
 
@@ -2289,6 +2352,7 @@ int FlatBufferTests(const std::string& tests_data_path) {
   FlexBuffersDeprecatedTest();
   UninitializedVectorTest();
   EqualOperatorTest();
+  EqualOperatorNanTest();
   NumericUtilsTest();
   IsAsciiUtilsTest();
   ValidFloatTest();
