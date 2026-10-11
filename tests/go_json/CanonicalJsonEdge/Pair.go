@@ -132,10 +132,10 @@ func (rcv_ *Pair) MutateB(n_ int32) bool {
 	return rcv_._tab.MutateInt32(rcv_._tab.Pos+flatbuffers.UOffsetT(4), n_)
 }
 
-func CreatePair(builder_ *flatbuffers.Builder, a_ byte, b_ int32) flatbuffers.UOffsetT {
+func CreatePair(builder_ *flatbuffers.Builder, aArg_ byte, bArg_ int32) flatbuffers.UOffsetT {
 	builder_.Prep(4, 8)
-	builder_.PrependInt32(b_)
+	builder_.PrependInt32(bArg_)
 	builder_.Pad(3)
-	builder_.PrependByte(a_)
+	builder_.PrependByte(aArg_)
 	return builder_.Offset()
 }

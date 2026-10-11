@@ -115,16 +115,11 @@ impl ::flatbuffers::SimpleToVerifyInSlice for FieldUnion {}
 pub struct FieldUnionUnionTableOffset {}
 
 #[allow(clippy::upper_case_acronyms)]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Default, Eq, Hash)]
 pub enum FieldUnionT {
+    #[default]
     NONE,
     F(Box<FieldTableT>),
-}
-
-impl Default for FieldUnionT {
-    fn default() -> Self {
-        Self::NONE
-    }
 }
 
 impl FieldUnionT {

@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#![allow(clippy::wrong_self_convention)]
 
 use core::mem::size_of;
 

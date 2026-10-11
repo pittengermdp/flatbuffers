@@ -88,9 +88,11 @@ impl_bitwidth_from!(u64, u64, u32, u16, u8);
 impl_bitwidth_from!(usize, u64, u32, u16, u8);
 impl_bitwidth_from!(i64, i64, i32, i16, i8);
 
-#[allow(clippy::float_cmp)]
 impl From<f64> for BitWidth {
     fn from(x: f64) -> BitWidth {
+        // Exact on purpose, like C++ `WidthF`: 32 bits only when the value
+        // survives the f32 round trip unchanged. NaN never equals itself, so
+        // it stays 64 bits. See tests/float_width.rs.
         if x != x as f32 as f64 {
             W64
         } else {

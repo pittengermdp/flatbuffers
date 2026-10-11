@@ -365,15 +365,12 @@ pub fn store_vector(buffer: &mut Vec<u8>, values: &[Value], opt: StoreOption) ->
         width = max(width, val.width_in_vector(buffer.len(), i + prefix_length));
     }
     align(buffer, width);
-    #[allow(deprecated)]
-    {
-        debug_assert_ne!(
-            result.fxb_type(),
-            FlexBufferType::VectorString,
-            "VectorString is deprecated and cannot be written.\
-             (https://github.com/google/flatbuffers/issues/5627)"
-        );
-    }
+    debug_assert_ne!(
+        result.fxb_type(),
+        FlexBufferType::VectorString,
+        "VectorString is deprecated and cannot be written.\
+         (https://github.com/google/flatbuffers/issues/5627)"
+    );
     // Write Prefix.
     if let StoreOption::Map(keys) = opt {
         let key_width = Value::UInt(keys.width_or_child_width().n_bytes() as u64);

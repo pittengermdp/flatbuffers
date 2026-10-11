@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#![allow(deprecated)]
+
 /// Represents all the valid types in a flexbuffer.
 ///
 /// Flexbuffers supports
@@ -72,10 +72,11 @@ pub enum FlexBufferType {
     VectorFloat = 13,
     /// Homogenous Vector of Keys.
     VectorKey = 14,
-    /// Homogenous Vector of Strings.
-    #[deprecated(
-        note = "Please use Vector or VectorKey instead. See https://github.com/google/flatbuffers/issues/5627"
-    )]
+    /// Homogenous Vector of Strings. Deprecated in the format and never written;
+    /// old data is read as a vector of keys. Use `Vector` or `VectorKey`. See
+    /// <https://github.com/google/flatbuffers/issues/5627>.
+    // Not `#[deprecated]`: no public API writes a `FlexBufferType`, so it could
+    // only warn readers, and an exhaustive match has to name this variant.
     VectorString = 15,
     /// Since the elements of a vector use the same `BitWidth` as the length,
     /// Blob is more efficient for >255 element boolean vectors.
@@ -123,10 +124,7 @@ macro_rules! is_ty {
 impl FlexBufferType {
     /// Returns true for flexbuffer types that are stored inline.
     pub fn is_inline(self) -> bool {
-        match self {
-            Null | Int | UInt | Float | Bool => true,
-            _ => false,
-        }
+        matches!(self, Null | Int | UInt | Float | Bool)
     }
     /// Returns true for flexbuffer types that are stored by offset.
     pub fn is_reference(self) -> bool {

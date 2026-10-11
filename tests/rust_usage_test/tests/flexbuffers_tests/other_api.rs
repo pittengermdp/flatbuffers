@@ -165,7 +165,12 @@ fn get_root_deref_oob() {
 }
 #[test]
 fn get_root_deref_u64() {
-    let s = &[0, 0, (FlexBufferType::IndirectUInt as u8) << 2 | BitWidth::W64 as u8, 1];
+    let s = &[
+        0,
+        0,
+        (FlexBufferType::IndirectUInt as u8) << 2 | BitWidth::W64 as u8,
+        1,
+    ];
     // The risk of crashing is reading 8 bytes from index 0.
     assert_eq!(Reader::get_root(s.as_ref()).unwrap().as_u64(), 0);
 }
