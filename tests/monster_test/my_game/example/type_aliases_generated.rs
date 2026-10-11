@@ -98,8 +98,8 @@ impl<'a> TypeAliases<'a> {
         let u32_ = self.u32_();
         let i64_ = self.i64_();
         let u64_ = self.u64_();
-        let f32_ = self.f32_().into();
-        let f64_ = self.f64_().into();
+        let f32_ = self.f32_();
+        let f64_ = self.f64_();
         let v8 = self.v8().map(|x| x.into_iter().collect());
         let vf64 = self.vf64().map(|x| x.into_iter().collect());
         TypeAliasesT {

@@ -32,6 +32,14 @@ static void CopyInline(FlatBufferBuilder& fbb,
   fbb.TrackField(fielddef.offset(), fbb.GetSize());
 }
 
+// Whether a field must be present. A deprecated field need not be, even if it
+// is marked required: the generated builder does not require it, and the
+// generated verifier skips it. One that is present is still verified, as
+// reflection can still read it.
+static bool IsRequired(const reflection::Field& field) {
+  return field.required() && !field.deprecated();
+}
+
 static bool VerifyStruct(flatbuffers::Verifier& v,
                          const flatbuffers::Table& parent_table,
                          voffset_t field_offset, const reflection::Object& obj,
@@ -46,17 +54,116 @@ static bool VerifyStruct(flatbuffers::Verifier& v,
                              offset, obj.bytesize(), obj.minalign());
 }
 
+template <typename OffsetT = uoffset_t, typename LenT = uoffset_t>
 static bool VerifyVectorOfStructs(flatbuffers::Verifier& v,
                                   const flatbuffers::Table& parent_table,
                                   voffset_t field_offset,
                                   const reflection::Object& obj,
                                   bool required) {
-  auto p = parent_table.GetPointer<const uint8_t*>(field_offset);
+  auto p = parent_table.GetPointer<const uint8_t*, OffsetT>(field_offset);
   if (required && !p) {
     return false;
   }
 
-  return !p || v.VerifyVectorOrString(p, obj.bytesize());
+  return !p || v.VerifyVectorOrString<LenT>(p, obj.bytesize());
+}
+
+// Verifies the 32-bit offset in a field's slot, which must be present if
+// IsRequired(), as the generated VerifyOffset() and
+// VerifyOffsetRequired() do. Call it before reading the slot: only this bounds
+// the slot by the buffer, since a vtable can put a field anywhere in the 64KiB
+// past its table. It also rejects an offset of 0, which points the field at
+// its own slot, one that is negative read as signed, and one that leads out of
+// the buffer.
+static bool VerifyOffset32Field(flatbuffers::Verifier& v,
+                                const flatbuffers::Table& table,
+                                const reflection::Field& field) {
+  return IsRequired(field) ? table.VerifyOffsetRequired(v, field.offset())
+                           : table.VerifyOffset(v, field.offset());
+}
+
+// Verifies the 64-bit offset in a field's slot, which must be present if
+// IsRequired(), as the generated VerifyOffset64Required() does.
+static bool VerifyOffset64Field(flatbuffers::Verifier& v,
+                                const flatbuffers::Table& table,
+                                const reflection::Field& field) {
+  return IsRequired(field) ? table.VerifyOffset64Required(v, field.offset())
+                           : table.VerifyOffset64(v, field.offset());
+}
+
+// Verifies a vector of T reached through a 64-bit offset, with the same
+// Verifier::VerifyVector() call -- and so the same element alignment -- as
+// the generated verifier.
+template <typename T, typename LenT>
+static bool VerifyOffset64VectorOf(flatbuffers::Verifier& v,
+                                   const flatbuffers::Table& table,
+                                   const reflection::Field& vec_field) {
+  return v.VerifyVector(
+      table.GetPointer64<const Vector<T, LenT>*>(vec_field.offset()));
+}
+
+// Verifies a vector reached through a 64-bit offset. A `(vector64)` field also
+// has a 64-bit length (LenT = uoffset64_t); an `(offset64)` one keeps a 32-bit
+// length. The parser only allows scalar and struct elements in either.
+template <typename LenT>
+static bool VerifyOffset64Vector(flatbuffers::Verifier& v,
+                                 const reflection::Schema& schema,
+                                 const flatbuffers::Table& table,
+                                 const reflection::Field& vec_field) {
+  if (!VerifyOffset64Field(v, table, vec_field)) return false;
+
+  switch (vec_field.type()->element()) {
+    case reflection::UType:
+    case reflection::Bool:
+    case reflection::Byte:
+    case reflection::UByte:
+      return VerifyOffset64VectorOf<uint8_t, LenT>(v, table, vec_field);
+    case reflection::Short:
+    case reflection::UShort:
+      return VerifyOffset64VectorOf<int16_t, LenT>(v, table, vec_field);
+    case reflection::Int:
+    case reflection::UInt:
+      return VerifyOffset64VectorOf<int32_t, LenT>(v, table, vec_field);
+    case reflection::Long:
+    case reflection::ULong:
+      return VerifyOffset64VectorOf<int64_t, LenT>(v, table, vec_field);
+    case reflection::Float:
+      return VerifyOffset64VectorOf<float, LenT>(v, table, vec_field);
+    case reflection::Double:
+      return VerifyOffset64VectorOf<double, LenT>(v, table, vec_field);
+    case reflection::Obj: {
+      auto obj = schema.objects()->Get(vec_field.type()->index());
+      return obj->is_struct() &&
+             VerifyVectorOfStructs<uoffset64_t, LenT>(
+                 v, table, vec_field.offset(), *obj, IsRequired(vec_field));
+    }
+    default:
+      return false;
+  }
+}
+
+// Verifies the `_type` field of a union, which is as wide as the union's
+// underlying type, `underlying`: 1 byte by default, but 4 for `union U: int`.
+static bool VerifyUnionTypeField(flatbuffers::Verifier& v,
+                                 const flatbuffers::Table& table,
+                                 voffset_t field_offset,
+                                 reflection::BaseType underlying) {
+  auto offset = table.GetOptionalFieldOffset(field_offset);
+  auto size = GetTypeSize(underlying);
+  return !offset ||
+         v.VerifyFieldStruct(reinterpret_cast<const uint8_t*>(&table), offset,
+                             size, size);
+}
+
+// Verifies the `_type` vector of a vector of unions, whose elements are as
+// wide as the union's underlying type, `underlying`.
+static bool VerifyUnionTypeVector(flatbuffers::Verifier& v,
+                                  const VectorOfAny* types,
+                                  reflection::BaseType underlying) {
+  auto size = GetTypeSize(underlying);
+  return !types ||
+         v.VerifyVectorOrString(reinterpret_cast<const uint8_t*>(types), size,
+                                nullptr, size);
 }
 
 // forward declare to resolve cyclic deps between VerifyObject and VerifyVector
@@ -66,13 +173,19 @@ static bool VerifyObject(flatbuffers::Verifier& v,
                          const flatbuffers::Table* table, bool required);
 
 static bool VerifyUnion(flatbuffers::Verifier& v,
-                        const reflection::Schema& schema, uint8_t utype,
+                        const reflection::Schema& schema, int64_t utype,
                         const uint8_t* elem,
                         const reflection::Field& union_field) {
   if (!utype) return true;  // Not present.
   auto fb_enum = schema.enums()->Get(union_field.type()->index());
-  if (utype >= fb_enum->values()->size()) return false;
-  auto elem_type = fb_enum->values()->Get(utype)->union_type();
+  // Members are keyed by value, which need not be their position in values():
+  // in `union U { A = 1, B = 3 }`, B is values()[2]. A type naming no member is
+  // rejected, unlike the generated verifiers, which accept it for forward
+  // compatibility: its value cannot be checked against this schema, and
+  // GetUnionType() would dereference the missing member.
+  auto enum_val = fb_enum->values()->LookupByKey(utype);
+  if (!enum_val) return false;
+  auto elem_type = enum_val->union_type();
   switch (elem_type->base_type()) {
     case reflection::Obj: {
       auto elem_obj = schema.objects()->Get(elem_type->index());
@@ -91,17 +204,35 @@ static bool VerifyUnion(flatbuffers::Verifier& v,
   }
 }
 
+static bool VerifyString(flatbuffers::Verifier& v,
+                         const flatbuffers::Table& table,
+                         const reflection::Field& str_field) {
+  if (str_field.offset64()) {
+    return VerifyOffset64Field(v, table, str_field) &&
+           v.VerifyString(
+               table.GetPointer64<const String*>(str_field.offset()));
+  }
+  return VerifyOffset32Field(v, table, str_field) &&
+         v.VerifyString(flatbuffers::GetFieldS(table, str_field));
+}
+
 static bool VerifyVector(flatbuffers::Verifier& v,
                          const reflection::Schema& schema,
                          const flatbuffers::Table& table,
                          const reflection::Field& vec_field) {
+  if (vec_field.type()->base_type() == reflection::Vector64) {
+    return VerifyOffset64Vector<uoffset64_t>(v, schema, table, vec_field);
+  }
   FLATBUFFERS_ASSERT(vec_field.type()->base_type() == reflection::Vector);
-  if (!table.VerifyField<uoffset_t>(v, vec_field.offset(), sizeof(uoffset_t)))
-    return false;
+  if (vec_field.offset64()) {
+    return VerifyOffset64Vector<uoffset_t>(v, schema, table, vec_field);
+  }
+  if (!VerifyOffset32Field(v, table, vec_field)) return false;
 
   switch (vec_field.type()->element()) {
     case reflection::UType:
-      return v.VerifyVector(flatbuffers::GetFieldV<uint8_t>(table, vec_field));
+      return VerifyUnionTypeVector(v, GetFieldAnyV(table, vec_field),
+                                   GetUnionUnderlyingType(schema, vec_field));
     case reflection::Bool:
     case reflection::Byte:
     case reflection::UByte:
@@ -133,7 +264,7 @@ static bool VerifyVector(flatbuffers::Verifier& v,
       auto obj = schema.objects()->Get(vec_field.type()->index());
       if (obj->is_struct()) {
         return VerifyVectorOfStructs(v, table, vec_field.offset(), *obj,
-                                     vec_field.required());
+                                     IsRequired(vec_field));
       } else {
         auto vec =
             flatbuffers::GetFieldV<flatbuffers::Offset<flatbuffers::Table>>(
@@ -149,17 +280,30 @@ static bool VerifyVector(flatbuffers::Verifier& v,
       }
     }
     case reflection::Union: {
+      // The types are in the `<name>_type` field before this one, which sorts
+      // after it by name and so is not verified yet.
+      if (!table.VerifyField<uoffset_t>(
+              v, vec_field.offset() - sizeof(voffset_t), sizeof(uoffset_t)))
+        return false;
       auto vec = flatbuffers::GetFieldV<flatbuffers::Offset<uint8_t>>(
           table, vec_field);
       if (!v.VerifyVector(vec)) return false;
       if (!vec) return true;
-      auto type_vec = table.GetPointer<Vector<uint8_t>*>(vec_field.offset() -
-                                                         sizeof(voffset_t));
-      if (!v.VerifyVector(type_vec)) return false;
+      // The types are in the field before this one, `<name>_type`, which
+      // sorts after it by name and so is not verified yet.
+      if (!table.VerifyOffset(v, vec_field.offset() - sizeof(voffset_t)))
+        return false;
+      auto underlying = GetUnionUnderlyingType(schema, vec_field);
+      auto type_vec = table.GetPointer<const VectorOfAny*>(vec_field.offset() -
+                                                           sizeof(voffset_t));
+      // VerifyUnionTypeVector(nullptr) succeeds, but values without types do
+      // not.
+      if (!type_vec || !VerifyUnionTypeVector(v, type_vec, underlying))
+        return false;
       if (type_vec->size() != vec->size()) return false;
       for (uoffset_t j = 0; j < vec->size(); j++) {
         //  get union type from the prev field
-        auto utype = type_vec->Get(j);
+        auto utype = GetAnyVectorElemI(type_vec, underlying, j);
         auto elem = vec->Get(j);
         if (!VerifyUnion(v, schema, utype, elem, vec_field)) return false;
       }
@@ -182,12 +326,9 @@ static bool VerifyObject(flatbuffers::Verifier& v,
   for (uoffset_t i = 0; i < obj.fields()->size(); i++) {
     auto field_def = obj.fields()->Get(i);
     switch (field_def->type()->base_type()) {
-      case reflection::None:
-        FLATBUFFERS_ASSERT(false);
-        break;
       case reflection::UType:
-        if (!table->VerifyField<uint8_t>(v, field_def->offset(),
-                                         sizeof(uint8_t)))
+        if (!VerifyUnionTypeField(v, *table, field_def->offset(),
+                                  GetUnionUnderlyingType(schema, *field_def)))
           return false;
         break;
       case reflection::Bool:
@@ -223,35 +364,44 @@ static bool VerifyObject(flatbuffers::Verifier& v,
           return false;
         break;
       case reflection::String:
-        if (!table->VerifyField<uoffset_t>(v, field_def->offset(),
-                                           sizeof(uoffset_t)) ||
-            !v.VerifyString(flatbuffers::GetFieldS(*table, *field_def))) {
-          return false;
-        }
+        if (!VerifyString(v, *table, *field_def)) return false;
         break;
       case reflection::Vector:
+      case reflection::Vector64:
         if (!VerifyVector(v, schema, *table, *field_def)) return false;
         break;
       case reflection::Obj: {
         auto child_obj = schema.objects()->Get(field_def->type()->index());
         if (child_obj->is_struct()) {
           if (!VerifyStruct(v, *table, field_def->offset(), *child_obj,
-                            field_def->required())) {
+                            IsRequired(*field_def))) {
             return false;
           }
         } else {
-          if (!VerifyObject(v, schema, *child_obj,
+          if (!VerifyOffset32Field(v, *table, *field_def) ||
+              !VerifyObject(v, schema, *child_obj,
                             flatbuffers::GetFieldT(*table, *field_def),
-                            field_def->required())) {
+                            IsRequired(*field_def))) {
             return false;
           }
         }
         break;
       }
       case reflection::Union: {
+        if (!table->VerifyField<uoffset_t>(v, field_def->offset(),
+                                           sizeof(uoffset_t)))
+          return false;
         //  get union type from the prev field
         voffset_t utype_offset = field_def->offset() - sizeof(voffset_t);
-        auto utype = table->GetField<uint8_t>(utype_offset, 0);
+        // That field, `<name>_type`, sorts after this one by name and so is
+        // not verified yet.
+        auto underlying = GetUnionUnderlyingType(schema, *field_def);
+        if (!VerifyUnionTypeField(v, *table, utype_offset, underlying) ||
+            !VerifyOffset32Field(v, *table, *field_def)) {
+          return false;
+        }
+        auto utype_ptr = table->GetAddressOf(utype_offset);
+        auto utype = utype_ptr ? GetAnyValueI(underlying, utype_ptr) : 0;
         auto uval = reinterpret_cast<const uint8_t*>(
             flatbuffers::GetFieldT(*table, *field_def));
         if (!VerifyUnion(v, schema, utype, uval, *field_def)) {
@@ -259,9 +409,12 @@ static bool VerifyObject(flatbuffers::Verifier& v,
         }
         break;
       }
+      case reflection::None:
       default:
-        FLATBUFFERS_ASSERT(false);
-        break;
+        // None is never a field type, and one this verifier does not know,
+        // e.g. from a newer schema, cannot be verified: reject either in every
+        // build type rather than skip the field.
+        return false;
     }
   }
 
@@ -324,6 +477,15 @@ double GetAnyValueF(reflection::BaseType type, const uint8_t* data) {
 std::string GetAnyValueS(reflection::BaseType type, const uint8_t* data,
                          const reflection::Schema* schema, int type_index) {
   switch (type) {
+    case reflection::UType:
+      // A union's type is stored as the union's underlying type, a UType only
+      // by default; `type_index` is the union's enum.
+      if (schema && type_index >= 0) {
+        auto union_def =
+            schema->enums()->Get(static_cast<uoffset_t>(type_index));
+        type = union_def->underlying_type()->base_type();
+      }
+      return NumToString(GetAnyValueI(type, data));
     case reflection::Float:
     case reflection::Double:
       return NumToString(GetAnyValueF(type, data));
@@ -450,7 +612,8 @@ void SetAnyValueS(reflection::BaseType type, uint8_t* data, const char* val) {
 // Resize a FlatBuffer in-place by iterating through all offsets in the buffer
 // and adjusting them by "delta" if they straddle the start offset.
 // Once that is done, bytes can now be inserted/deleted safely.
-// "delta" may be negative (shrinking).
+// "delta" may be negative (shrinking), in which case the bytes removed are
+// the ones that end at "start", not the ones that begin there.
 // Unless "delta" is a multiple of the largest alignment, you'll create a small
 // amount of garbage space in the buffer (usually 0..7 bytes).
 // If your FlatBuffer's root table is not the schema's root table, you should
@@ -599,13 +762,18 @@ void SetString(const reflection::Schema& schema, const std::string& val,
   if (delta) {
     // Clear the old string, since we don't want parts of it remaining.
     memset(flatbuf->data() + start, 0, str->size());
-    // Different size, we must expand (or contract).
-    ResizeContext ctx(schema, start, delta, flatbuf, root_table);
+    // Different size, we must expand (or contract). Resize at the end of the
+    // old characters, as ResizeAnyVector does at the end of the elements: a
+    // shrink removes the bytes before the resize point, which must be the tail
+    // of the old string, not its length field and whatever precedes it.
+    ResizeContext ctx(schema, start + str->size(), delta, flatbuf, root_table);
     // Set the new length.
     WriteScalar(flatbuf->data() + str_start,
                 static_cast<uoffset_t>(val.size()));
   }
-  // Copy new data. Safe because we created the right amount of space.
+  // Copy new data. Safe because we created the right amount of space:
+  // ResizeContext rounds a shrink toward zero, so it never removes more than
+  // the old string had to spare.
   memcpy(flatbuf->data() + start, val.c_str(), val.size() + 1);
 }
 
@@ -738,7 +906,11 @@ Offset<const Table*> CopyTable(FlatBufferBuilder& fbb,
           }
             FLATBUFFERS_FALLTHROUGH();  // fall thru
           default: {                    // Scalars and structs.
-            auto element_size = GetTypeSize(element_base_type);
+            // A union's types are as wide as its underlying type.
+            auto element_size =
+                GetTypeSize(element_base_type == reflection::UType
+                                ? GetUnionUnderlyingType(schema, fielddef)
+                                : element_base_type);
             auto element_alignment = element_size;  // For primitive elements
             if (elemobjectdef && elemobjectdef->is_struct())
               element_size = elemobjectdef->bytesize();
@@ -781,7 +953,10 @@ Offset<const Table*> CopyTable(FlatBufferBuilder& fbb,
         fbb.AddOffset(fielddef.offset(), Offset<void>(offsets[offset_idx++]));
         break;
       default: {  // Scalars.
-        auto size = GetTypeSize(base_type);
+        // A union's type is as wide as its underlying type.
+        auto size = GetTypeSize(base_type == reflection::UType
+                                    ? GetUnionUnderlyingType(schema, fielddef)
+                                    : base_type);
         CopyInline(fbb, fielddef, table, size, size);
         break;
       }
@@ -796,21 +971,69 @@ Offset<const Table*> CopyTable(FlatBufferBuilder& fbb,
   }
 }
 
+// Verifies the flatbuffer that starts `start` bytes into the buffer, as the
+// generated VerifyBufferFromStart() does, with the schema's root in place of
+// a generated T::Verify().
+static bool VerifyRoot(Verifier& v, const reflection::Schema& schema,
+                       const reflection::Object& root, const uint8_t* const buf,
+                       const size_t start) {
+  const size_t root_table = v.VerifyBufferStart(nullptr, start);
+  return root_table != 0 &&
+         VerifyObject(v, schema, root,
+                      reinterpret_cast<const Table*>(buf + root_table),
+                      /*required=*/true);
+}
+
+static Verifier::Options MakeOptions(const uoffset_t max_depth,
+                                     const uoffset_t max_tables) {
+  Verifier::Options opts;
+  opts.max_depth = max_depth;
+  opts.max_tables = max_tables;
+  return opts;
+}
+
+bool Verify(const reflection::Schema& schema, const reflection::Object& root,
+            const uint8_t* const buf, const size_t length,
+            const Verifier::Options& opts) {
+  // The Verifier asserts that the buffer is below max_size; the caller's
+  // length is not known to be, so reject it here instead.
+  if (length >= opts.max_size) return false;
+  Verifier v(buf, length, opts);
+  return VerifyRoot(v, schema, root, buf, 0);
+}
+
 bool Verify(const reflection::Schema& schema, const reflection::Object& root,
             const uint8_t* const buf, const size_t length,
             const uoffset_t max_depth, const uoffset_t max_tables) {
-  Verifier v(buf, length, max_depth, max_tables);
-  return VerifyObject(v, schema, root, flatbuffers::GetAnyRoot(buf),
-                      /*required=*/true);
+  return Verify(schema, root, buf, length, MakeOptions(max_depth, max_tables));
 }
+
+template <typename SizeT>
+bool VerifySizePrefixed(const reflection::Schema& schema,
+                        const reflection::Object& root,
+                        const uint8_t* const buf, const size_t length,
+                        const Verifier::Options& opts) {
+  if (length >= opts.max_size) return false;
+  Verifier v(buf, length, opts);
+  return v.VerifySizePrefix<SizeT>() &&
+         VerifyRoot(v, schema, root, buf, sizeof(SizeT));
+}
+
+template bool VerifySizePrefixed<uoffset_t>(const reflection::Schema&,
+                                            const reflection::Object&,
+                                            const uint8_t*, size_t,
+                                            const Verifier::Options&);
+template bool VerifySizePrefixed<uoffset64_t>(const reflection::Schema&,
+                                              const reflection::Object&,
+                                              const uint8_t*, size_t,
+                                              const Verifier::Options&);
 
 bool VerifySizePrefixed(const reflection::Schema& schema,
                         const reflection::Object& root,
                         const uint8_t* const buf, const size_t length,
                         const uoffset_t max_depth, const uoffset_t max_tables) {
-  Verifier v(buf, length, max_depth, max_tables);
-  return VerifyObject(v, schema, root, flatbuffers::GetAnySizePrefixedRoot(buf),
-                      /*required=*/true);
+  return VerifySizePrefixed<uoffset_t>(schema, root, buf, length,
+                                       MakeOptions(max_depth, max_tables));
 }
 
 }  // namespace flatbuffers

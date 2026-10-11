@@ -133,8 +133,8 @@ func (rcv_ *TestSimpleTableWithEnum) MutateColor(n_ Color) bool {
 func TestSimpleTableWithEnumStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(1)
 }
-func TestSimpleTableWithEnumAddColor(builder_ *flatbuffers.Builder, color_ Color) {
-	builder_.PrependByteSlot(0, byte(color_), 2)
+func TestSimpleTableWithEnumAddColor(builder_ *flatbuffers.Builder, colorArg_ Color) {
+	builder_.PrependByteSlot(0, byte(colorArg_), 2)
 }
 func TestSimpleTableWithEnumEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder_.EndObject()

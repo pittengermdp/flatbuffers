@@ -24,9 +24,9 @@ var EnumValuesEnumInNestedNS = map[string]EnumInNestedNS{
 	"C": EnumInNestedNSC,
 }
 
-func (v EnumInNestedNS) String() string {
-	if s, ok := EnumNamesEnumInNestedNS[v]; ok {
-		return s
+func (v_ EnumInNestedNS) String() string {
+	if s_, ok_ := EnumNamesEnumInNestedNS[v_]; ok_ {
+		return s_
 	}
-	return "EnumInNestedNS(" + strconv.FormatInt(int64(v), 10) + ")"
+	return "EnumInNestedNS(" + strconv.FormatInt(int64(v_), 10) + ")"
 }

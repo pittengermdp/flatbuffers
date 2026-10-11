@@ -9,154 +9,258 @@ import (
 )
 
 type TableInFirstNST struct {
-	FooTable  *NamespaceA__NamespaceB.TableInNestedNST
-	FooEnum   NamespaceA__NamespaceB.EnumInNestedNS
-	FooUnion  *NamespaceA__NamespaceB.UnionInNestedNST
-	FooStruct *NamespaceA__NamespaceB.StructInNestedNST
+	FooTable  *NamespaceA__NamespaceB.TableInNestedNST  `json:"foo_table,omitempty"`
+	FooEnum   NamespaceA__NamespaceB.EnumInNestedNS     `json:"foo_enum,omitempty"`
+	FooUnion  *NamespaceA__NamespaceB.UnionInNestedNST  `json:"foo_union,omitempty"`
+	FooStruct *NamespaceA__NamespaceB.StructInNestedNST `json:"foo_struct,omitempty"`
 }
 
-func (t *TableInFirstNST) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *TableInFirstNST) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	fooTableOffset := t.FooTable.Pack(builder)
-	fooUnionOffset := t.FooUnion.Pack(builder)
+	fooTableOffset_ := t_.FooTable.Pack(builder_)
+	fooUnionOffset_ := t_.FooUnion.Pack(builder_)
 
-	TableInFirstNSStart(builder)
-	TableInFirstNSAddFooTable(builder, fooTableOffset)
-	TableInFirstNSAddFooEnum(builder, t.FooEnum)
-	if t.FooUnion != nil {
-		TableInFirstNSAddFooUnionType(builder, t.FooUnion.Type)
+	TableInFirstNSStart(builder_)
+	TableInFirstNSAddFooTable(builder_, fooTableOffset_)
+	TableInFirstNSAddFooEnum(builder_, t_.FooEnum)
+	if t_.FooUnion != nil {
+		TableInFirstNSAddFooUnionType(builder_, t_.FooUnion.Type)
 	}
-	TableInFirstNSAddFooUnion(builder, fooUnionOffset)
-	fooStructOffset := t.FooStruct.Pack(builder)
-	TableInFirstNSAddFooStruct(builder, fooStructOffset)
-	return TableInFirstNSEnd(builder)
+	TableInFirstNSAddFooUnion(builder_, fooUnionOffset_)
+	fooStructOffset_ := t_.FooStruct.Pack(builder_)
+	TableInFirstNSAddFooStruct(builder_, fooStructOffset_)
+	return TableInFirstNSEnd(builder_)
 }
 
-func (rcv *TableInFirstNS) UnPackTo(t *TableInFirstNST) {
-	t.FooTable = rcv.FooTable(nil).UnPack()
-	t.FooEnum = rcv.FooEnum()
-	fooUnionTable := flatbuffers.Table{}
-	if rcv.FooUnion(&fooUnionTable) {
-		t.FooUnion = rcv.FooUnionType().UnPack(fooUnionTable)
+func (rcv_ *TableInFirstNS) UnPackTo(t_ *TableInFirstNST) {
+	t_.FooTable = rcv_.FooTable(nil).UnPack()
+	t_.FooEnum = rcv_.FooEnum()
+	fooUnionTable_ := flatbuffers.Table{}
+	if rcv_.FooUnion(&fooUnionTable_) {
+		t_.FooUnion = rcv_.FooUnionType().UnPack(fooUnionTable_)
 	}
-	t.FooStruct = rcv.FooStruct(nil).UnPack()
+	t_.FooStruct = rcv_.FooStruct(nil).UnPack()
 }
 
-func (rcv *TableInFirstNS) UnPack() *TableInFirstNST {
-	if rcv == nil {
+func (rcv_ *TableInFirstNS) UnPack() *TableInFirstNST {
+	if rcv_ == nil {
 		return nil
 	}
-	t := &TableInFirstNST{}
-	rcv.UnPackTo(t)
-	return t
+	t_ := &TableInFirstNST{}
+	rcv_.UnPackTo(t_)
+	return t_
+}
+
+const (
+	TableInFirstNSFieldFooTable  = "foo_table"
+	TableInFirstNSFieldFooEnum   = "foo_enum"
+	TableInFirstNSFieldFooUnion  = "foo_union"
+	TableInFirstNSFieldFooStruct = "foo_struct"
+)
+
+// UnpackFields returns a partial *TableInFirstNST with only the named fields populated.
+// Fields not in the list are left at their zero/default values.
+// This avoids materializing the entire table tree. Pass the
+// generated TableInFirstNSField* constants rather than raw strings.
+func (rcv_ *TableInFirstNS) UnpackFields(fields_ ...string) *TableInFirstNST {
+	t_ := &TableInFirstNST{}
+	fieldSet_ := make(map[string]bool, len(fields_))
+	for _, f_ := range fields_ {
+		fieldSet_[f_] = true
+	}
+	if fieldSet_["foo_table"] {
+		t_.FooTable = rcv_.FooTable(nil).UnPack()
+	}
+	if fieldSet_["foo_enum"] {
+		t_.FooEnum = rcv_.FooEnum()
+	}
+	if fieldSet_["foo_union"] {
+		fooUnionTable_ := flatbuffers.Table{}
+		if rcv_.FooUnion(&fooUnionTable_) {
+			t_.FooUnion = rcv_.FooUnionType().UnPack(fooUnionTable_)
+		}
+	}
+	if fieldSet_["foo_struct"] {
+		t_.FooStruct = rcv_.FooStruct(nil).UnPack()
+	}
+	return t_
 }
 
 type TableInFirstNS struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsTableInFirstNS(buf []byte, offset flatbuffers.UOffsetT) *TableInFirstNS {
-	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &TableInFirstNS{}
-	x.Init(buf, n+offset)
-	return x
+func GetRootAsTableInFirstNS(buf_ []byte, offset_ flatbuffers.UOffsetT) *TableInFirstNS {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_:])
+	x_ := &TableInFirstNS{}
+	x_.Init(buf_, n_+offset_)
+	return x_
 }
 
-func GetSizePrefixedRootAsTableInFirstNS(buf []byte, offset flatbuffers.UOffsetT) *TableInFirstNS {
-	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &TableInFirstNS{}
-	x.Init(buf, n+offset+flatbuffers.SizeUint32)
-	return x
+func FinishTableInFirstNSBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.Finish(offset_)
 }
 
-func (rcv *TableInFirstNS) Init(buf []byte, i flatbuffers.UOffsetT) {
-	rcv._tab.Bytes = buf
-	rcv._tab.Pos = i
+func GetSizePrefixedRootAsTableInFirstNS(buf_ []byte, offset_ flatbuffers.UOffsetT) *TableInFirstNS {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_+flatbuffers.SizeUint32:])
+	x_ := &TableInFirstNS{}
+	x_.Init(buf_, n_+offset_+flatbuffers.SizeUint32)
+	return x_
 }
 
-func (rcv *TableInFirstNS) Table() flatbuffers.Table {
-	return rcv._tab
+func FinishSizePrefixedTableInFirstNSBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.FinishSizePrefixed(offset_)
 }
 
-func (rcv *TableInFirstNS) FooTable(obj *NamespaceA__NamespaceB.TableInNestedNS) *NamespaceA__NamespaceB.TableInNestedNS {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
-	if o != 0 {
-		x := rcv._tab.Indirect(o + rcv._tab.Pos)
-		if obj == nil {
-			obj = new(NamespaceA__NamespaceB.TableInNestedNS)
+func VerifyRootAsTableInFirstNS(buf_ []byte, opts_ *flatbuffers.VerifierOptions) error {
+	v_ := flatbuffers.NewVerifier(buf_, opts_)
+	tablePos_, err_ := v_.CheckUOffsetT(0)
+	if err_ != nil {
+		return err_
+	}
+	return verifyTableInFirstNS(v_, int(tablePos_))
+}
+
+func VerifyTableInFirstNS(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	return verifyTableInFirstNS(v_, tablePos_)
+}
+
+func verifyTableInFirstNS(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	if err_ := v_.CheckTable(tablePos_); err_ != nil {
+		return err_
+	}
+	if err_ := v_.CountTable(); err_ != nil {
+		return err_
+	}
+	if err_ := v_.PushDepth(); err_ != nil {
+		return err_
+	}
+	defer v_.PopDepth()
+
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 4); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := NamespaceA__NamespaceB.VerifyTableInNestedNS(v_, pos_); err_ != nil {
+			return err_
 		}
-		obj.Init(rcv._tab.Bytes, x)
-		return obj
+	}
+	if err_ := v_.CheckScalarField(tablePos_, 6, 1); err_ != nil {
+		return err_
+	}
+	if err_ := v_.CheckScalarField(tablePos_, 8, 1); err_ != nil {
+		return err_
+	}
+	if err_ := v_.CheckUnionConsistency(tablePos_, 8, 10, "foo_union"); err_ != nil {
+		return err_
+	}
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 10); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		uType_, err_ := v_.ReadFieldByte(tablePos_, 8)
+		if err_ != nil {
+			return err_
+		}
+		switch NamespaceA__NamespaceB.UnionInNestedNS(uType_) {
+		case NamespaceA__NamespaceB.UnionInNestedNSTableInNestedNS:
+			if err_ := NamespaceA__NamespaceB.VerifyTableInNestedNS(v_, pos_); err_ != nil {
+				return err_
+			}
+		}
+	}
+	if err_ := v_.CheckScalarField(tablePos_, 12, 8); err_ != nil {
+		return err_
 	}
 	return nil
 }
 
-func (rcv *TableInFirstNS) FooEnum() NamespaceA__NamespaceB.EnumInNestedNS {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
-	if o != 0 {
-		return NamespaceA__NamespaceB.EnumInNestedNS(rcv._tab.GetInt8(o + rcv._tab.Pos))
+func (rcv_ *TableInFirstNS) Init(buf_ []byte, i_ flatbuffers.UOffsetT) {
+	rcv_._tab.Bytes = buf_
+	rcv_._tab.Pos = i_
+}
+
+func (rcv_ *TableInFirstNS) Table() flatbuffers.Table {
+	return rcv_._tab
+}
+
+func (rcv_ *TableInFirstNS) FooTable(obj_ *NamespaceA__NamespaceB.TableInNestedNS) *NamespaceA__NamespaceB.TableInNestedNS {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(4))
+	if o_ != 0 {
+		x_ := rcv_._tab.Indirect(o_ + rcv_._tab.Pos)
+		if obj_ == nil {
+			obj_ = new(NamespaceA__NamespaceB.TableInNestedNS)
+		}
+		obj_.Init(rcv_._tab.Bytes, x_)
+		return obj_
+	}
+	return nil
+}
+
+func (rcv_ *TableInFirstNS) FooEnum() NamespaceA__NamespaceB.EnumInNestedNS {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(6))
+	if o_ != 0 {
+		return NamespaceA__NamespaceB.EnumInNestedNS(rcv_._tab.GetInt8(o_ + rcv_._tab.Pos))
 	}
 	return 0
 }
 
-func (rcv *TableInFirstNS) MutateFooEnum(n NamespaceA__NamespaceB.EnumInNestedNS) bool {
-	return rcv._tab.MutateInt8Slot(6, int8(n))
+func (rcv_ *TableInFirstNS) MutateFooEnum(n_ NamespaceA__NamespaceB.EnumInNestedNS) bool {
+	return rcv_._tab.MutateInt8Slot(6, int8(n_))
 }
 
-func (rcv *TableInFirstNS) FooUnionType() NamespaceA__NamespaceB.UnionInNestedNS {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
-	if o != 0 {
-		return NamespaceA__NamespaceB.UnionInNestedNS(rcv._tab.GetByte(o + rcv._tab.Pos))
+func (rcv_ *TableInFirstNS) FooUnionType() NamespaceA__NamespaceB.UnionInNestedNS {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(8))
+	if o_ != 0 {
+		return NamespaceA__NamespaceB.UnionInNestedNS(rcv_._tab.GetByte(o_ + rcv_._tab.Pos))
 	}
 	return 0
 }
 
-func (rcv *TableInFirstNS) MutateFooUnionType(n NamespaceA__NamespaceB.UnionInNestedNS) bool {
-	return rcv._tab.MutateByteSlot(8, byte(n))
+func (rcv_ *TableInFirstNS) MutateFooUnionType(n_ NamespaceA__NamespaceB.UnionInNestedNS) bool {
+	return rcv_._tab.MutateByteSlot(8, byte(n_))
 }
 
-func (rcv *TableInFirstNS) FooUnion(obj *flatbuffers.Table) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
-	if o != 0 {
-		rcv._tab.Union(obj, o)
+func (rcv_ *TableInFirstNS) FooUnion(obj_ *flatbuffers.Table) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(10))
+	if o_ != 0 {
+		rcv_._tab.Union(obj_, o_)
 		return true
 	}
 	return false
 }
 
-func (rcv *TableInFirstNS) FooStruct(obj *NamespaceA__NamespaceB.StructInNestedNS) *NamespaceA__NamespaceB.StructInNestedNS {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
-	if o != 0 {
-		x := o + rcv._tab.Pos
-		if obj == nil {
-			obj = new(NamespaceA__NamespaceB.StructInNestedNS)
+func (rcv_ *TableInFirstNS) FooStruct(obj_ *NamespaceA__NamespaceB.StructInNestedNS) *NamespaceA__NamespaceB.StructInNestedNS {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(12))
+	if o_ != 0 {
+		x_ := o_ + rcv_._tab.Pos
+		if obj_ == nil {
+			obj_ = new(NamespaceA__NamespaceB.StructInNestedNS)
 		}
-		obj.Init(rcv._tab.Bytes, x)
-		return obj
+		obj_.Init(rcv_._tab.Bytes, x_)
+		return obj_
 	}
 	return nil
 }
 
-func TableInFirstNSStart(builder *flatbuffers.Builder) {
-	builder.StartObject(5)
+func TableInFirstNSStart(builder_ *flatbuffers.Builder) {
+	builder_.StartObject(5)
 }
-func TableInFirstNSAddFooTable(builder *flatbuffers.Builder, fooTable flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(fooTable), 0)
+func TableInFirstNSAddFooTable(builder_ *flatbuffers.Builder, fooTableArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(fooTableArg_), 0)
 }
-func TableInFirstNSAddFooEnum(builder *flatbuffers.Builder, fooEnum NamespaceA__NamespaceB.EnumInNestedNS) {
-	builder.PrependInt8Slot(1, int8(fooEnum), 0)
+func TableInFirstNSAddFooEnum(builder_ *flatbuffers.Builder, fooEnumArg_ NamespaceA__NamespaceB.EnumInNestedNS) {
+	builder_.PrependInt8Slot(1, int8(fooEnumArg_), 0)
 }
-func TableInFirstNSAddFooUnionType(builder *flatbuffers.Builder, fooUnionType NamespaceA__NamespaceB.UnionInNestedNS) {
-	builder.PrependByteSlot(2, byte(fooUnionType), 0)
+func TableInFirstNSAddFooUnionType(builder_ *flatbuffers.Builder, fooUnionTypeArg_ NamespaceA__NamespaceB.UnionInNestedNS) {
+	builder_.PrependByteSlot(2, byte(fooUnionTypeArg_), 0)
 }
-func TableInFirstNSAddFooUnion(builder *flatbuffers.Builder, fooUnion flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(fooUnion), 0)
+func TableInFirstNSAddFooUnion(builder_ *flatbuffers.Builder, fooUnionArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(fooUnionArg_), 0)
 }
-func TableInFirstNSAddFooStruct(builder *flatbuffers.Builder, fooStruct flatbuffers.UOffsetT) {
-	builder.PrependStructSlot(4, flatbuffers.UOffsetT(fooStruct), 0)
+func TableInFirstNSAddFooStruct(builder_ *flatbuffers.Builder, fooStructArg_ flatbuffers.UOffsetT) {
+	builder_.PrependStructSlot(4, flatbuffers.UOffsetT(fooStructArg_), 0)
 }
-func TableInFirstNSEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	return builder.EndObject()
+func TableInFirstNSEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder_.EndObject()
 }

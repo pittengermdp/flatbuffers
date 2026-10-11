@@ -1205,74 +1205,74 @@ func (rcv_ *Edge) Node(obj_ *Node) *Node {
 func EdgeStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(17)
 }
-func EdgeAddMust(builder_ *flatbuffers.Builder, must_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(must_), 0)
+func EdgeAddMust(builder_ *flatbuffers.Builder, mustArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(mustArg_), 0)
 }
-func EdgeAddNanF(builder_ *flatbuffers.Builder, nanF_ float32) {
-	builder_.PrependFloat32Slot(1, nanF_, float32(math.NaN()))
+func EdgeAddNanF(builder_ *flatbuffers.Builder, nanFArg_ float32) {
+	builder_.PrependFloat32Slot(1, nanFArg_, float32(math.NaN()))
 }
-func EdgeAddNanD(builder_ *flatbuffers.Builder, nanD_ float64) {
-	builder_.PrependFloat64Slot(2, nanD_, float64(math.NaN()))
+func EdgeAddNanD(builder_ *flatbuffers.Builder, nanDArg_ float64) {
+	builder_.PrependFloat64Slot(2, nanDArg_, float64(math.NaN()))
 }
-func EdgeAddZ(builder_ *flatbuffers.Builder, z_ float64) {
-	builder_.PrependFloat64Slot(3, z_, 0.0)
+func EdgeAddZ(builder_ *flatbuffers.Builder, zArg_ float64) {
+	builder_.PrependFloat64Slot(3, zArg_, 0.0)
 }
-func EdgeAddTop(builder_ *flatbuffers.Builder, top_ uint64) {
-	builder_.PrependUint64Slot(4, top_, 18446744073709551615)
+func EdgeAddTop(builder_ *flatbuffers.Builder, topArg_ uint64) {
+	builder_.PrependUint64Slot(4, topArg_, 18446744073709551615)
 }
-func EdgeAddFlag(builder_ *flatbuffers.Builder, flag_ bool) {
-	builder_.PrependBoolSlot(5, flag_, true)
+func EdgeAddFlag(builder_ *flatbuffers.Builder, flagArg_ bool) {
+	builder_.PrependBoolSlot(5, flagArg_, true)
 }
-func EdgeAddWide(builder_ *flatbuffers.Builder, wide_ Wide) {
-	builder_.PrependUint64Slot(6, uint64(wide_), 0)
+func EdgeAddWide(builder_ *flatbuffers.Builder, wideArg_ Wide) {
+	builder_.PrependUint64Slot(6, uint64(wideArg_), 0)
 }
-func EdgeAddPair(builder_ *flatbuffers.Builder, pair_ flatbuffers.UOffsetT) {
-	builder_.PrependStructSlot(7, flatbuffers.UOffsetT(pair_), 0)
+func EdgeAddPair(builder_ *flatbuffers.Builder, pairArg_ flatbuffers.UOffsetT) {
+	builder_.PrependStructSlot(7, flatbuffers.UOffsetT(pairArg_), 0)
 }
-func EdgeAddByBits(builder_ *flatbuffers.Builder, byBits_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(8, flatbuffers.UOffsetT(byBits_), 0)
+func EdgeAddByBits(builder_ *flatbuffers.Builder, byBitsArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(8, flatbuffers.UOffsetT(byBitsArg_), 0)
 }
 func EdgeStartByBitsVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(4, numElems_, 4)
 }
-func EdgeAddPairs(builder_ *flatbuffers.Builder, pairs_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(9, flatbuffers.UOffsetT(pairs_), 0)
+func EdgeAddPairs(builder_ *flatbuffers.Builder, pairsArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(9, flatbuffers.UOffsetT(pairsArg_), 0)
 }
 func EdgeStartPairsVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(4, numElems_, 4)
 }
-func EdgeAddByBool(builder_ *flatbuffers.Builder, byBool_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(10, flatbuffers.UOffsetT(byBool_), 0)
+func EdgeAddByBool(builder_ *flatbuffers.Builder, byBoolArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(10, flatbuffers.UOffsetT(byBoolArg_), 0)
 }
 func EdgeStartByBoolVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(4, numElems_, 4)
 }
-func EdgeAddBools(builder_ *flatbuffers.Builder, bools_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(11, flatbuffers.UOffsetT(bools_), 0)
+func EdgeAddBools(builder_ *flatbuffers.Builder, boolsArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(11, flatbuffers.UOffsetT(boolsArg_), 0)
 }
 func EdgeStartBoolsVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(4, numElems_, 4)
 }
-func EdgeAddLeaves(builder_ *flatbuffers.Builder, leaves_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(12, flatbuffers.UOffsetT(leaves_), 0)
+func EdgeAddLeaves(builder_ *flatbuffers.Builder, leavesArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(12, flatbuffers.UOffsetT(leavesArg_), 0)
 }
 func EdgeStartLeavesVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(4, numElems_, 4)
 }
-func EdgeAddReq(builder_ *flatbuffers.Builder, req_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(13, flatbuffers.UOffsetT(req_), 0)
+func EdgeAddReq(builder_ *flatbuffers.Builder, reqArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(13, flatbuffers.UOffsetT(reqArg_), 0)
 }
 func EdgeStartReqVector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(4, numElems_, 4)
 }
-func EdgeAddNothingType(builder_ *flatbuffers.Builder, nothingType_ Empty) {
-	builder_.PrependByteSlot(14, byte(nothingType_), 0)
+func EdgeAddNothingType(builder_ *flatbuffers.Builder, nothingTypeArg_ Empty) {
+	builder_.PrependByteSlot(14, byte(nothingTypeArg_), 0)
 }
-func EdgeAddNothing(builder_ *flatbuffers.Builder, nothing_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(15, flatbuffers.UOffsetT(nothing_), 0)
+func EdgeAddNothing(builder_ *flatbuffers.Builder, nothingArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(15, flatbuffers.UOffsetT(nothingArg_), 0)
 }
-func EdgeAddNode(builder_ *flatbuffers.Builder, node_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(16, flatbuffers.UOffsetT(node_), 0)
+func EdgeAddNode(builder_ *flatbuffers.Builder, nodeArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(16, flatbuffers.UOffsetT(nodeArg_), 0)
 }
 func EdgeEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder_.EndObject()
