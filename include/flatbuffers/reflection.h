@@ -166,7 +166,10 @@ Vector<T>* GetFieldV(const Table& table, const reflection::Field& field) {
 
 // Get a field, if you know it's a vector, generically.
 // To actually access elements, use the return value together with
-// field.type()->element() in any of GetAnyVectorElemI below etc.
+// field.type()->element() in any of GetAnyVectorElemI below etc. For a union's
+// `_type` vector, whose element type is UType, use
+// GetUnionUnderlyingType(schema, field) instead: its elements are as wide as
+// the union's underlying type, which only by default is a 1-byte UType.
 inline VectorOfAny* GetFieldAnyV(const Table& table,
                                  const reflection::Field& field) {
   return table.GetPointer<VectorOfAny*>(field.offset());
@@ -237,6 +240,40 @@ inline std::string GetAnyFieldS(const Table& table,
   return field_ptr ? GetAnyValueS(field.type()->base_type(), field_ptr, schema,
                                   field.type()->index())
                    : "";
+}
+
+// Defined below, with the other union helpers.
+inline reflection::BaseType GetUnionUnderlyingType(
+    const reflection::Schema& schema, const reflection::Field& field);
+
+// The base type a table field's value is stored as: the field's base type,
+// except for a union's `_type` field, which the schema gives the base type
+// UType, 1 byte, but which is stored as the union's underlying type.
+inline reflection::BaseType GetAnyFieldBaseType(
+    const reflection::Schema& schema, const reflection::Field& field) {
+  auto type = field.type()->base_type();
+  return type == reflection::UType ? GetUnionUnderlyingType(schema, field)
+                                   : type;
+}
+
+// The overloads below that take the schema read a union's `_type` field as
+// wide as the union stores it; those above read it as a 1-byte UType, which
+// it is only by default.
+
+// Get any table field as a 64bit int, regardless of what type it is.
+inline int64_t GetAnyFieldI(const Table& table, const reflection::Field& field,
+                            const reflection::Schema& schema) {
+  auto field_ptr = table.GetAddressOf(field.offset());
+  return field_ptr ? GetAnyValueI(GetAnyFieldBaseType(schema, field), field_ptr)
+                   : field.default_integer();
+}
+
+// Get any table field as a double, regardless of what type it is.
+inline double GetAnyFieldF(const Table& table, const reflection::Field& field,
+                           const reflection::Schema& schema) {
+  auto field_ptr = table.GetAddressOf(field.offset());
+  return field_ptr ? GetAnyValueF(GetAnyFieldBaseType(schema, field), field_ptr)
+                   : field.default_real();
 }
 
 // Get any struct field as a 64bit int, regardless of what type it is.
@@ -367,6 +404,38 @@ inline bool SetAnyFieldS(Table* table, const reflection::Field& field,
   auto field_ptr = table->GetAddressOf(field.offset());
   if (!field_ptr) return false;
   SetAnyValueS(field.type()->base_type(), field_ptr, val);
+  return true;
+}
+
+// The overloads below that take the schema write a union's `_type` field as
+// wide as the union stores it; those above write it as a 1-byte UType, which
+// it is only by default. An absent field cannot be written: they return
+// whether `val` is the default the matching GetAnyField overload reads.
+
+// Set any table field as a 64bit int, regardless of what type it is.
+inline bool SetAnyFieldI(Table* table, const reflection::Field& field,
+                         int64_t val, const reflection::Schema& schema) {
+  auto field_ptr = table->GetAddressOf(field.offset());
+  if (!field_ptr) return val == field.default_integer();
+  SetAnyValueI(GetAnyFieldBaseType(schema, field), field_ptr, val);
+  return true;
+}
+
+// Set any table field as a double, regardless of what type it is.
+inline bool SetAnyFieldF(Table* table, const reflection::Field& field,
+                         double val, const reflection::Schema& schema) {
+  auto field_ptr = table->GetAddressOf(field.offset());
+  if (!field_ptr) return val == field.default_real();
+  SetAnyValueF(GetAnyFieldBaseType(schema, field), field_ptr, val);
+  return true;
+}
+
+// Set any table field as a string, regardless of what type it is.
+inline bool SetAnyFieldS(Table* table, const reflection::Field& field,
+                         const char* val, const reflection::Schema& schema) {
+  auto field_ptr = table->GetAddressOf(field.offset());
+  if (!field_ptr) return false;
+  SetAnyValueS(GetAnyFieldBaseType(schema, field), field_ptr, val);
   return true;
 }
 
