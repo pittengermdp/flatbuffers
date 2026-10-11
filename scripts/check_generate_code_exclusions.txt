@@ -26,10 +26,3 @@ tests/ts/*.ts
 # tsc output of the generated TypeScript, from tests/ts/TypeScriptTest.py. It
 # needs node and the packages `pnpm i` installs.
 tests/ts/*.js
-
-# tests/PythonTest.sh, which the CI Python job runs, regenerates it with
-# `--grpc --python-typing` before the Python tests. That command is not run
-# here: with --python-typing the grpc_fb.pyi it also writes is not valid
-# Python (a missing comma after request_iterator in
-# grpc/src/compiler/python_generator.cc).
-tests/service_test_generated.py
