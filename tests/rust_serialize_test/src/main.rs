@@ -62,8 +62,8 @@ fn main() {
     create_serialized_example_with_generated_code(&mut builder);
 
     let data = builder.finished_data();
-    let obj = my_game::example::root_as_monster(&data[..]).unwrap();
-    let value = serde_json::to_value(&obj).unwrap();
+    let obj = my_game::example::root_as_monster(data).unwrap();
+    let value = serde_json::to_value(obj).unwrap();
     let o = value.as_object().unwrap();
 
     let pos = o.get("pos").unwrap().as_object().unwrap();
