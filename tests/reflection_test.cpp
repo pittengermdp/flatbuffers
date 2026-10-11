@@ -19,6 +19,7 @@
 #include "monster_test_generated.h"
 #include "test_assert.h"
 #include "tests/arrays_test_generated.h"
+#include "tests/union_underlying_type_test_generated.h"
 #include "tests/union_value_gap_test_generated.h"
 #include "tests/union_underlying_type_test_generated.h"
 #include "tests/union_vector/union_vector_generated.h"
@@ -106,6 +107,12 @@ void ReflectionTest(const std::string& tests_data_path, uint8_t* flatbuf,
   TEST_NOTNULL(friendly_field_ptr);
   TEST_NOTNULL(friendly_field_ptr->attributes());
   TEST_NOTNULL(friendly_field_ptr->attributes()->LookupByKey("priority"));
+
+  // A union declared without an underlying type stores its type as a UType.
+  auto test_type_field_ptr = fields->LookupByKey("test_type");
+  TEST_NOTNULL(test_type_field_ptr);
+  TEST_EQ(flatbuffers::GetUnionUnderlyingType(schema, *test_type_field_ptr),
+          reflection::UType);
 
   // Make sure the table index is what we expect it to be.
   auto pos_field_ptr = fields->LookupByKey("pos");
@@ -260,6 +267,162 @@ void ReflectionTest(const std::string& tests_data_path, uint8_t* flatbuf,
   TEST_EQ(flatbuffers::Verify(schema, *schema.root_table(),
                               fbb.GetBufferPointer(), fbb.GetSize()),
           true);
+}
+
+// Packs `d`, checks that the generated verifier accepts it, and returns
+// whether the reflection verifier accepts the same bytes.
+static bool ReflectionVerifiesD(const reflection::Schema& schema,
+                                const reflection::Object& d_def,
+                                const UnionUnderlyingType::DT& d) {
+  flatbuffers::FlatBufferBuilder fbb;
+  fbb.Finish(UnionUnderlyingType::D::Pack(fbb, &d));
+  flatbuffers::Verifier verifier(fbb.GetBufferPointer(), fbb.GetSize());
+  TEST_EQ(verifier.VerifyBuffer<UnionUnderlyingType::D>(nullptr), true);
+  return flatbuffers::Verify(schema, d_def, fbb.GetBufferPointer(),
+                             fbb.GetSize());
+}
+
+// A union declared with an underlying type stores its types as that type, not
+// as a 1-byte UType: `union ABC: int` makes test_union_type an int, and
+// test_vector_of_union_type a vector of ints, though the schema still gives
+// both fields the base type UType.
+void ReflectionUnionUnderlyingTypeTest(const std::string& tests_data_path) {
+  using namespace UnionUnderlyingType;
+
+  std::string schemafile;
+  TEST_EQ(flatbuffers::LoadFile(
+              (tests_data_path + "union_underlying_type_test.fbs").c_str(),
+              false, &schemafile),
+          true);
+  flatbuffers::Parser parser;
+  TEST_EQ(parser.Parse(schemafile.c_str()), true);
+  parser.Serialize();
+  auto& schema = *reflection::GetSchema(parser.builder_.GetBufferPointer());
+  auto d_def = schema.objects()->LookupByKey("UnionUnderlyingType.D");
+  TEST_NOTNULL(d_def);
+  auto union_field = d_def->fields()->LookupByKey("test_union");
+  auto type_field = d_def->fields()->LookupByKey("test_union_type");
+  auto types_field = d_def->fields()->LookupByKey("test_vector_of_union_type");
+  TEST_NOTNULL(union_field);
+  TEST_NOTNULL(type_field);
+  TEST_NOTNULL(types_field);
+
+  // The premise: to their fields the types are UTypes; to the union, ints.
+  TEST_EQ(type_field->type()->base_type(), reflection::UType);
+  TEST_EQ(types_field->type()->element(), reflection::UType);
+  TEST_EQ(flatbuffers::GetUnionUnderlyingType(schema, *union_field),
+          reflection::Int);
+  TEST_EQ(flatbuffers::GetUnionUnderlyingType(schema, *type_field),
+          reflection::Int);
+  TEST_EQ(flatbuffers::GetUnionUnderlyingType(schema, *types_field),
+          reflection::Int);
+
+  AT a;
+  a.a = 42;
+  BT b;
+  b.b = "foo";
+  CT c;
+  c.c = true;
+
+  DT none;
+  TEST_EQ(ReflectionVerifiesD(schema, *d_def, none), true);
+
+  DT single_b;
+  single_b.test_union.Set(b);
+  TEST_EQ(ReflectionVerifiesD(schema, *d_def, single_b), true);
+
+  DT many;
+  many.test_vector_of_union.resize(3);
+  many.test_vector_of_union[0].Set(a);
+  many.test_vector_of_union[1].Set(b);
+  many.test_vector_of_union[2].Set(c);
+  TEST_EQ(ReflectionVerifiesD(schema, *d_def, many), true);
+
+  DT both = many;
+  both.test_union.Set(b);
+  TEST_EQ(ReflectionVerifiesD(schema, *d_def, both), true);
+
+  // 512 names no member. The generated verifier accepts an unknown type for
+  // forward compatibility; reflection verifies against the schema it is given,
+  // so it rejects one. Read as a byte, 512 was 0, NONE, and passed unchecked.
+  DT unknown;
+  unknown.test_union.type = static_cast<ABC>(512);
+  TEST_EQ(ReflectionVerifiesD(schema, *d_def, unknown), false);
+
+  // Pack() writes the types of a vector of unions before its members, so the
+  // last type of `many` ends the buffer. Cut off the last byte of that type:
+  // the buffer is now short, though the 3 bytes the vector holds as 1-byte
+  // types are all still there. What is left is copied to a buffer of its own,
+  // so that a sanitizer reports any read past its end.
+  {
+    flatbuffers::FlatBufferBuilder fbb;
+    fbb.Finish(D::Pack(fbb, &many));
+    const uint8_t* buf = fbb.GetBufferPointer();
+    const size_t size = fbb.GetSize();
+    auto types = GetRoot<D>(buf)->test_vector_of_union_type();
+    TEST_NOTNULL(types);
+    TEST_EQ(types->Data() + types->size() * sizeof(ABC) == buf + size, true);
+    std::vector<uint8_t> truncated(buf, buf + size - 1);
+    flatbuffers::Verifier verifier(truncated.data(), truncated.size());
+    TEST_EQ(verifier.VerifyBuffer<D>(nullptr), false);
+    TEST_EQ(
+        flatbuffers::Verify(schema, *d_def, truncated.data(), truncated.size()),
+        false);
+  }
+
+  flatbuffers::FlatBufferBuilder fbb;
+  fbb.Finish(D::Pack(fbb, &single_b));
+  auto root = flatbuffers::GetAnyRoot(fbb.GetBufferPointer());
+  TEST_EQ_STR(flatbuffers::GetUnionType(schema, *d_def, *union_field, *root)
+                  .name()
+                  ->c_str(),
+              "UnionUnderlyingType.B");
+
+  // CopyTable() copies the type, an int, and the member it names.
+  {
+    flatbuffers::FlatBufferBuilder copy;
+    copy.Finish(flatbuffers::CopyTable(copy, schema, *d_def, *root));
+    flatbuffers::Verifier verifier(copy.GetBufferPointer(), copy.GetSize());
+    TEST_EQ(verifier.VerifyBuffer<D>(nullptr), true);
+    DT copied;
+    GetRoot<D>(copy.GetBufferPointer())->UnPackTo(&copied);
+    TEST_ASSERT(copied == single_b);
+  }
+
+  // It copies the types of a vector of unions as a vector of scalars, each as
+  // wide as an int. Only the types are compared: CopyTable() copies the vector
+  // of unions itself as if it held scalars too, so its members are not copied.
+  {
+    flatbuffers::FlatBufferBuilder src;
+    src.Finish(D::Pack(src, &many));
+    flatbuffers::FlatBufferBuilder copy;
+    copy.Finish(flatbuffers::CopyTable(
+        copy, schema, *d_def,
+        *flatbuffers::GetAnyRoot(src.GetBufferPointer())));
+    auto types =
+        GetRoot<D>(copy.GetBufferPointer())->test_vector_of_union_type();
+    TEST_NOTNULL(types);
+    TEST_EQ(types->size(), 3u);
+    TEST_EQ(types->Get(0), ABC::A);
+    TEST_EQ(types->Get(1), ABC::B);
+    TEST_EQ(types->Get(2), ABC::C);
+  }
+
+  // SetString() resizes the buffer, so ResizeContext adjusts every offset in
+  // it, recursing into the member the union's type names.
+  {
+    std::vector<uint8_t> buf(fbb.GetBufferPointer(),
+                             fbb.GetBufferPointer() + fbb.GetSize());
+    flatbuffers::SetString(schema, "foobar",
+                           GetRoot<D>(buf.data())->test_union_as_B()->b(), &buf,
+                           d_def);
+    flatbuffers::Verifier verifier(buf.data(), buf.size());
+    TEST_EQ(verifier.VerifyBuffer<D>(nullptr), true);
+    TEST_EQ(flatbuffers::Verify(schema, *d_def, buf.data(), buf.size()), true);
+    auto resized = GetRoot<D>(buf.data())->test_union_as_B();
+    TEST_NOTNULL(resized);
+    TEST_EQ_STR(resized->b()->c_str(), "foobar");
+  }
 }
 
 // Packs `holder`, checks that the generated verifier accepts it, and returns

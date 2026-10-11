@@ -2292,6 +2292,7 @@ int FlatBufferTests(const std::string& tests_data_path) {
   FixedLengthArrayJsonTest(tests_data_path, true);
   SetStringTest(tests_data_path);
   ReflectionTest(tests_data_path, flatbuf.data(), flatbuf.size());
+  ReflectionUnionUnderlyingTypeTest(tests_data_path);
   ReflectionVerifyUnionByValueTest(tests_data_path);
   ReflectionVerifyUnionTypeSlotsTest(tests_data_path);
   ForAllFieldsReverseTest(tests_data_path);
