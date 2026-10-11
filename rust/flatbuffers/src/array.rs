@@ -34,8 +34,6 @@ where
     }
 }
 
-#[allow(clippy::len_without_is_empty)]
-#[allow(clippy::from_over_into)] // TODO(caspern): Go from From to Into.
 impl<'a, T: 'a, const N: usize> Array<'a, T, N> {
     /// # Safety
     ///
@@ -54,6 +52,10 @@ impl<'a, T: 'a, const N: usize> Array<'a, T, N> {
     #[inline(always)]
     pub const fn len(&self) -> usize {
         N
+    }
+    #[inline(always)]
+    pub const fn is_empty(&self) -> bool {
+        N == 0
     }
     pub fn as_ptr(&self) -> *const u8 {
         self.0.as_ptr()
@@ -159,5 +161,23 @@ where
             seq.serialize_element(&element)?;
         }
         seq.end()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn is_empty_only_when_n_is_zero() {
+        // Safety:
+        // Both buffers are exactly `size_of::<u8>() * N` bytes long.
+        let empty = unsafe { Array::<u8, 0>::new(&[]) };
+        let three = unsafe { Array::<u8, 3>::new(&[1, 2, 3]) };
+
+        assert!(empty.is_empty());
+        assert_eq!(empty.len(), 0);
+        assert!(!three.is_empty());
+        assert_eq!(three.len(), 3);
     }
 }
