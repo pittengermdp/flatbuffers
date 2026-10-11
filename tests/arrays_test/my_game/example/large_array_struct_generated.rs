@@ -55,14 +55,14 @@ impl<'a> ::flatbuffers::Follow<'a> for &'a LargeArrayStruct {
     }
 }
 
-impl<'b> ::flatbuffers::Push for LargeArrayStruct {
+impl ::flatbuffers::Push for LargeArrayStruct {
     type Output = Self;
 
     #[inline]
     unsafe fn push(&self, dst: &mut [u8], _written_len: usize) {
         let src = unsafe {
             ::core::slice::from_raw_parts(
-                self as *const LargeArrayStruct as *const u8,
+                ::core::ptr::addr_of!(*self).cast::<u8>(),
                 <Self as ::flatbuffers::Push>::size(),
             )
         };
@@ -85,7 +85,7 @@ impl ::flatbuffers::Verifiable for LargeArrayStruct {
     }
 }
 
-impl<'a> LargeArrayStruct {
+impl LargeArrayStruct {
     #[allow(clippy::too_many_arguments)]
     #[must_use]
     pub fn new(
@@ -110,7 +110,7 @@ impl<'a> LargeArrayStruct {
     }
 
     #[must_use]
-    pub fn d(&'a self) -> ::flatbuffers::Array<'a, u8, 64> {
+    pub fn d(&self) -> ::flatbuffers::Array<'_, u8, 64> {
         // Safety:
         // Created from a valid Table for this object
         // Which contains a valid array in this slot
@@ -126,7 +126,7 @@ impl<'a> LargeArrayStruct {
     }
 
     #[must_use]
-    pub fn e(&'a self) -> ::flatbuffers::Array<'a, f32, 64> {
+    pub fn e(&self) -> ::flatbuffers::Array<'_, f32, 64> {
         // Safety:
         // Created from a valid Table for this object
         // Which contains a valid array in this slot
@@ -142,7 +142,7 @@ impl<'a> LargeArrayStruct {
     }
 
     #[must_use]
-    pub fn f(&'a self) -> ::flatbuffers::Array<'a, bool, 64> {
+    pub fn f(&self) -> ::flatbuffers::Array<'_, bool, 64> {
         // Safety:
         // Created from a valid Table for this object
         // Which contains a valid array in this slot
@@ -158,7 +158,7 @@ impl<'a> LargeArrayStruct {
     }
 
     #[must_use]
-    pub fn g(&'a self) -> ::flatbuffers::Array<'a, NestedStruct, 64> {
+    pub fn g(&self) -> ::flatbuffers::Array<'_, NestedStruct, 64> {
         // Safety:
         // Created from a valid Table for this object
         // Which contains a valid array in this slot
@@ -171,12 +171,12 @@ impl<'a> LargeArrayStruct {
         // Created from a valid Table for this object
         // Which contains a valid array in this slot
         unsafe {
-            ::core::ptr::copy(x.as_ptr() as *const u8, self.0.as_mut_ptr().add(384), 2048);
+            ::core::ptr::copy(x.as_ptr().cast::<u8>(), self.0.as_mut_ptr().add(384), 2048);
         }
     }
 
     #[must_use]
-    pub fn h(&'a self) -> ::flatbuffers::Array<'a, TestEnum, 64> {
+    pub fn h(&self) -> ::flatbuffers::Array<'_, TestEnum, 64> {
         // Safety:
         // Created from a valid Table for this object
         // Which contains a valid array in this slot
@@ -189,7 +189,7 @@ impl<'a> LargeArrayStruct {
         // Created from a valid Table for this object
         // Which contains a valid array in this slot
         unsafe {
-            ::core::ptr::copy(x.as_ptr() as *const u8, self.0.as_mut_ptr().add(2432), 64);
+            ::core::ptr::copy(x.as_ptr().cast::<u8>(), self.0.as_mut_ptr().add(2432), 64);
         }
     }
 
@@ -219,6 +219,7 @@ pub struct LargeArrayStructT {
     pub g: [NestedStructT; 64],
     pub h: [TestEnum; 64],
 }
+
 impl Default for LargeArrayStructT {
     fn default() -> Self {
         Self {
