@@ -85,6 +85,15 @@ GO111MODULE=off GOPATH=${go_path} go test go_map_set_test go_namespace_shadow_te
 GO111MODULE=off GOPATH=${go_path} go test go_canonical_json_test \
     --flatc="${test_dir}/../flatc" --schemas="${test_dir}" || GO_TEST_RESULT=$?
 
+# Every Go module under tests/ and examples/ builds against the runtime in this
+# repository through a replace directive. Module mode is set explicitly, since a
+# go env file or GOWORK left behind would otherwise apply.
+while IFS= read -r go_mod; do
+    module_dir=$(dirname "${go_mod}")
+    GO111MODULE=on GOWORK=off go -C "${module_dir}" vet ./... || GO_TEST_RESULT=$?
+    GO111MODULE=on GOWORK=off go -C "${module_dir}" test ./... || GO_TEST_RESULT=$?
+done < <(find . ../examples -name go.mod -not -path "./go_gen/*")
+
 rm -rf "${go_path:?}"/{pkg,src}
 if [[ $GO_TEST_RESULT == 0 ]]; then
     echo "OK: Go tests passed."

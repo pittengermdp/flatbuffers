@@ -374,6 +374,11 @@ BinaryAnnotator::VTable* BinaryAnnotator::GetOrBuildVTable(
       return;
     }
 
+    // The field has a slot in this vtable. Count it before the error returns
+    // below: the unknown-field loop starts at fields_processed, so an uncounted
+    // slot makes it annotate the last field's slot a second time.
+    fields_processed++;
+
     BinaryRegionComment field_comment;
     field_comment.type = BinaryRegionCommentType::VTableFieldOffset;
     field_comment.name = std::string(field->name()->c_str()) +
@@ -439,8 +444,6 @@ BinaryAnnotator::VTable* BinaryAnnotator::GetOrBuildVTable(
     regions.push_back(MakeBinaryRegion(field_offset, sizeof(uint16_t),
                                        BinaryRegionType::VOffset, 0, 0,
                                        field_comment));
-
-    fields_processed++;
   });
 
   // Check if we covered all the expectant fields. If not, we need to add them
@@ -662,9 +665,10 @@ void BinaryAnnotator::BuildTable(const uint64_t table_offset,
 
     if (IsScalar(field->type()->base_type())) {
       // These are the raw values store in the table.
-      const uint64_t type_size = GetTypeSize(field->type()->base_type());
-      const BinaryRegionType region_type =
-          GetRegionType(field->type()->base_type());
+      const reflection::BaseType base_type =
+          GetStoredType(field, field->type()->base_type());
+      const uint64_t type_size = GetTypeSize(base_type);
+      const BinaryRegionType region_type = GetRegionType(base_type);
 
       BinaryRegionComment scalar_field_comment;
       scalar_field_comment.type = BinaryRegionCommentType::TableField;
@@ -686,7 +690,7 @@ void BinaryAnnotator::BuildTable(const uint64_t table_offset,
 
       if (IsUnionType(field)) {
         // This is a type for a union. Validate the value
-        const auto enum_value = ReadScalar<uint8_t>(field_offset);
+        const auto enum_value = ReadScalar(field_offset, base_type);
 
         // This should always have a value, due to the IsValidRead check above.
         if (!IsValidUnionValue(field, enum_value.value())) {
@@ -803,21 +807,36 @@ void BinaryAnnotator::BuildTable(const uint64_t table_offset,
         // The union type field is always one less than the union itself.
         const uint16_t union_type_id = field->id() - 1;
 
+        offset_field_comment.default_value = "(union)";
+
         auto vtable_field = vtable->fields.find(union_type_id);
         if (vtable_field == vtable->fields.end()) {
-          // TODO(dbaileychess): need to capture this error condition.
+          // The type field's vtable slot points outside the binary (an error
+          // there), so the type is unknown and nothing is built.
+          SetError(offset_field_comment,
+                   BinaryRegionStatus::ERROR_INVALID_UNION_TYPE);
+          regions.push_back(MakeBinaryRegion(field_offset, length, region_type,
+                                             0, union_offset,
+                                             offset_field_comment));
           break;
         }
-        offset_field_comment.default_value = "(union)";
 
         const uint64_t type_offset =
             table_offset + vtable_field->second.offset_from_table;
 
-        const auto realized_type = ReadScalar<uint8_t>(type_offset);
+        // An absent type is its default, NONE, not the bytes at the table.
+        const reflection::BaseType type_base_type =
+            GetStoredType(field, reflection::BaseType::UType);
+        const auto realized_type =
+            vtable_field->second.offset_from_table == 0
+                ? flatbuffers::Optional<int64_t>(
+                      vtable_field->second.field->default_integer())
+                : ReadScalar(type_offset, type_base_type);
         if (!realized_type.has_value()) {
           const uint64_t remaining = RemainingBytes(type_offset);
           SetError(offset_field_comment,
-                   BinaryRegionStatus::ERROR_INCOMPLETE_BINARY, "1");
+                   BinaryRegionStatus::ERROR_INCOMPLETE_BINARY,
+                   std::to_string(GetTypeSize(type_base_type)));
           regions.push_back(MakeBinaryRegion(
               type_offset, remaining, BinaryRegionType::Unknown, remaining, 0,
               offset_field_comment));
@@ -1248,45 +1267,58 @@ void BinaryAnnotator::BuildVector(
     } break;
     case reflection::BaseType::Union: {
       // Vector of unions
-      // Unions have both their realized type (uint8_t for now) that are
-      // stored separately. These are stored in the field->index() - 1
-      // location.
+      // Unions have both their realized type (the union's underlying type, a
+      // 1-byte UType by default) that are stored separately. These are stored
+      // in the field->index() - 1 location.
       const uint16_t union_type_vector_id = field->id() - 1;
 
+      // A vector of unions without a vector of types (absent, or left out of
+      // the vtable for an invalid offset) has 0 types: the loop below flags
+      // every union.
+      flatbuffers::Optional<uint32_t> union_type_vector_length = 0;
+      uint64_t union_type_vector_data_offset = 0;
+
       auto vtable_entry = vtable_fields.find(union_type_vector_id);
-      if (vtable_entry == vtable_fields.end()) {
-        // TODO(dbaileychess): need to capture this error condition.
-        break;
+      if (vtable_entry != vtable_fields.end() &&
+          vtable_entry->second.offset_from_table != 0) {
+        const uint64_t union_type_vector_field_offset =
+            parent_table_offset + vtable_entry->second.offset_from_table;
+
+        const auto union_type_vector_field_relative_offset =
+            ReadScalar<uint32_t>(union_type_vector_field_offset);
+
+        if (!union_type_vector_field_relative_offset.has_value()) {
+          const uint64_t remaining = RemainingBytes(offset);
+          BinaryRegionComment vector_union_comment;
+          vector_union_comment.type = BinaryRegionCommentType::VectorUnionValue;
+          SetError(vector_union_comment,
+                   BinaryRegionStatus::ERROR_INCOMPLETE_BINARY, "4");
+
+          regions.push_back(
+              MakeBinaryRegion(offset, remaining, BinaryRegionType::Unknown,
+                               remaining, 0, vector_union_comment));
+
+          break;
+        }
+
+        // The + sizeof(uint32_t) is to skip over the vector's length.
+        // Validation happens within the loop below.
+        const uint64_t union_type_vector_offset =
+            union_type_vector_field_offset +
+            union_type_vector_field_relative_offset.value();
+        union_type_vector_length =
+            ReadScalar<uint32_t>(union_type_vector_offset);
+        union_type_vector_data_offset =
+            union_type_vector_offset + sizeof(uint32_t);
       }
 
-      const uint64_t union_type_vector_field_offset =
-          parent_table_offset + vtable_entry->second.offset_from_table;
+      const reflection::BaseType union_type =
+          GetStoredType(field, reflection::BaseType::UType);
+      const uint64_t union_type_size = GetTypeSize(union_type);
 
-      const auto union_type_vector_field_relative_offset =
-          ReadScalar<uint16_t>(union_type_vector_field_offset);
-
-      if (!union_type_vector_field_relative_offset.has_value()) {
-        const uint64_t remaining = RemainingBytes(offset);
-        BinaryRegionComment vector_union_comment;
-        vector_union_comment.type = BinaryRegionCommentType::VectorUnionValue;
-        SetError(vector_union_comment,
-                 BinaryRegionStatus::ERROR_INCOMPLETE_BINARY, "2");
-
-        regions.push_back(MakeBinaryRegion(offset, remaining,
-                                           BinaryRegionType::Unknown, remaining,
-                                           0, vector_union_comment));
-
-        break;
-      }
-
-      // Get the offset to the first type (the + sizeof(uint32_t) is to skip
-      // over the vector length which we already know). Validation happens
-      // within the loop below.
-      const uint64_t union_type_vector_data_offset =
-          union_type_vector_field_offset +
-          union_type_vector_field_relative_offset.value() + sizeof(uint32_t);
-
-      for (size_t i = 0; i < vector_length.value(); ++i) {
+      // Each iteration consumes one union offset, whichever path it takes.
+      for (size_t i = 0; i < vector_length.value();
+           ++i, offset += sizeof(uint32_t)) {
         BinaryRegionComment comment;
         comment.type = BinaryRegionCommentType::VectorUnionValue;
         comment.index = i;
@@ -1316,22 +1348,33 @@ void BinaryAnnotator::BuildVector(
           continue;
         }
 
-        const auto realized_type =
-            ReadScalar<uint8_t>(union_type_vector_data_offset + i);
-
-        if (!realized_type.has_value()) {
-          SetError(comment, BinaryRegionStatus::ERROR_INCOMPLETE_BINARY, "1");
-          regions.push_back(MakeBinaryRegion(
-              offset, 0, BinaryRegionType::Unknown, 0, 0, comment));
+        // A vector of types shorter than this vector has no type for the
+        // unions past its end.
+        if (union_type_vector_length.has_value() &&
+            i >= union_type_vector_length.value()) {
+          SetError(comment, BinaryRegionStatus::ERROR_INVALID_UNION_TYPE);
+          regions.push_back(MakeBinaryRegion(offset, sizeof(uint32_t),
+                                             BinaryRegionType::UOffset, 0,
+                                             union_offset, comment));
           continue;
         }
 
-        if (!IsValidUnionValue(vtable_entry->second.field->type()->index(),
-                               realized_type.value())) {
+        const auto realized_type = ReadScalar(
+            union_type_vector_data_offset + i * union_type_size, union_type);
+
+        if (!realized_type.has_value()) {
+          SetError(comment, BinaryRegionStatus::ERROR_INCOMPLETE_BINARY,
+                   std::to_string(union_type_size));
+          regions.push_back(MakeBinaryRegion(offset, sizeof(uint32_t),
+                                             BinaryRegionType::UOffset, 0,
+                                             union_offset, comment));
+          continue;
+        }
+
+        if (!IsValidUnionValue(field->type()->index(), realized_type.value())) {
           // We already export an error in the union type field, so just skip
           // building the union itself and it will default to an unreference
           // Binary section.
-          offset += sizeof(uint32_t);
           continue;
         }
 
@@ -1342,16 +1385,15 @@ void BinaryAnnotator::BuildVector(
         regions.push_back(MakeBinaryRegion(offset, sizeof(uint32_t),
                                            BinaryRegionType::UOffset, 0,
                                            union_offset, comment));
-
-        offset += sizeof(uint32_t);
       }
     } break;
     default: {
       if (IsScalar(field->type()->element())) {
-        const BinaryRegionType binary_region_type =
-            GetRegionType(field->type()->element());
+        const reflection::BaseType element =
+            GetStoredType(field, field->type()->element());
+        const BinaryRegionType binary_region_type = GetRegionType(element);
 
-        const uint64_t type_size = GetTypeSize(field->type()->element());
+        const uint64_t type_size = GetTypeSize(element);
 
         // TODO(dbaileychess): It might be nicer to user the
         // BinaryRegion.array_length field to indicate this.
@@ -1375,7 +1417,7 @@ void BinaryAnnotator::BuildVector(
 
           if (IsUnionType(field->type()->element())) {
             // This is a type for a union. Validate the value
-            const auto enum_value = ReadScalar<uint8_t>(offset);
+            const auto enum_value = ReadScalar(offset, element);
 
             // This should always have a value, due to the IsValidRead check
             // above.
@@ -1406,12 +1448,21 @@ void BinaryAnnotator::BuildVector(
 }
 
 std::string BinaryAnnotator::BuildUnion(const uint64_t union_offset,
-                                        const uint8_t realized_type,
+                                        const int64_t realized_type,
                                         const reflection::Field* const field) {
   const reflection::Enum* next_enum =
       schema_->enums()->Get(field->type()->index());
 
-  const reflection::EnumVal* enum_val = next_enum->values()->Get(realized_type);
+  // Members are keyed by value, which need not be their position in values():
+  // in `union U { A = 1, B = 3 }`, B is values()[2].
+  const reflection::EnumVal* enum_val =
+      next_enum->values()->LookupByKey(realized_type);
+
+  // A type naming no member has nothing to annotate. Callers reject one with
+  // IsValidUnionValue first; this keeps BuildUnion safe on its own.
+  if (enum_val == nullptr) {
+    return std::to_string(realized_type);
+  }
 
   if (ContainsSection(union_offset)) {
     return enum_val->name()->c_str();

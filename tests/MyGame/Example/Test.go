@@ -58,10 +58,10 @@ func (rcv_ *Test) MutateB(n_ int8) bool {
 	return rcv_._tab.MutateInt8(rcv_._tab.Pos+flatbuffers.UOffsetT(2), n_)
 }
 
-func CreateTest(builder_ *flatbuffers.Builder, a_ int16, b_ int8) flatbuffers.UOffsetT {
+func CreateTest(builder_ *flatbuffers.Builder, aArg_ int16, bArg_ int8) flatbuffers.UOffsetT {
 	builder_.Prep(2, 4)
 	builder_.Pad(1)
-	builder_.PrependInt8(b_)
-	builder_.PrependInt16(a_)
+	builder_.PrependInt8(bArg_)
+	builder_.PrependInt16(aArg_)
 	return builder_.Offset()
 }

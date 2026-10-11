@@ -23,7 +23,6 @@ impl<B: Buffer> ser::Serialize for &Reader<B> {
     where
         S: ser::Serializer,
     {
-        #[allow(deprecated)]
         match (self.flexbuffer_type(), self.bitwidth()) {
             (Null, _) => serializer.serialize_unit(),
             (Int, W8) | (IndirectInt, W8) => serializer.serialize_i8(self.as_i8()),

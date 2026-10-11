@@ -9,78 +9,141 @@ import (
 )
 
 type ResponseT struct {
-	Player *hero.WarriorT `json:"player"`
+	Player *hero.WarriorT `json:"player,omitempty"`
 }
 
-func (t *ResponseT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *ResponseT) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	playerOffset := t.Player.Pack(builder)
-	ResponseStart(builder)
-	ResponseAddPlayer(builder, playerOffset)
-	return ResponseEnd(builder)
+	playerOffset_ := t_.Player.Pack(builder_)
+	ResponseStart(builder_)
+	ResponseAddPlayer(builder_, playerOffset_)
+	return ResponseEnd(builder_)
 }
 
-func (rcv *Response) UnPackTo(t *ResponseT) {
-	t.Player = rcv.Player(nil).UnPack()
+func (rcv_ *Response) UnPackTo(t_ *ResponseT) {
+	t_.Player = rcv_.Player(nil).UnPack()
 }
 
-func (rcv *Response) UnPack() *ResponseT {
-	if rcv == nil {
+func (rcv_ *Response) UnPack() *ResponseT {
+	if rcv_ == nil {
 		return nil
 	}
-	t := &ResponseT{}
-	rcv.UnPackTo(t)
-	return t
+	t_ := &ResponseT{}
+	rcv_.UnPackTo(t_)
+	return t_
+}
+
+const (
+	ResponseFieldPlayer = "player"
+)
+
+// UnpackFields returns a partial *ResponseT with only the named fields populated.
+// Fields not in the list are left at their zero/default values.
+// This avoids materializing the entire table tree. Pass the
+// generated ResponseField* constants rather than raw strings.
+func (rcv_ *Response) UnpackFields(fields_ ...string) *ResponseT {
+	t_ := &ResponseT{}
+	fieldSet_ := make(map[string]bool, len(fields_))
+	for _, f_ := range fields_ {
+		fieldSet_[f_] = true
+	}
+	if fieldSet_["player"] {
+		t_.Player = rcv_.Player(nil).UnPack()
+	}
+	return t_
 }
 
 type Response struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsResponse(buf []byte, offset flatbuffers.UOffsetT) *Response {
-	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &Response{}
-	x.Init(buf, n+offset)
-	return x
+func GetRootAsResponse(buf_ []byte, offset_ flatbuffers.UOffsetT) *Response {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_:])
+	x_ := &Response{}
+	x_.Init(buf_, n_+offset_)
+	return x_
 }
 
-func GetSizePrefixedRootAsResponse(buf []byte, offset flatbuffers.UOffsetT) *Response {
-	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &Response{}
-	x.Init(buf, n+offset+flatbuffers.SizeUint32)
-	return x
+func FinishResponseBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.Finish(offset_)
 }
 
-func (rcv *Response) Init(buf []byte, i flatbuffers.UOffsetT) {
-	rcv._tab.Bytes = buf
-	rcv._tab.Pos = i
+func GetSizePrefixedRootAsResponse(buf_ []byte, offset_ flatbuffers.UOffsetT) *Response {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_+flatbuffers.SizeUint32:])
+	x_ := &Response{}
+	x_.Init(buf_, n_+offset_+flatbuffers.SizeUint32)
+	return x_
 }
 
-func (rcv *Response) Table() flatbuffers.Table {
-	return rcv._tab
+func FinishSizePrefixedResponseBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.FinishSizePrefixed(offset_)
 }
 
-func (rcv *Response) Player(obj *hero.Warrior) *hero.Warrior {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
-	if o != 0 {
-		x := rcv._tab.Indirect(o + rcv._tab.Pos)
-		if obj == nil {
-			obj = new(hero.Warrior)
+func VerifyRootAsResponse(buf_ []byte, opts_ *flatbuffers.VerifierOptions) error {
+	v_ := flatbuffers.NewVerifier(buf_, opts_)
+	tablePos_, err_ := v_.CheckUOffsetT(0)
+	if err_ != nil {
+		return err_
+	}
+	return verifyResponse(v_, int(tablePos_))
+}
+
+func VerifyResponse(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	return verifyResponse(v_, tablePos_)
+}
+
+func verifyResponse(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	if err_ := v_.CheckTable(tablePos_); err_ != nil {
+		return err_
+	}
+	if err_ := v_.CountTable(); err_ != nil {
+		return err_
+	}
+	if err_ := v_.PushDepth(); err_ != nil {
+		return err_
+	}
+	defer v_.PopDepth()
+
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 4); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := hero.VerifyWarrior(v_, pos_); err_ != nil {
+			return err_
 		}
-		obj.Init(rcv._tab.Bytes, x)
-		return obj
 	}
 	return nil
 }
 
-func ResponseStart(builder *flatbuffers.Builder) {
-	builder.StartObject(1)
+func (rcv_ *Response) Init(buf_ []byte, i_ flatbuffers.UOffsetT) {
+	rcv_._tab.Bytes = buf_
+	rcv_._tab.Pos = i_
 }
-func ResponseAddPlayer(builder *flatbuffers.Builder, player flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(player), 0)
+
+func (rcv_ *Response) Table() flatbuffers.Table {
+	return rcv_._tab
 }
-func ResponseEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	return builder.EndObject()
+
+func (rcv_ *Response) Player(obj_ *hero.Warrior) *hero.Warrior {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(4))
+	if o_ != 0 {
+		x_ := rcv_._tab.Indirect(o_ + rcv_._tab.Pos)
+		if obj_ == nil {
+			obj_ = new(hero.Warrior)
+		}
+		obj_.Init(rcv_._tab.Bytes, x_)
+		return obj_
+	}
+	return nil
+}
+
+func ResponseStart(builder_ *flatbuffers.Builder) {
+	builder_.StartObject(1)
+}
+func ResponseAddPlayer(builder_ *flatbuffers.Builder, playerArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(playerArg_), 0)
+}
+func ResponseEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder_.EndObject()
 }

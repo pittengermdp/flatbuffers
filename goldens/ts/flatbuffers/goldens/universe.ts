@@ -4,7 +4,7 @@
 
 import * as flatbuffers from 'flatbuffers';
 
-import { Galaxy } from './galaxy.js';
+import { Galaxy, verifyGalaxy } from './galaxy.js';
 
 
 export class Universe {
@@ -83,4 +83,25 @@ static createUniverse(builder:flatbuffers.Builder, age:number, galaxiesOffset:fl
   Universe.addGalaxies(builder, galaxiesOffset);
   return Universe.endUniverse(builder);
 }
+}
+
+export function verifyUniverse(verifier: flatbuffers.Verifier, tablePos: number): void {
+  verifier.checkTable(tablePos);
+  try {
+    verifier.checkScalarField(tablePos, 4, 8);
+    {
+      const pos = verifier.checkOffsetField(tablePos, 6);
+      if (pos !== 0) {
+        verifier.checkVectorOfTables(pos, verifyGalaxy);
+      }
+    }
+  } finally {
+    verifier.popDepth();
+  }
+}
+
+export function verifyRootAsUniverse(buf: DataView, opts?: flatbuffers.VerifierOptions): void {
+  const verifier = new flatbuffers.Verifier(buf, opts);
+  const tablePos = verifier.readUint32(0);
+  verifyUniverse(verifier, tablePos);
 }

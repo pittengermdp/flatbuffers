@@ -3,8 +3,8 @@
 package Test
 
 import (
+	flatbuffers "github.com/google/flatbuffers/go"
 	"strconv"
-	flatbuffers "union_of_union_test/flatbuffers"
 )
 
 type Outer byte
@@ -30,11 +30,11 @@ var EnumValuesOuter = map[string]Outer{
 	"TableC": OuterTableC,
 }
 
-func (v Outer) String() string {
-	if s, ok := EnumNamesOuter[v]; ok {
-		return s
+func (v_ Outer) String() string {
+	if s_, ok_ := EnumNamesOuter[v_]; ok_ {
+		return s_
 	}
-	return "Outer(" + strconv.FormatInt(int64(v), 10) + ")"
+	return "Outer(" + strconv.FormatInt(int64(v_), 10) + ")"
 }
 
 type OuterT struct {
@@ -42,35 +42,62 @@ type OuterT struct {
 	Value interface{}
 }
 
-func (t *OuterT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *OuterT) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	switch t.Type {
+	switch t_.Type {
 	case OuterTableA:
-		return t.Value.(*TableAT).Pack(builder)
+		return t_.Value.(*TableAT).Pack(builder_)
 	case OuterTableB:
-		return t.Value.(*TableBT).Pack(builder)
+		return t_.Value.(*TableBT).Pack(builder_)
 	case OuterTableC:
-		return t.Value.(*TableCT).Pack(builder)
+		return t_.Value.(*TableCT).Pack(builder_)
 	}
 	return 0
 }
 
-func (rcv Outer) UnPack(table flatbuffers.Table) *OuterT {
-	switch rcv {
+func (rcv_ Outer) UnPack(table_ flatbuffers.Table) *OuterT {
+	switch rcv_ {
 	case OuterTableA:
-		var x TableA
-		x.Init(table.Bytes, table.Pos)
-		return &OuterT{Type: OuterTableA, Value: x.UnPack()}
+		var x_ TableA
+		x_.Init(table_.Bytes, table_.Pos)
+		return &OuterT{Type: OuterTableA, Value: x_.UnPack()}
 	case OuterTableB:
-		var x TableB
-		x.Init(table.Bytes, table.Pos)
-		return &OuterT{Type: OuterTableB, Value: x.UnPack()}
+		var x_ TableB
+		x_.Init(table_.Bytes, table_.Pos)
+		return &OuterT{Type: OuterTableB, Value: x_.UnPack()}
 	case OuterTableC:
-		var x TableC
-		x.Init(table.Bytes, table.Pos)
-		return &OuterT{Type: OuterTableC, Value: x.UnPack()}
+		var x_ TableC
+		x_.Init(table_.Bytes, table_.Pos)
+		return &OuterT{Type: OuterTableC, Value: x_.UnPack()}
 	}
 	return nil
+}
+
+// Match dispatches to the appropriate callback based on the union variant.
+// Each callback receives the correctly typed value. If the variant is NONE
+// or unrecognized, no callback is invoked.
+func (t_ *OuterT) Match(
+	onTableA_ func(*TableAT),
+	onTableB_ func(*TableBT),
+	onTableC_ func(*TableCT),
+) {
+	if t_ == nil {
+		return
+	}
+	switch t_.Type {
+	case OuterTableA:
+		if v_, ok_ := t_.Value.(*TableAT); ok_ {
+			onTableA_(v_)
+		}
+	case OuterTableB:
+		if v_, ok_ := t_.Value.(*TableBT); ok_ {
+			onTableB_(v_)
+		}
+	case OuterTableC:
+		if v_, ok_ := t_.Value.(*TableCT); ok_ {
+			onTableC_(v_)
+		}
+	}
 }

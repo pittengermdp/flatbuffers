@@ -117,17 +117,12 @@ impl ::flatbuffers::SimpleToVerifyInSlice for Any {}
 pub(crate) struct AnyUnionTableOffset {}
 
 #[allow(clippy::upper_case_acronyms)]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Default, Eq, Hash)]
 pub(crate) enum AnyT {
+    #[default]
     NONE,
     Game(Box<GameT>),
     Annotations(Box<AnnotationsT>),
-}
-
-impl Default for AnyT {
-    fn default() -> Self {
-        Self::NONE
-    }
 }
 
 impl AnyT {
