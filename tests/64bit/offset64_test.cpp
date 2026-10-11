@@ -855,7 +855,8 @@ void Offset64ReflectionVerifySizePrefixed() {
 
   // Everything after the prefix overwritten.
   std::vector<uint8_t> garbage = buf;
-  std::fill(garbage.begin() + sizeof(uoffset64_t), garbage.end(), 0xAB);
+  std::fill(garbage.begin() + sizeof(uoffset64_t), garbage.end(),
+            static_cast<uint8_t>(0xAB));
   TEST_EQ(GeneratedVerifySizePrefixed(garbage), false);
   TEST_EQ(ReflectionVerifySizePrefixed(schema, garbage), false);
   TEST_EQ(flatbuffers::VerifySizePrefixed(schema, root, garbage.data(),
