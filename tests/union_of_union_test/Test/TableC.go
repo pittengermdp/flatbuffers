@@ -133,8 +133,8 @@ func (rcv_ *TableC) MutateZ(n_ float32) bool {
 func TableCStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(1)
 }
-func TableCAddZ(builder_ *flatbuffers.Builder, z_ float32) {
-	builder_.PrependFloat32Slot(0, z_, 0.0)
+func TableCAddZ(builder_ *flatbuffers.Builder, zArg_ float32) {
+	builder_.PrependFloat32Slot(0, zArg_, 0.0)
 }
 func TableCEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder_.EndObject()

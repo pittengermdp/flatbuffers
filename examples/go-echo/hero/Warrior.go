@@ -159,11 +159,11 @@ func (rcv_ *Warrior) MutateHp(n_ uint32) bool {
 func WarriorStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(2)
 }
-func WarriorAddName(builder_ *flatbuffers.Builder, name_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(name_), 0)
+func WarriorAddName(builder_ *flatbuffers.Builder, nameArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(nameArg_), 0)
 }
-func WarriorAddHp(builder_ *flatbuffers.Builder, hp_ uint32) {
-	builder_.PrependUint32Slot(1, hp_, 0)
+func WarriorAddHp(builder_ *flatbuffers.Builder, hpArg_ uint32) {
+	builder_.PrependUint32Slot(1, hpArg_, 0)
 }
 func WarriorEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder_.EndObject()

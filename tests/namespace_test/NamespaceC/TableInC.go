@@ -169,11 +169,11 @@ func (rcv_ *TableInC) ReferToA2(obj_ *NamespaceA.SecondTableInA) *NamespaceA.Sec
 func TableInCStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(2)
 }
-func TableInCAddReferToA1(builder_ *flatbuffers.Builder, referToA1_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(referToA1_), 0)
+func TableInCAddReferToA1(builder_ *flatbuffers.Builder, referToA1Arg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(referToA1Arg_), 0)
 }
-func TableInCAddReferToA2(builder_ *flatbuffers.Builder, referToA2_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(referToA2_), 0)
+func TableInCAddReferToA2(builder_ *flatbuffers.Builder, referToA2Arg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(referToA2Arg_), 0)
 }
 func TableInCEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder_.EndObject()
