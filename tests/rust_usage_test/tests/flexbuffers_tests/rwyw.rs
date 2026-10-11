@@ -28,7 +28,11 @@ impl quickcheck::Arbitrary for NonNullString {
     fn arbitrary<G: quickcheck::Gen>(g: &mut G) -> Self {
         let size = core::cmp::min(1, usize::arbitrary(g));
         NonNullString(
-            (0..).map(|_| <char>::arbitrary(g)).filter(|&b| b != '\0').take(size).collect(),
+            (0..)
+                .map(|_| <char>::arbitrary(g))
+                .filter(|&b| b != '\0')
+                .take(size)
+                .collect(),
         )
     }
 }
@@ -411,13 +415,22 @@ fn serde_serious() {
     let data = MyTupleStruct(
         MyNewType,
         MyUnitStruct(vec!["Hello".to_string(), "World".to_string()]),
-        MyStruct { a: 2, b: 4, c: 8, d: 16 },
+        MyStruct {
+            a: 2,
+            b: 4,
+            c: 8,
+            d: 16,
+        },
         vec![
             MyEnum::Unit,
             MyEnum::NewType([-1, 0, 1]),
             MyEnum::Unit,
             MyEnum::Tuple(3.14, 2.71),
-            MyEnum::Struct { a: 32, b: 64, c: 128 },
+            MyEnum::Struct {
+                a: 32,
+                b: 64,
+                c: 128,
+            },
         ],
     );
 
