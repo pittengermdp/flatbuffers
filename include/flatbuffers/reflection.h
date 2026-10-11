@@ -532,12 +532,13 @@ Offset<const Table*> CopyTable(FlatBufferBuilder& fbb,
 // checks it: its minimum size, and a nonzero, in-bounds root offset. So is the
 // offset of each string, vector, table and union field, as the generated
 // VerifyOffset() and VerifyOffsetRequired() check it, before it is followed:
-// present if the field is required (and not deprecated), nonzero, and in
-// bounds. Unlike the generated verifier, a deprecated field present in the
-// buffer is still checked, as reflection can still read it. The file
-// identifier and the contents of nested flatbuffers are not checked. A length
-// at or above max_size (FLATBUFFERS_MAX_BUFFER_SIZE unless given in opts)
-// fails.
+// nonzero and in bounds. A field of any kind that is marked required must be
+// present unless it is also deprecated, since the generated builder and
+// verifier both skip a deprecated field. Unlike the generated verifier, a
+// deprecated field present in the buffer is still checked, as reflection can
+// still read it. The file identifier and the contents of nested flatbuffers
+// are not checked. A length at or above max_size (FLATBUFFERS_MAX_BUFFER_SIZE
+// unless given in opts) fails.
 bool Verify(const reflection::Schema& schema, const reflection::Object& root,
             const uint8_t* buf, size_t length, uoffset_t max_depth = 64,
             uoffset_t max_tables = 1000000);

@@ -748,13 +748,30 @@ void Offset64ReflectionVerifyRequired() {
                    "table RequiredString { s:string (offset64, required); }"
                    "table RequiredVector { v:[int] (offset64, required); }"
                    "table RequiredVector64 { v:[ubyte] (vector64, required); }"
-                   "table RequiredStructs { v:[Leaf] (vector64, required); }"),
+                   "table RequiredStructs { v:[Leaf] (vector64, required); }"
+                   "table DeprecatedRequiredString {"
+                   "  s:string (offset64, required, deprecated);"
+                   "}"
+                   "table DeprecatedRequiredVector {"
+                   "  v:[int] (offset64, required, deprecated);"
+                   "}"
+                   "table DeprecatedRequiredVector64 {"
+                   "  v:[ubyte] (vector64, required, deprecated);"
+                   "}"
+                   "table DeprecatedRequiredStructs {"
+                   "  v:[Leaf] (vector64, required, deprecated);"
+                   "}"
+                   "table DeprecatedRequiredOffset64Structs {"
+                   "  v:[Leaf] (offset64, required, deprecated);"
+                   "}"),
       true);
   parser.Serialize();
   const reflection::Schema& schema =
       *reflection::GetSchema(parser.builder_.GetBufferPointer());
 
   // A table with no fields set satisfies every table without a required field.
+  // A deprecated field does not count. Each DeprecatedRequired* table holds one
+  // kind, so a failure names the path.
   FlatBufferBuilder64 fbb;
   fbb.Finish(Offset<Table>(fbb.EndTable(fbb.StartTable())));
 
@@ -762,12 +779,40 @@ void Offset64ReflectionVerifyRequired() {
     if (obj->is_struct()) continue;
     bool has_required = false;
     for (const reflection::Field* const field : *obj->fields()) {
-      has_required = has_required || field->required();
+      has_required =
+          has_required || (field->required() && !field->deprecated());
     }
-    TEST_EQ(flatbuffers::Verify(schema, *obj, fbb.GetBufferPointer(),
-                                fbb.GetSize()),
-            !has_required);
+    const bool verified = flatbuffers::Verify(
+        schema, *obj, fbb.GetBufferPointer(), fbb.GetSize());
+    if (verified == has_required) {
+      TEST_OUTPUT_LINE("An empty table %s %s",
+                       verified ? "verifies as" : "fails",
+                       obj->name()->c_str());
+    }
+    TEST_EQ(verified, !has_required);
   }
+
+  // A deprecated field that is present is still verified, as reflection can
+  // still read it: here, a string whose 64-bit offset leads out of the buffer.
+  const reflection::Object& deprecated_string =
+      *schema.objects()->LookupByKey("DeprecatedRequiredString");
+  const voffset_t s = deprecated_string.fields()->LookupByKey("s")->offset();
+  FlatBufferBuilder64 present;
+  const Offset64<String> str = present.CreateString<Offset64>("deprecated");
+  const uoffset_t start = present.StartTable();
+  present.AddOffset(s, str);
+  present.Finish(Offset<Table>(present.EndTable(start)));
+  std::vector<uint8_t> buf(present.GetBufferPointer(),
+                           present.GetBufferPointer() + present.GetSize());
+  TEST_EQ(
+      flatbuffers::Verify(schema, deprecated_string, buf.data(), buf.size()),
+      true);
+  const uint8_t* const slot = GetAnyRoot(buf.data())->GetAddressOf(s);
+  TEST_NOTNULL(slot);
+  WriteScalar<uoffset64_t>(buf.data() + (slot - buf.data()), buf.size());
+  TEST_EQ(
+      flatbuffers::Verify(schema, deprecated_string, buf.data(), buf.size()),
+      false);
 }
 
 // `buf` with 0 for the 32-bit offset in the root table's slot for `field`.
