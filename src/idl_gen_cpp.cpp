@@ -2515,7 +2515,13 @@ class CppGenerator : public BaseGenerator {
     code_.SetValue("SIZE", GenTypeSize(field.value.type));
     code_.SetValue("OFFSET", GenFieldOffsetName(field));
     if (IsScalar(field.value.type.base_type) || IsStruct(field.value.type)) {
-      code_.SetValue("ALIGN", NumToString(InlineAlignment(field.value.type)));
+      // A union's type is stored as, and so aligned as, the union's underlying
+      // type, as GenTypeSize() sizes it: a UType only by default.
+      const auto& type = field.value.type;
+      const auto align = type.base_type == BASE_TYPE_UTYPE && type.enum_def
+                             ? SizeOf(type.enum_def->underlying_type.base_type)
+                             : InlineAlignment(type);
+      code_.SetValue("ALIGN", NumToString(align));
       code_ +=
           "{{PRE}}VerifyField{{REQUIRED}}<{{SIZE}}>(verifier, "
           "{{OFFSET}}, {{ALIGN}})\\";
