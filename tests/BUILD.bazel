@@ -90,6 +90,7 @@ cc_test(
         ":arrays_test.bfbs",
         ":arrays_test.fbs",
         ":arrays_test.golden",
+        ":deprecated_required_test.fbs",
         ":evolution_test/evolution_v1.fbs",
         ":evolution_test/evolution_v1.json",
         ":evolution_test/evolution_v2.fbs",
@@ -145,6 +146,7 @@ cc_test(
         ":arrays_test_cc_fbs",
         ":cross_namespace_pack_test_cc_fbs",
         ":default_vectors_strings_test_cc_fbs",
+        ":deprecated_required_test_cc_fbs",
         ":map_set_test_cc_fbs",
         ":monster_extra_cc_fbs",
         ":monster_test_cc_fbs",
@@ -306,6 +308,15 @@ flatbuffer_cc_library(
 flatbuffer_cc_library(
     name = "map_set_test_cc_fbs",
     srcs = ["map_set_test.fbs"],
+)
+
+# binary_annotator_test.cpp builds its fixtures with
+# deprecated_required_test_generated.h, which CMake produces via
+# compile_schema_for_test, and parses the schema at run time.
+# DEFAULT_FLATC_ARGS matches the FLATC_OPT_COMP set CMake uses.
+flatbuffer_cc_library(
+    name = "deprecated_required_test_cc_fbs",
+    srcs = ["deprecated_required_test.fbs"],
 )
 
 # binary_annotator_test.cpp builds its fixtures with

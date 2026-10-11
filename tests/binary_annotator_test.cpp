@@ -13,6 +13,7 @@
 #include "flatbuffers/reflection.h"
 #include "flatbuffers/util.h"
 #include "test_assert.h"
+#include "tests/deprecated_required_test_generated.h"
 #include "tests/union_underlying_type_test_generated.h"
 #include "tests/union_value_gap_test_generated.h"
 #include "tests/vtable_slot_count_test_generated.h"
@@ -253,6 +254,13 @@ std::vector<uint8_t> ReaderWithSlot(const voffset_t slot,
   return buffer;
 }
 
+// The vtable slot annotated for the field `name` with `id`, or null. The text
+// output prints it as "offset to field `name` (id: N)".
+const BinaryRegion* FindSlot(const Annotations& annotations,
+                             const std::string& name, const int id) {
+  return FindRegion(annotations, BinaryRegionCommentType::VTableFieldOffset,
+                    name + "` (id: " + std::to_string(id) + ")", 0);
+}
 
 }  // namespace
 
@@ -889,6 +897,100 @@ void AnnotateVTableSlotsOnceTest(const std::string& tests_data_path) {
     CheckSlot(vtable, "name", 1, BinaryRegionStatus::OK);
     CheckSlot(vtable, "count", 2,
               BinaryRegionStatus::ERROR_OFFSET_OUT_OF_BINARY);
+  }
+}
+
+
+
+// A field marked both required and deprecated need not be present: the
+// generated builder's Finish() does not require it, and the generated verifier
+// skips it. The annotator reported such a field, when absent, as
+// ERROR_REQUIRED_FIELD_NOT_PRESENT.
+void AnnotateDeprecatedRequiredFieldTest(const std::string& tests_data_path) {
+  std::string schemafile;
+  TEST_EQ(LoadFile((tests_data_path + "deprecated_required_test.fbs").c_str(),
+                   false, &schemafile),
+          true);
+  IDLOptions opts;
+  opts.lang_to_generate |= IDLOptions::kBinary;
+  Parser parser(opts);
+  TEST_EQ(parser.Parse(schemafile.c_str()), true);
+  parser.Serialize();
+  const std::string bfbs(
+      reinterpret_cast<const char*>(parser.builder_.GetBufferPointer()),
+      parser.builder_.GetSize());
+
+  // The premise: the binary schema keeps `gone` required as well as
+  // deprecated, and `name` required only.
+  const reflection::Object* reader =
+      reflection::GetSchema(parser.builder_.GetBufferPointer())->root_table();
+  TEST_NOTNULL(reader);
+  if (!reader) return;
+  const reflection::Field* gone = reader->fields()->LookupByKey("gone");
+  TEST_NOTNULL(gone);
+  if (!gone) return;
+  TEST_EQ(gone->required(), true);
+  TEST_EQ(gone->deprecated(), true);
+  const reflection::Field* name = reader->fields()->LookupByKey("name");
+  TEST_NOTNULL(name);
+  if (!name) return;
+  TEST_EQ(name->required(), true);
+  TEST_EQ(name->deprecated(), false);
+
+  // What Reader's generated code writes and accepts: it cannot set `gone`.
+  {
+    DeprecatedRequired::ReaderT reader_t;
+    reader_t.name = "name";
+    FlatBufferBuilder fbb;
+    DeprecatedRequired::FinishReaderBuffer(
+        fbb, DeprecatedRequired::Reader::Pack(fbb, &reader_t));
+    Verifier verifier(fbb.GetBufferPointer(), fbb.GetSize());
+    TEST_EQ(DeprecatedRequired::VerifyReaderBuffer(verifier), true);
+
+    const Annotations annotations = Annotate(bfbs, FinishedBuffer(fbb));
+    TEST_EQ(CountStatus(annotations,
+                        BinaryRegionStatus::ERROR_REQUIRED_FIELD_NOT_PRESENT),
+            0u);
+    // `gone` has a slot, holding 0, so the annotator did look at it.
+    const BinaryRegion* gone_slot = FindSlot(annotations, "gone", 0);
+    TEST_NOTNULL(gone_slot);
+    if (gone_slot) {
+      TEST_EQ(gone_slot->comment.status, BinaryRegionStatus::OK);
+      TEST_EQ_STR(gone_slot->comment.default_value.c_str(), "<null> (String)");
+    }
+    // Nor is `name`'s slot annotated a second time, as an unknown field.
+    TEST_NULL(FindRegion(
+        annotations, BinaryRegionCommentType::VTableUnknownFieldOffset, "", 1));
+  }
+
+  // A buffer without `name`, which Reader's generated builder refuses to write
+  // and its generated verifier rejects, is still an error, and the only one.
+  {
+    DeprecatedRequired::WriterT writer_t;
+    writer_t.count = 7;  // Gives `gone` and `name` slots, each holding 0.
+    FlatBufferBuilder fbb;
+    fbb.Finish(DeprecatedRequired::Writer::Pack(fbb, &writer_t));
+    Verifier writer_verifier(fbb.GetBufferPointer(), fbb.GetSize());
+    TEST_EQ(writer_verifier.VerifyBuffer<DeprecatedRequired::Writer>(nullptr),
+            true);
+    Verifier reader_verifier(fbb.GetBufferPointer(), fbb.GetSize());
+    TEST_EQ(DeprecatedRequired::VerifyReaderBuffer(reader_verifier), false);
+
+    const Annotations annotations = Annotate(bfbs, FinishedBuffer(fbb));
+    TEST_EQ(CountStatus(annotations,
+                        BinaryRegionStatus::ERROR_REQUIRED_FIELD_NOT_PRESENT),
+            1u);
+    const BinaryRegion* name_slot = FindSlot(annotations, "name", 1);
+    TEST_NOTNULL(name_slot);
+    if (name_slot) {
+      TEST_EQ(name_slot->comment.status,
+              BinaryRegionStatus::ERROR_REQUIRED_FIELD_NOT_PRESENT);
+    }
+    const BinaryRegion* gone_slot = FindSlot(annotations, "gone", 0);
+    TEST_NOTNULL(gone_slot);
+    if (gone_slot) {
+      TEST_EQ(gone_slot->comment.status, BinaryRegionStatus::OK);
+    }
   }
 }
 

@@ -6,6 +6,7 @@
 namespace flatbuffers {
 namespace tests {
 
+void AnnotateDeprecatedRequiredFieldTest(const std::string& tests_data_path);
 void AnnotateVTableSlotsOnceTest(const std::string& tests_data_path);
 void AnnotateUnionByValueTest(const std::string& tests_data_path);
 void AnnotateUnionUnderlyingTypeTest(const std::string& tests_data_path);

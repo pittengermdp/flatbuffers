@@ -19,6 +19,13 @@ static bool BinaryRegionSort(const BinaryRegion& a, const BinaryRegion& b) {
   return a.offset < b.offset;
 }
 
+// Whether a field must be present. A deprecated field need not be, even if it
+// is marked required: the generated builder does not require it, and the
+// generated verifier skips it.
+static bool IsRequired(const reflection::Field& field) {
+  return field.required() && !field.deprecated();
+}
+
 static void SetError(BinaryRegionComment& comment, BinaryRegionStatus status,
                      std::string message = "") {
   comment.status = status;
@@ -414,7 +421,7 @@ BinaryAnnotator::VTable* BinaryAnnotator::GetOrBuildVTable(
     std::string default_label;
     if (offset_from_table.value() == 0) {
       // Not present, so could be default or be optional.
-      if (field->required()) {
+      if (IsRequired(*field)) {
         SetError(field_comment,
                  BinaryRegionStatus::ERROR_REQUIRED_FIELD_NOT_PRESENT);
         // If this is a required field, make it known this is an error.
