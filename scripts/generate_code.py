@@ -1117,9 +1117,13 @@ def format_generated_code():
 
   if have("rustfmt"):
     by_edition = {}
-    for f in sorted(
-        {f for d in rust_output_dirs for f in sources(d, "**/*_generated.rs")}
-    ):
+    # The reflection module is generated into a scratch directory, then moved
+    # into the crate, so its final location is listed here.
+    for f in sorted({
+        f
+        for d in (*rust_output_dirs, Path(root_path, "rust/reflection/src"))
+        for f in sources(d, "**/*_generated.rs")
+    }):
       by_edition.setdefault(rust_edition(f), []).append(f)
     for edition, rs in sorted(by_edition.items()):
       run_chunked(["rustfmt", "--edition", edition], rs)
