@@ -7,76 +7,135 @@ import (
 )
 
 type TableInNestedNST struct {
-	Foo int32
+	Foo int32 `json:"foo,omitempty"`
 }
 
-func (t *TableInNestedNST) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *TableInNestedNST) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	TableInNestedNSStart(builder)
-	TableInNestedNSAddFoo(builder, t.Foo)
-	return TableInNestedNSEnd(builder)
+	TableInNestedNSStart(builder_)
+	TableInNestedNSAddFoo(builder_, t_.Foo)
+	return TableInNestedNSEnd(builder_)
 }
 
-func (rcv *TableInNestedNS) UnPackTo(t *TableInNestedNST) {
-	t.Foo = rcv.Foo()
+func (rcv_ *TableInNestedNS) UnPackTo(t_ *TableInNestedNST) {
+	t_.Foo = rcv_.Foo()
 }
 
-func (rcv *TableInNestedNS) UnPack() *TableInNestedNST {
-	if rcv == nil {
+func (rcv_ *TableInNestedNS) UnPack() *TableInNestedNST {
+	if rcv_ == nil {
 		return nil
 	}
-	t := &TableInNestedNST{}
-	rcv.UnPackTo(t)
-	return t
+	t_ := &TableInNestedNST{}
+	rcv_.UnPackTo(t_)
+	return t_
+}
+
+const (
+	TableInNestedNSFieldFoo = "foo"
+)
+
+// UnpackFields returns a partial *TableInNestedNST with only the named fields populated.
+// Fields not in the list are left at their zero/default values.
+// This avoids materializing the entire table tree. Pass the
+// generated TableInNestedNSField* constants rather than raw strings.
+func (rcv_ *TableInNestedNS) UnpackFields(fields_ ...string) *TableInNestedNST {
+	t_ := &TableInNestedNST{}
+	fieldSet_ := make(map[string]bool, len(fields_))
+	for _, f_ := range fields_ {
+		fieldSet_[f_] = true
+	}
+	if fieldSet_["foo"] {
+		t_.Foo = rcv_.Foo()
+	}
+	return t_
 }
 
 type TableInNestedNS struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsTableInNestedNS(buf []byte, offset flatbuffers.UOffsetT) *TableInNestedNS {
-	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &TableInNestedNS{}
-	x.Init(buf, n+offset)
-	return x
+func GetRootAsTableInNestedNS(buf_ []byte, offset_ flatbuffers.UOffsetT) *TableInNestedNS {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_:])
+	x_ := &TableInNestedNS{}
+	x_.Init(buf_, n_+offset_)
+	return x_
 }
 
-func GetSizePrefixedRootAsTableInNestedNS(buf []byte, offset flatbuffers.UOffsetT) *TableInNestedNS {
-	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &TableInNestedNS{}
-	x.Init(buf, n+offset+flatbuffers.SizeUint32)
-	return x
+func FinishTableInNestedNSBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.Finish(offset_)
 }
 
-func (rcv *TableInNestedNS) Init(buf []byte, i flatbuffers.UOffsetT) {
-	rcv._tab.Bytes = buf
-	rcv._tab.Pos = i
+func GetSizePrefixedRootAsTableInNestedNS(buf_ []byte, offset_ flatbuffers.UOffsetT) *TableInNestedNS {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_+flatbuffers.SizeUint32:])
+	x_ := &TableInNestedNS{}
+	x_.Init(buf_, n_+offset_+flatbuffers.SizeUint32)
+	return x_
 }
 
-func (rcv *TableInNestedNS) Table() flatbuffers.Table {
-	return rcv._tab
+func FinishSizePrefixedTableInNestedNSBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.FinishSizePrefixed(offset_)
 }
 
-func (rcv *TableInNestedNS) Foo() int32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
-	if o != 0 {
-		return rcv._tab.GetInt32(o + rcv._tab.Pos)
+func VerifyRootAsTableInNestedNS(buf_ []byte, opts_ *flatbuffers.VerifierOptions) error {
+	v_ := flatbuffers.NewVerifier(buf_, opts_)
+	tablePos_, err_ := v_.CheckUOffsetT(0)
+	if err_ != nil {
+		return err_
+	}
+	return verifyTableInNestedNS(v_, int(tablePos_))
+}
+
+func VerifyTableInNestedNS(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	return verifyTableInNestedNS(v_, tablePos_)
+}
+
+func verifyTableInNestedNS(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	if err_ := v_.CheckTable(tablePos_); err_ != nil {
+		return err_
+	}
+	if err_ := v_.CountTable(); err_ != nil {
+		return err_
+	}
+	if err_ := v_.PushDepth(); err_ != nil {
+		return err_
+	}
+	defer v_.PopDepth()
+
+	if err_ := v_.CheckScalarField(tablePos_, 4, 4); err_ != nil {
+		return err_
+	}
+	return nil
+}
+
+func (rcv_ *TableInNestedNS) Init(buf_ []byte, i_ flatbuffers.UOffsetT) {
+	rcv_._tab.Bytes = buf_
+	rcv_._tab.Pos = i_
+}
+
+func (rcv_ *TableInNestedNS) Table() flatbuffers.Table {
+	return rcv_._tab
+}
+
+func (rcv_ *TableInNestedNS) Foo() int32 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(4))
+	if o_ != 0 {
+		return rcv_._tab.GetInt32(o_ + rcv_._tab.Pos)
 	}
 	return 0
 }
 
-func (rcv *TableInNestedNS) MutateFoo(n int32) bool {
-	return rcv._tab.MutateInt32Slot(4, n)
+func (rcv_ *TableInNestedNS) MutateFoo(n_ int32) bool {
+	return rcv_._tab.MutateInt32Slot(4, n_)
 }
 
-func TableInNestedNSStart(builder *flatbuffers.Builder) {
-	builder.StartObject(1)
+func TableInNestedNSStart(builder_ *flatbuffers.Builder) {
+	builder_.StartObject(1)
 }
-func TableInNestedNSAddFoo(builder *flatbuffers.Builder, foo int32) {
-	builder.PrependInt32Slot(0, foo, 0)
+func TableInNestedNSAddFoo(builder_ *flatbuffers.Builder, foo_ int32) {
+	builder_.PrependInt32Slot(0, foo_, 0)
 }
-func TableInNestedNSEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	return builder.EndObject()
+func TableInNestedNSEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder_.EndObject()
 }

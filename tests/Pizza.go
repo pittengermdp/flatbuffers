@@ -7,76 +7,135 @@ import (
 )
 
 type PizzaT struct {
-	Size int32 `json:"size"`
+	Size int32 `json:"size,omitempty"`
 }
 
-func (t *PizzaT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *PizzaT) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	PizzaStart(builder)
-	PizzaAddSize(builder, t.Size)
-	return PizzaEnd(builder)
+	PizzaStart(builder_)
+	PizzaAddSize(builder_, t_.Size)
+	return PizzaEnd(builder_)
 }
 
-func (rcv *Pizza) UnPackTo(t *PizzaT) {
-	t.Size = rcv.Size()
+func (rcv_ *Pizza) UnPackTo(t_ *PizzaT) {
+	t_.Size = rcv_.Size()
 }
 
-func (rcv *Pizza) UnPack() *PizzaT {
-	if rcv == nil {
+func (rcv_ *Pizza) UnPack() *PizzaT {
+	if rcv_ == nil {
 		return nil
 	}
-	t := &PizzaT{}
-	rcv.UnPackTo(t)
-	return t
+	t_ := &PizzaT{}
+	rcv_.UnPackTo(t_)
+	return t_
+}
+
+const (
+	PizzaFieldSize = "size"
+)
+
+// UnpackFields returns a partial *PizzaT with only the named fields populated.
+// Fields not in the list are left at their zero/default values.
+// This avoids materializing the entire table tree. Pass the
+// generated PizzaField* constants rather than raw strings.
+func (rcv_ *Pizza) UnpackFields(fields_ ...string) *PizzaT {
+	t_ := &PizzaT{}
+	fieldSet_ := make(map[string]bool, len(fields_))
+	for _, f_ := range fields_ {
+		fieldSet_[f_] = true
+	}
+	if fieldSet_["size"] {
+		t_.Size = rcv_.Size()
+	}
+	return t_
 }
 
 type Pizza struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsPizza(buf []byte, offset flatbuffers.UOffsetT) *Pizza {
-	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &Pizza{}
-	x.Init(buf, n+offset)
-	return x
+func GetRootAsPizza(buf_ []byte, offset_ flatbuffers.UOffsetT) *Pizza {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_:])
+	x_ := &Pizza{}
+	x_.Init(buf_, n_+offset_)
+	return x_
 }
 
-func GetSizePrefixedRootAsPizza(buf []byte, offset flatbuffers.UOffsetT) *Pizza {
-	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &Pizza{}
-	x.Init(buf, n+offset+flatbuffers.SizeUint32)
-	return x
+func FinishPizzaBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.Finish(offset_)
 }
 
-func (rcv *Pizza) Init(buf []byte, i flatbuffers.UOffsetT) {
-	rcv._tab.Bytes = buf
-	rcv._tab.Pos = i
+func GetSizePrefixedRootAsPizza(buf_ []byte, offset_ flatbuffers.UOffsetT) *Pizza {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_+flatbuffers.SizeUint32:])
+	x_ := &Pizza{}
+	x_.Init(buf_, n_+offset_+flatbuffers.SizeUint32)
+	return x_
 }
 
-func (rcv *Pizza) Table() flatbuffers.Table {
-	return rcv._tab
+func FinishSizePrefixedPizzaBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.FinishSizePrefixed(offset_)
 }
 
-func (rcv *Pizza) Size() int32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
-	if o != 0 {
-		return rcv._tab.GetInt32(o + rcv._tab.Pos)
+func VerifyRootAsPizza(buf_ []byte, opts_ *flatbuffers.VerifierOptions) error {
+	v_ := flatbuffers.NewVerifier(buf_, opts_)
+	tablePos_, err_ := v_.CheckUOffsetT(0)
+	if err_ != nil {
+		return err_
+	}
+	return verifyPizza(v_, int(tablePos_))
+}
+
+func VerifyPizza(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	return verifyPizza(v_, tablePos_)
+}
+
+func verifyPizza(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	if err_ := v_.CheckTable(tablePos_); err_ != nil {
+		return err_
+	}
+	if err_ := v_.CountTable(); err_ != nil {
+		return err_
+	}
+	if err_ := v_.PushDepth(); err_ != nil {
+		return err_
+	}
+	defer v_.PopDepth()
+
+	if err_ := v_.CheckScalarField(tablePos_, 4, 4); err_ != nil {
+		return err_
+	}
+	return nil
+}
+
+func (rcv_ *Pizza) Init(buf_ []byte, i_ flatbuffers.UOffsetT) {
+	rcv_._tab.Bytes = buf_
+	rcv_._tab.Pos = i_
+}
+
+func (rcv_ *Pizza) Table() flatbuffers.Table {
+	return rcv_._tab
+}
+
+func (rcv_ *Pizza) Size() int32 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(4))
+	if o_ != 0 {
+		return rcv_._tab.GetInt32(o_ + rcv_._tab.Pos)
 	}
 	return 0
 }
 
-func (rcv *Pizza) MutateSize(n int32) bool {
-	return rcv._tab.MutateInt32Slot(4, n)
+func (rcv_ *Pizza) MutateSize(n_ int32) bool {
+	return rcv_._tab.MutateInt32Slot(4, n_)
 }
 
-func PizzaStart(builder *flatbuffers.Builder) {
-	builder.StartObject(1)
+func PizzaStart(builder_ *flatbuffers.Builder) {
+	builder_.StartObject(1)
 }
-func PizzaAddSize(builder *flatbuffers.Builder, size int32) {
-	builder.PrependInt32Slot(0, size, 0)
+func PizzaAddSize(builder_ *flatbuffers.Builder, size_ int32) {
+	builder_.PrependInt32Slot(0, size_, 0)
 }
-func PizzaEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	return builder.EndObject()
+func PizzaEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder_.EndObject()
 }
