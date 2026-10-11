@@ -1300,6 +1300,11 @@ class CppGenerator : public BaseGenerator {
       auto is_vector = IsVector(type);
       auto is_array = IsArray(type);
       auto bt = is_vector || is_array ? type.element : type.base_type;
+      // A union's types are stored as its underlying type, which ET_UTYPE, 1
+      // byte, is only by default; ET_UTYPE cannot say how wide they are.
+      if (bt == BASE_TYPE_UTYPE && type.enum_def) {
+        bt = type.enum_def->underlying_type.base_type;
+      }
       auto et = IsScalar(bt) || bt == BASE_TYPE_STRING
                     ? bt - BASE_TYPE_UTYPE + ET_UTYPE
                     : ET_SEQUENCE;
