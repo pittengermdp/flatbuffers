@@ -374,6 +374,11 @@ BinaryAnnotator::VTable* BinaryAnnotator::GetOrBuildVTable(
       return;
     }
 
+    // The field has a slot in this vtable. Count it before the error returns
+    // below: the unknown-field loop starts at fields_processed, so an uncounted
+    // slot makes it annotate the last field's slot a second time.
+    fields_processed++;
+
     BinaryRegionComment field_comment;
     field_comment.type = BinaryRegionCommentType::VTableFieldOffset;
     field_comment.name = std::string(field->name()->c_str()) +
@@ -439,8 +444,6 @@ BinaryAnnotator::VTable* BinaryAnnotator::GetOrBuildVTable(
     regions.push_back(MakeBinaryRegion(field_offset, sizeof(uint16_t),
                                        BinaryRegionType::VOffset, 0, 0,
                                        field_comment));
-
-    fields_processed++;
   });
 
   // Check if we covered all the expectant fields. If not, we need to add them

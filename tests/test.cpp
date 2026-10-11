@@ -2292,6 +2292,7 @@ int FlatBufferTests(const std::string& tests_data_path) {
   ReflectionTest(tests_data_path, flatbuf.data(), flatbuf.size());
   ReflectionVerifyUnionTypeSlotsTest(tests_data_path);
   ForAllFieldsReverseTest(tests_data_path);
+  AnnotateVTableSlotsOnceTest(tests_data_path);
   AnnotateUnionByValueTest(tests_data_path);
   AnnotateUnionUnderlyingTypeTest(tests_data_path);
   AnnotateUnionVectorTest(tests_data_path);
