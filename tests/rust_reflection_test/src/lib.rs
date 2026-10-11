@@ -1402,6 +1402,79 @@ fn test_buffer_set_string_smaller_size_succeeds() {
 }
 
 #[test]
+fn test_buffer_set_string_bigger_size_with_trimmed_vtable_succeeds() {
+    // The builder trims a vtable to the last field actually written, so a
+    // table with every field at its default gets a header-only vtable. Growing
+    // `name` walks into `testempty`, a Stat packed below `name`; Stat's `id`
+    // slot lies past that vtable and must read as absent, not as the bytes
+    // that follow the vtable.
+    let original = my_game::example::MonsterT {
+        name: String::from("Fred"),
+        enemy: Some(Box::new(my_game::example::MonsterT {
+            name: String::from("Enemy"),
+            ..Default::default()
+        })),
+        testempty: Some(Box::new(my_game::example::StatT::default())),
+        ..Default::default()
+    };
+    let mut builder = FlatBufferBuilder::new();
+    let root = original.pack(&mut builder);
+    builder.finish(root, None);
+    let original_bytes = builder.finished_data().to_vec();
+    let mut buffer = original_bytes.clone();
+
+    let schema_buffer = load_file_as_buffer("../monster_test.bfbs");
+    let schema = root_as_schema(schema_buffer.as_slice()).unwrap();
+    let string_field = get_schema_field(&schema_buffer, "name");
+    let testempty_field = get_schema_field(&schema_buffer, "testempty");
+    let table = unsafe { get_any_root(&buffer) };
+    let table_loc = table.loc();
+    let stat = unsafe { get_field_table(&table, &testempty_field) }
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        stat.vtable().num_bytes(),
+        4,
+        "fixture must give testempty a header-only vtable"
+    );
+    let stat_loc = stat.loc();
+    let name_field_loc = table_loc + usize::from(table.vtable().get(string_field.offset()));
+    let name_loc = name_field_loc
+        + unsafe { flatbuffers::read_scalar_at::<u32>(&buffer, name_field_loc) } as usize;
+    assert!(
+        stat_loc < name_loc,
+        "fixture must place testempty below the string being resized"
+    );
+
+    let res = unsafe {
+        set_string(
+            &mut buffer,
+            table_loc,
+            &string_field,
+            "AStringWithSlightlyBiggerSize",
+            &schema,
+        )
+    };
+
+    assert_eq!(res, Ok(()));
+    // No offset between the Stat table and the resized string spans the
+    // insertion point, so a correct resize leaves every byte there untouched.
+    assert_eq!(
+        buffer[stat_loc..name_loc],
+        original_bytes[stat_loc..name_loc]
+    );
+    let mut updated = my_game::example::root_as_monster(&buffer).unwrap().unpack();
+    assert_eq!(updated.name, "AStringWithSlightlyBiggerSize");
+    // Every other field must survive the resize: restoring the old name and
+    // repacking reproduces the original buffer byte for byte.
+    updated.name = original.name;
+    let mut rebuilt = FlatBufferBuilder::new();
+    let root = updated.pack(&mut rebuilt);
+    rebuilt.finish(root, None);
+    assert_eq!(rebuilt.finished_data(), original_bytes.as_slice());
+}
+
+#[test]
 fn test_buffer_set_string_diff_type_fails() {
     let mut buffer = create_test_buffer();
     let table_loc = unsafe { get_any_root(&buffer) }.loc();
