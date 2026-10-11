@@ -2,8 +2,7 @@
 
 # namespace: NamespaceB
 
-
 class EnumInNestedNS(object):
-  A = 0
-  B = 1
-  C = 2
+    A = 0
+    B = 1
+    C = 2

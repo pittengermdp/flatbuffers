@@ -7,60 +7,60 @@ import (
 )
 
 type StructInNestedNST struct {
-	A int32
-	B int32
+	A int32 `json:"a,omitempty"`
+	B int32 `json:"b,omitempty"`
 }
 
-func (t *StructInNestedNST) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *StructInNestedNST) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	return CreateStructInNestedNS(builder, t.A, t.B)
+	return CreateStructInNestedNS(builder_, t_.A, t_.B)
 }
-func (rcv *StructInNestedNS) UnPackTo(t *StructInNestedNST) {
-	t.A = rcv.A()
-	t.B = rcv.B()
+func (rcv_ *StructInNestedNS) UnPackTo(t_ *StructInNestedNST) {
+	t_.A = rcv_.A()
+	t_.B = rcv_.B()
 }
 
-func (rcv *StructInNestedNS) UnPack() *StructInNestedNST {
-	if rcv == nil {
+func (rcv_ *StructInNestedNS) UnPack() *StructInNestedNST {
+	if rcv_ == nil {
 		return nil
 	}
-	t := &StructInNestedNST{}
-	rcv.UnPackTo(t)
-	return t
+	t_ := &StructInNestedNST{}
+	rcv_.UnPackTo(t_)
+	return t_
 }
 
 type StructInNestedNS struct {
 	_tab flatbuffers.Struct
 }
 
-func (rcv *StructInNestedNS) Init(buf []byte, i flatbuffers.UOffsetT) {
-	rcv._tab.Bytes = buf
-	rcv._tab.Pos = i
+func (rcv_ *StructInNestedNS) Init(buf_ []byte, i_ flatbuffers.UOffsetT) {
+	rcv_._tab.Bytes = buf_
+	rcv_._tab.Pos = i_
 }
 
-func (rcv *StructInNestedNS) Table() flatbuffers.Table {
-	return rcv._tab.Table
+func (rcv_ *StructInNestedNS) Table() flatbuffers.Table {
+	return rcv_._tab.Table
 }
 
-func (rcv *StructInNestedNS) A() int32 {
-	return rcv._tab.GetInt32(rcv._tab.Pos + flatbuffers.UOffsetT(0))
+func (rcv_ *StructInNestedNS) A() int32 {
+	return rcv_._tab.GetInt32(rcv_._tab.Pos + flatbuffers.UOffsetT(0))
 }
-func (rcv *StructInNestedNS) MutateA(n int32) bool {
-	return rcv._tab.MutateInt32(rcv._tab.Pos+flatbuffers.UOffsetT(0), n)
-}
-
-func (rcv *StructInNestedNS) B() int32 {
-	return rcv._tab.GetInt32(rcv._tab.Pos + flatbuffers.UOffsetT(4))
-}
-func (rcv *StructInNestedNS) MutateB(n int32) bool {
-	return rcv._tab.MutateInt32(rcv._tab.Pos+flatbuffers.UOffsetT(4), n)
+func (rcv_ *StructInNestedNS) MutateA(n_ int32) bool {
+	return rcv_._tab.MutateInt32(rcv_._tab.Pos+flatbuffers.UOffsetT(0), n_)
 }
 
-func CreateStructInNestedNS(builder *flatbuffers.Builder, a int32, b int32) flatbuffers.UOffsetT {
-	builder.Prep(4, 8)
-	builder.PrependInt32(b)
-	builder.PrependInt32(a)
-	return builder.Offset()
+func (rcv_ *StructInNestedNS) B() int32 {
+	return rcv_._tab.GetInt32(rcv_._tab.Pos + flatbuffers.UOffsetT(4))
+}
+func (rcv_ *StructInNestedNS) MutateB(n_ int32) bool {
+	return rcv_._tab.MutateInt32(rcv_._tab.Pos+flatbuffers.UOffsetT(4), n_)
+}
+
+func CreateStructInNestedNS(builder_ *flatbuffers.Builder, aArg_ int32, bArg_ int32) flatbuffers.UOffsetT {
+	builder_.Prep(4, 8)
+	builder_.PrependInt32(bArg_)
+	builder_.PrependInt32(aArg_)
+	return builder_.Offset()
 }

@@ -1,5 +1,3 @@
-// This crate exists only to run the reflection tests; nothing in it is
-// meant to be built outside `cargo test`.
 #![cfg(test)]
 
 use flatbuffers_reflection::reflection::{root_as_schema, BaseType, Field};
@@ -12,7 +10,7 @@ use flatbuffers_reflection::{
 };
 use flatbuffers_reflection::{FieldValue, SafeBuffer};
 
-use flatbuffers::{FlatBufferBuilder, VerifierOptions};
+use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, Table, Vector, VerifierOptions};
 
 use assert_approx_eq::assert_approx_eq;
 
@@ -140,10 +138,34 @@ fn test_schema_correct_table_field() {
 #[test]
 fn test_schema_correct_table_field_nullability() {
     let schema_buffer = load_file_as_buffer("../monster_test.bfbs");
+    let root_table = root_as_schema(schema_buffer.as_slice())
+        .unwrap()
+        .root_table()
+        .unwrap();
 
-    assert!(!get_schema_field(&schema_buffer, "hp").optional());
-    assert!(get_schema_field(&schema_buffer, "pos").optional());
-    assert!(!get_schema_field(&schema_buffer, "name").optional());
+    let fields = root_table.fields();
+
+    assert_eq!(
+        fields
+            .lookup_by_key("hp", |field, key| field.key_compare_with_value(key))
+            .unwrap()
+            .optional(),
+        false
+    );
+    assert_eq!(
+        fields
+            .lookup_by_key("pos", |field, key| field.key_compare_with_value(key))
+            .unwrap()
+            .optional(),
+        true
+    );
+    assert_eq!(
+        fields
+            .lookup_by_key("name", |field, key| field.key_compare_with_value(key))
+            .unwrap()
+            .optional(),
+        false
+    );
 }
 
 #[test]
@@ -215,7 +237,7 @@ fn test_buffer_float_same_type_succeeds() {
     let value = unsafe { get_field_float::<f32>(&root_table, &f32_field) };
 
     assert!(value.is_ok());
-    assert_eq!(value.unwrap(), Some(TESTF_VALUE));
+    assert_eq!(value.unwrap(), Some(3.14));
 }
 
 #[test]
@@ -456,8 +478,7 @@ fn test_buffer_f32_as_integer_succeeds() {
     let value = unsafe { get_any_field_integer(&root_table, &f32_field) };
 
     assert!(value.is_ok());
-    // TESTF_VALUE (2.5) read as an integer truncates toward zero.
-    assert_eq!(value.unwrap(), 2);
+    assert_eq!(value.unwrap(), 3);
 }
 
 #[test]
@@ -541,7 +562,7 @@ fn test_buffer_f32_as_float_succeeds() {
     let value = unsafe { get_any_field_float(&root_table, &f32_field) };
 
     assert!(value.is_ok());
-    assert_eq!(value.unwrap(), f64::from(TESTF_VALUE));
+    assert_approx_eq!(value.unwrap(), 3.14);
 }
 
 #[test]
@@ -585,7 +606,7 @@ fn test_buffer_f32_as_string_succeeds() {
     let schema = load_file_as_buffer("../monster_test.bfbs");
     let f32_field = get_schema_field(&schema, "testf");
 
-    let value = unsafe {
+    let mut value = unsafe {
         get_any_field_string(
             &root_table,
             &f32_field,
@@ -593,7 +614,8 @@ fn test_buffer_f32_as_string_succeeds() {
         )
     };
 
-    assert_eq!(value, "2.5");
+    value.truncate(4);
+    assert_eq!(value, String::from("3.14"));
 }
 
 #[test]
@@ -1378,6 +1400,79 @@ fn test_buffer_set_string_smaller_size_succeeds() {
 }
 
 #[test]
+fn test_buffer_set_string_bigger_size_with_trimmed_vtable_succeeds() {
+    // The builder trims a vtable to the last field actually written, so a
+    // table with every field at its default gets a header-only vtable. Growing
+    // `name` walks into `testempty`, a Stat packed below `name`; Stat's `id`
+    // slot lies past that vtable and must read as absent, not as the bytes
+    // that follow the vtable.
+    let original = my_game::example::MonsterT {
+        name: String::from("Fred"),
+        enemy: Some(Box::new(my_game::example::MonsterT {
+            name: String::from("Enemy"),
+            ..Default::default()
+        })),
+        testempty: Some(Box::new(my_game::example::StatT::default())),
+        ..Default::default()
+    };
+    let mut builder = FlatBufferBuilder::new();
+    let root = original.pack(&mut builder);
+    builder.finish(root, None);
+    let original_bytes = builder.finished_data().to_vec();
+    let mut buffer = original_bytes.clone();
+
+    let schema_buffer = load_file_as_buffer("../monster_test.bfbs");
+    let schema = root_as_schema(schema_buffer.as_slice()).unwrap();
+    let string_field = get_schema_field(&schema_buffer, "name");
+    let testempty_field = get_schema_field(&schema_buffer, "testempty");
+    let table = unsafe { get_any_root(&buffer) };
+    let table_loc = table.loc();
+    let stat = unsafe { get_field_table(&table, &testempty_field) }
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        stat.vtable().num_bytes(),
+        4,
+        "fixture must give testempty a header-only vtable"
+    );
+    let stat_loc = stat.loc();
+    let name_field_loc = table_loc + usize::from(table.vtable().get(string_field.offset()));
+    let name_loc = name_field_loc
+        + unsafe { flatbuffers::read_scalar_at::<u32>(&buffer, name_field_loc) } as usize;
+    assert!(
+        stat_loc < name_loc,
+        "fixture must place testempty below the string being resized"
+    );
+
+    let res = unsafe {
+        set_string(
+            &mut buffer,
+            table_loc,
+            &string_field,
+            "AStringWithSlightlyBiggerSize",
+            &schema,
+        )
+    };
+
+    assert_eq!(res, Ok(()));
+    // No offset between the Stat table and the resized string spans the
+    // insertion point, so a correct resize leaves every byte there untouched.
+    assert_eq!(
+        buffer[stat_loc..name_loc],
+        original_bytes[stat_loc..name_loc]
+    );
+    let mut updated = my_game::example::root_as_monster(&buffer).unwrap().unpack();
+    assert_eq!(updated.name, "AStringWithSlightlyBiggerSize");
+    // Every other field must survive the resize: restoring the old name and
+    // repacking reproduces the original buffer byte for byte.
+    updated.name = original.name;
+    let mut rebuilt = FlatBufferBuilder::new();
+    let root = updated.pack(&mut rebuilt);
+    rebuilt.finish(root, None);
+    assert_eq!(rebuilt.finished_data(), original_bytes.as_slice());
+}
+
+#[test]
 fn test_buffer_set_string_diff_type_fails() {
     let mut buffer = create_test_buffer();
     let table_loc = unsafe { get_any_root(&buffer) }.loc();
@@ -1399,6 +1494,346 @@ fn test_buffer_set_string_diff_type_fails() {
         res.unwrap_err(),
         FlatbufferError::FieldTypeMismatch(String::from("String"), String::from("Float"))
     );
+}
+
+#[test]
+fn test_buffer_set_string_shrink_by_less_than_eight_succeeds() {
+    // A size change is rounded to a multiple of 8 to keep everything after the
+    // string aligned, so shrinking by 1..=7 bytes leaves the buffer its old
+    // size. The string must still take its new length, not keep the old one
+    // and read back padded with NULs.
+    let original = my_game::example::MonsterT {
+        name: String::from("Abcdefgh"),
+        ..Default::default()
+    };
+    let original_bytes = pack_monster(&original);
+    let schema_buffer = load_file_as_buffer("../monster_test.bfbs");
+    let schema = root_as_schema(schema_buffer.as_slice()).unwrap();
+    let string_field = get_schema_field(&schema_buffer, "name");
+
+    for len in 1..original.name.len() {
+        let new_name = &original.name[..len];
+        let mut buffer = original_bytes.clone();
+        let table_loc = unsafe { get_any_root(&buffer) }.loc();
+
+        let res = unsafe { set_string(&mut buffer, table_loc, &string_field, new_name, &schema) };
+
+        assert_eq!(res, Ok(()));
+        assert_eq!(
+            buffer.len(),
+            original_bytes.len(),
+            "fixture must shrink by less than 8 bytes"
+        );
+        assert_unpacks_to_original(&buffer, &original_bytes, |monster| {
+            assert_eq!(monster.name, new_name);
+            monster.name = original.name.clone();
+        });
+    }
+}
+
+#[test]
+fn test_buffer_set_string_to_empty_succeeds() {
+    // Clearing a string is a size change like any other: "Fred" shrinks within
+    // its padding, and "MyMonster" shrinks the buffer by 8 bytes.
+    let schema_buffer = load_file_as_buffer("../monster_test.bfbs");
+    let schema = root_as_schema(schema_buffer.as_slice()).unwrap();
+    let string_field = get_schema_field(&schema_buffer, "name");
+
+    for name in ["Fred", "MyMonster"] {
+        let original = my_game::example::MonsterT {
+            name: String::from(name),
+            ..Default::default()
+        };
+        let original_bytes = pack_monster(&original);
+        let mut buffer = original_bytes.clone();
+        let table_loc = unsafe { get_any_root(&buffer) }.loc();
+
+        let res = unsafe { set_string(&mut buffer, table_loc, &string_field, "", &schema) };
+
+        assert_eq!(res, Ok(()));
+        assert_unpacks_to_original(&buffer, &original_bytes, |monster| {
+            assert_eq!(monster.name, "");
+            monster.name = original.name.clone();
+        });
+    }
+}
+
+#[test]
+fn test_buffer_set_string_skips_union_with_absent_type() {
+    // A union whose `_type` slot is absent reads as NONE, just as C++ reads an
+    // absent field as its default. Growing `name` walks the root table, and
+    // must skip that union rather than take a discriminant from the low byte
+    // of the table's vtable soffset.
+    let original = monster_with_union();
+    let original_bytes = pack_monster(&original);
+    let mut buffer = original_bytes.clone();
+    let schema_buffer = load_file_as_buffer("../monster_test.bfbs");
+    let schema = root_as_schema(schema_buffer.as_slice()).unwrap();
+    let string_field = get_schema_field(&schema_buffer, "name");
+    let test_type_field = get_schema_field(&schema_buffer, "test_type");
+    let table_loc = unsafe { get_any_root(&buffer) }.loc();
+    let soffset =
+        unsafe { flatbuffers::read_scalar_at::<flatbuffers::SOffsetT>(&buffer, table_loc) };
+    let vtable_loc = table_loc.checked_add_signed(-(soffset as isize)).unwrap();
+    let slot_loc = vtable_loc + usize::from(test_type_field.offset());
+    let test_type_slot =
+        unsafe { flatbuffers::read_scalar_at::<flatbuffers::VOffsetT>(&buffer, slot_loc) };
+    assert_ne!(test_type_slot, 0, "fixture must store test_type");
+    // Mark `test_type` absent, leaving the union value in place.
+    unsafe { flatbuffers::emplace_scalar::<flatbuffers::VOffsetT>(&mut buffer[slot_loc..], 0) };
+
+    let res = unsafe {
+        set_string(
+            &mut buffer,
+            table_loc,
+            &string_field,
+            "AStringWithSlightlyBiggerSize",
+            &schema,
+        )
+    };
+
+    assert_eq!(res, Ok(()));
+    // The vtable precedes the resized string, so it has not moved.
+    unsafe {
+        flatbuffers::emplace_scalar::<flatbuffers::VOffsetT>(
+            &mut buffer[slot_loc..],
+            test_type_slot,
+        )
+    };
+    assert_unpacks_to_original(&buffer, &original_bytes, |monster| {
+        assert_eq!(monster.name, "AStringWithSlightlyBiggerSize");
+        monster.name = original.name.clone();
+    });
+}
+
+#[test]
+fn test_buffer_set_string_skips_union_with_none_type() {
+    // A NONE discriminant names no table, so growing `name` must skip the
+    // union value rather than look up an object for NONE.
+    let original = monster_with_union();
+    let original_bytes = pack_monster(&original);
+    let mut buffer = original_bytes.clone();
+    let schema_buffer = load_file_as_buffer("../monster_test.bfbs");
+    let schema = root_as_schema(schema_buffer.as_slice()).unwrap();
+    let string_field = get_schema_field(&schema_buffer, "name");
+    let test_type_field = get_schema_field(&schema_buffer, "test_type");
+    let table_loc = unsafe { get_any_root(&buffer) }.loc();
+    let res = unsafe {
+        set_field::<u8>(
+            &mut buffer,
+            table_loc,
+            &test_type_field,
+            my_game::example::Any::NONE.0,
+        )
+    };
+    assert_eq!(res, Ok(()));
+
+    let res = unsafe {
+        set_string(
+            &mut buffer,
+            table_loc,
+            &string_field,
+            "AStringWithSlightlyBiggerSize",
+            &schema,
+        )
+    };
+
+    assert_eq!(res, Ok(()));
+    let res = unsafe {
+        set_field::<u8>(
+            &mut buffer,
+            table_loc,
+            &test_type_field,
+            my_game::example::Any::Monster.0,
+        )
+    };
+    assert_eq!(res, Ok(()));
+    assert_unpacks_to_original(&buffer, &original_bytes, |monster| {
+        assert_eq!(monster.name, "AStringWithSlightlyBiggerSize");
+        monster.name = original.name.clone();
+    });
+}
+
+#[test]
+fn test_buffer_set_string_in_nested_table_succeeds() {
+    // Resizing a string moves everything after it, so an offset anywhere in
+    // the buffer may span it: here the root's `name`, which `pack` writes above
+    // the Stat that owns the resized `id`. The walk must start at the root, not
+    // at the Stat.
+    let original = my_game::example::MonsterT {
+        name: String::from("Root"),
+        testempty: Some(Box::new(my_game::example::StatT {
+            id: Some(String::from("Fred")),
+            ..Default::default()
+        })),
+        ..Default::default()
+    };
+    let original_bytes = pack_monster(&original);
+    let mut buffer = original_bytes.clone();
+    let schema_buffer = load_file_as_buffer("../monster_test.bfbs");
+    let schema = root_as_schema(schema_buffer.as_slice()).unwrap();
+    let id_field = get_object_field(&schema_buffer, "MyGame.Example.Stat", "id");
+    let testempty_field = get_schema_field(&schema_buffer, "testempty");
+    let root = unsafe { get_any_root(&original_bytes) };
+    let stat_loc = unsafe { get_field_table(&root, &testempty_field) }
+        .unwrap()
+        .unwrap()
+        .loc();
+    let monster = my_game::example::root_as_monster(&original_bytes).unwrap();
+    assert!(
+        monster.name().as_ptr() > monster.testempty().unwrap().id().unwrap().as_ptr(),
+        "fixture must place the root's name above the resized string"
+    );
+
+    let res = unsafe {
+        set_string(
+            &mut buffer,
+            stat_loc,
+            &id_field,
+            "AStringWithSlightlyBiggerSize",
+            &schema,
+        )
+    };
+
+    assert_eq!(res, Ok(()));
+    assert_unpacks_to_original(&buffer, &original_bytes, |monster| {
+        let stat = monster.testempty.as_mut().unwrap();
+        assert_eq!(stat.id.as_deref(), Some("AStringWithSlightlyBiggerSize"));
+        stat.id = Some(String::from("Fred"));
+    });
+}
+
+#[test]
+fn test_buffer_set_string_updates_string_vector_spanning_insertion() {
+    // An element offset must change when its string lies beyond the resized
+    // one. `MonsterT::pack` writes a [string] vector's strings directly above
+    // the vector, so no table string can sit between the two; assemble the
+    // root with the generated builder API instead, writing the strings before
+    // `name` and the vector after it.
+    let mut builder = FlatBufferBuilder::new();
+    let alpha = builder.create_string("alpha");
+    let beta = builder.create_string("beta");
+    let name = builder.create_string("Fred");
+    let testarrayofstring = builder.create_vector(&[alpha, beta]);
+    let root = my_game::example::Monster::create(
+        &mut builder,
+        &my_game::example::MonsterArgs {
+            name: Some(name),
+            testarrayofstring: Some(testarrayofstring),
+            ..Default::default()
+        },
+    );
+    builder.finish(root, None);
+    let mut buffer = builder.finished_data().to_vec();
+    let monster = my_game::example::root_as_monster(&buffer).unwrap();
+    let strings = monster.testarrayofstring().unwrap();
+    assert!(
+        strings.bytes().as_ptr() < monster.name().as_ptr()
+            && monster.name().as_ptr() < strings.get(0).as_ptr()
+            && monster.name().as_ptr() < strings.get(1).as_ptr(),
+        "fixture must place name between testarrayofstring's offsets and strings"
+    );
+    // The builder lays the root out differently from `pack`, so compare
+    // against the original's own repack.
+    let original_repacked = pack_monster(&monster.unpack());
+    let schema_buffer = load_file_as_buffer("../monster_test.bfbs");
+    let schema = root_as_schema(schema_buffer.as_slice()).unwrap();
+    let string_field = get_schema_field(&schema_buffer, "name");
+    let table_loc = unsafe { get_any_root(&buffer) }.loc();
+
+    let res = unsafe {
+        set_string(
+            &mut buffer,
+            table_loc,
+            &string_field,
+            "AStringWithSlightlyBiggerSize",
+            &schema,
+        )
+    };
+
+    assert_eq!(res, Ok(()));
+    assert_unpacks_to_original(&buffer, &original_repacked, |monster| {
+        assert_eq!(monster.name, "AStringWithSlightlyBiggerSize");
+        monster.name = String::from("Fred");
+    });
+}
+
+#[test]
+fn test_buffer_set_string_updates_table_vector_spanning_insertion() {
+    // `pack` writes testarrayoftables[0] above [1], and [1].enemy between [1]
+    // and [1].name. Growing [1].enemy.name moves [0], so [0]'s element offset
+    // must change, and moves [1].name, so the walk must recurse into element
+    // [1] to change that table's own offset.
+    let original = my_game::example::MonsterT {
+        name: String::from("Root"),
+        testarrayoftables: Some(vec![
+            my_game::example::MonsterT {
+                name: String::from("First"),
+                ..Default::default()
+            },
+            my_game::example::MonsterT {
+                name: String::from("Second"),
+                enemy: Some(Box::new(my_game::example::MonsterT {
+                    name: String::from("Fred"),
+                    ..Default::default()
+                })),
+                ..Default::default()
+            },
+        ]),
+        ..Default::default()
+    };
+    let original_bytes = pack_monster(&original);
+    let mut buffer = original_bytes.clone();
+    let schema_buffer = load_file_as_buffer("../monster_test.bfbs");
+    let schema = root_as_schema(schema_buffer.as_slice()).unwrap();
+    let string_field = get_schema_field(&schema_buffer, "name");
+    let enemy_field = get_schema_field(&schema_buffer, "enemy");
+    let testarrayoftables_field = get_schema_field(&schema_buffer, "testarrayoftables");
+    let root = unsafe { get_any_root(&original_bytes) };
+    let tables = unsafe {
+        root.get::<ForwardsUOffset<Vector<ForwardsUOffset<Table>>>>(
+            testarrayoftables_field.offset(),
+            None,
+        )
+    }
+    .unwrap();
+    let second = tables.get(1);
+    let enemy_loc = unsafe { get_field_table(&second, &enemy_field) }
+        .unwrap()
+        .unwrap()
+        .loc();
+    let loc_of = |s: &str| s.as_ptr() as usize - original_bytes.as_ptr() as usize;
+    let monster = my_game::example::root_as_monster(&original_bytes).unwrap();
+    let second_monster = monster.testarrayoftables().unwrap().get(1);
+    let resized_loc = loc_of(second_monster.enemy().unwrap().name());
+    assert!(
+        tables.get(0).loc() > resized_loc,
+        "fixture must place testarrayoftables[0] above the resized string"
+    );
+    assert!(
+        second.loc() < resized_loc && loc_of(second_monster.name()) > resized_loc,
+        "fixture must place the resized string between testarrayoftables[1] and its name"
+    );
+
+    let res = unsafe {
+        set_string(
+            &mut buffer,
+            enemy_loc,
+            &string_field,
+            "AStringWithSlightlyBiggerSize",
+            &schema,
+        )
+    };
+
+    assert_eq!(res, Ok(()));
+    assert_unpacks_to_original(&buffer, &original_bytes, |monster| {
+        let enemy = monster.testarrayoftables.as_mut().unwrap()[1]
+            .enemy
+            .as_mut()
+            .unwrap();
+        assert_eq!(enemy.name, "AStringWithSlightlyBiggerSize");
+        enemy.name = String::from("Fred");
+    });
 }
 
 #[test]
@@ -1516,7 +1951,7 @@ fn test_safe_buffer_float_same_type_succeeds() {
     let value = root_table.get_field_float::<f32>("testf");
 
     assert!(value.is_ok());
-    assert_eq!(value.unwrap(), Some(TESTF_VALUE));
+    assert_eq!(value.unwrap(), Some(3.14));
 }
 
 #[test]
@@ -2243,7 +2678,10 @@ fn test_safe_table_get_any_field_float() {
 
     let val = root.get_any_field("testf").unwrap();
     match val {
-        FieldValue::Float(f) => assert_eq!(f, f64::from(TESTF_VALUE)),
+        FieldValue::Float(f) => {
+            let diff = (f - 3.14f64).abs();
+            assert!(diff < 0.001, "expected ~3.14, got {}", f);
+        }
         other => panic!("expected FieldValue::Float, got {:?}", other),
     }
 }
@@ -2413,8 +2851,8 @@ fn test_field_value_display_integer() {
 
 #[test]
 fn test_field_value_display_float() {
-    let v = FieldValue::Float(1.25);
-    assert_eq!(v.to_string(), "1.25");
+    let v = FieldValue::Float(3.14);
+    assert_eq!(v.to_string(), "3.14");
 }
 
 #[test]
@@ -2457,6 +2895,37 @@ fn load_file_as_buffer(path: &str) -> Vec<u8> {
     std::fs::read(path).unwrap()
 }
 
+fn pack_monster(monster: &my_game::example::MonsterT) -> Vec<u8> {
+    let mut builder = FlatBufferBuilder::new();
+    let root = monster.pack(&mut builder);
+    builder.finish(root, None);
+    builder.finished_data().to_vec()
+}
+
+fn monster_with_union() -> my_game::example::MonsterT {
+    my_game::example::MonsterT {
+        name: String::from("Fred"),
+        test: my_game::example::AnyT::Monster(Box::new(my_game::example::MonsterT {
+            name: String::from("Inner"),
+            ..Default::default()
+        })),
+        ..Default::default()
+    }
+}
+
+/// Unpacks `buffer`, lets `restore` check the edited value and put the
+/// original back, then asserts that repacking reproduces `original_bytes`
+/// byte for byte: proof that every other field survived the edit.
+fn assert_unpacks_to_original(
+    buffer: &[u8],
+    original_bytes: &[u8],
+    restore: impl FnOnce(&mut my_game::example::MonsterT),
+) {
+    let mut monster = my_game::example::root_as_monster(buffer).unwrap().unpack();
+    restore(&mut monster);
+    assert_eq!(pack_monster(&monster), original_bytes);
+}
+
 fn get_schema_field<'a>(schema_buffer: &'a Vec<u8>, field_name: &'a str) -> Field<'a> {
     let schema = root_as_schema(schema_buffer.as_slice()).unwrap();
     let root_table = schema.root_table().unwrap();
@@ -2466,10 +2935,23 @@ fn get_schema_field<'a>(schema_buffer: &'a Vec<u8>, field_name: &'a str) -> Fiel
         .unwrap()
 }
 
-/// The `testf` value `create_test_buffer` writes. It differs from the schema
-/// default so the field is actually serialized, and is exact in f32 so reads
-/// widened to f64 compare and print exactly.
-const TESTF_VALUE: f32 = 2.5;
+fn get_object_field<'a>(
+    schema_buffer: &'a [u8],
+    object_name: &'a str,
+    field_name: &'a str,
+) -> Field<'a> {
+    let schema = root_as_schema(schema_buffer).unwrap();
+    let object = schema
+        .objects()
+        .lookup_by_key(object_name, |object, key| {
+            object.key_compare_with_value(key)
+        })
+        .unwrap();
+    object
+        .fields()
+        .lookup_by_key(field_name, |field, key| field.key_compare_with_value(key))
+        .unwrap()
+}
 
 fn create_test_buffer() -> Vec<u8> {
     let mut builder = FlatBufferBuilder::new();
@@ -2491,7 +2973,7 @@ fn create_test_buffer() -> Vec<u8> {
 
         let args = my_game::example::MonsterArgs {
             hp: 32767,
-            testf: TESTF_VALUE,
+            testf: 3.14,
             mana: 150,
             name: Some(builder.create_string("MyMonster")),
             pos: Some(&pos),

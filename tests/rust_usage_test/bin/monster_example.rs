@@ -1,4 +1,3 @@
-#![allow(clippy::derivable_impls, clippy::all)]
 extern crate flatbuffers;
 
 #[allow(dead_code, unused_imports, clippy::approx_constant)]
