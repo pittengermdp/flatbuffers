@@ -226,9 +226,9 @@ FLATBUFFERS_STRUCT_END(Vec3, 12);
 
 inline bool operator==(const Vec3 &lhs, const Vec3 &rhs) {
   return
-      (lhs.x() == rhs.x()) &&
-      (lhs.y() == rhs.y()) &&
-      (lhs.z() == rhs.z());
+      ::flatbuffers::IsFloatTheSameAs(lhs.x(), rhs.x()) &&
+      ::flatbuffers::IsFloatTheSameAs(lhs.y(), rhs.y()) &&
+      ::flatbuffers::IsFloatTheSameAs(lhs.z(), rhs.z());
 }
 
 inline bool operator!=(const Vec3 &lhs, const Vec3 &rhs) {

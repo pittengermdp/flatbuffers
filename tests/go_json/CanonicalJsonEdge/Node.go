@@ -243,11 +243,11 @@ func (rcv_ *Node) Right(obj_ *Node) *Node {
 func NodeStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(2)
 }
-func NodeAddLeft(builder_ *flatbuffers.Builder, left_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(left_), 0)
+func NodeAddLeft(builder_ *flatbuffers.Builder, leftArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(leftArg_), 0)
 }
-func NodeAddRight(builder_ *flatbuffers.Builder, right_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(right_), 0)
+func NodeAddRight(builder_ *flatbuffers.Builder, rightArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(rightArg_), 0)
 }
 func NodeEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder_.EndObject()

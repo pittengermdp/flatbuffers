@@ -1464,10 +1464,42 @@ CheckedError Parser::ParseComma() {
   return NoError();
 }
 
+// A union's types are UTYPE to the schema, but are stored as the union's
+// underlying type: UTYPE, 1 byte, by default, but INT for `union U: int`.
+// Gives `type`, if it is a union's type, the base type it is stored as.
+static void StoreUnionTypeAsUnderlying(Type& type) {
+  if (type.base_type == BASE_TYPE_UTYPE && type.enum_def) {
+    type.base_type = type.enum_def->underlying_type.base_type;
+  }
+}
+
+// Reads a union's type, stored at `p` as the union's underlying type, `type`.
+static int64_t ReadUnionType(BaseType type, const uint8_t* p) {
+  switch (type) {
+    case BASE_TYPE_CHAR:
+      return ReadScalar<int8_t>(p);
+    case BASE_TYPE_SHORT:
+      return ReadScalar<int16_t>(p);
+    case BASE_TYPE_USHORT:
+      return ReadScalar<uint16_t>(p);
+    case BASE_TYPE_INT:
+      return ReadScalar<int32_t>(p);
+    case BASE_TYPE_UINT:
+      return ReadScalar<uint32_t>(p);
+    case BASE_TYPE_LONG:
+      return ReadScalar<int64_t>(p);
+    case BASE_TYPE_ULONG:  // As an EnumVal holds it.
+      return static_cast<int64_t>(ReadScalar<uint64_t>(p));
+    default:  // UTYPE, UCHAR.
+      return ReadScalar<uint8_t>(p);
+  }
+}
+
 CheckedError Parser::ParseAnyValue(Value& val, FieldDef* field,
                                    size_t parent_fieldn,
                                    const StructDef* parent_struct_def,
                                    size_t count, bool inside_vector) {
+  StoreUnionTypeAsUnderlying(val.type);
   switch (val.type.base_type) {
     case BASE_TYPE_UNION: {
       FLATBUFFERS_ASSERT(field);
@@ -1531,13 +1563,20 @@ CheckedError Parser::ParseAnyValue(Value& val, FieldDef* field,
       if (constant.empty() && !vector_of_union_types) {
         return Error("missing type field for this union value: " + field->name);
       }
-      uint8_t enum_idx;
+      // The type is stored as the union's underlying type.
+      const auto underlying = val.type.enum_def->underlying_type.base_type;
+      int64_t enum_idx;
       if (vector_of_union_types) {
         if (vector_of_union_types->size() <= count)
           return Error(
               "union types vector smaller than union values vector for: " +
               field->name);
-        enum_idx = vector_of_union_types->Get(static_cast<uoffset_t>(count));
+        enum_idx = ReadUnionType(underlying, vector_of_union_types->Data() +
+                                                 SizeOf(underlying) * count);
+      } else if (IsUnsigned(underlying)) {
+        uint64_t u64;
+        ECHECK(atot(constant.c_str(), *this, &u64));
+        enum_idx = static_cast<int64_t>(u64);  // As an EnumVal holds it.
       } else {
         ECHECK(atot(constant.c_str(), *this, &enum_idx));
       }
@@ -2150,6 +2189,7 @@ CheckedError Parser::ParseVector(const Type& vector_type, uoffset_t* ovalue,
   }
 
   Type type = vector_type.VectorType();
+  StoreUnionTypeAsUnderlying(type);
   size_t count = 0;
   auto err = ParseVectorDelimiters(count, [&](size_t&) -> CheckedError {
     Value val;
@@ -4813,8 +4853,18 @@ bool EnumVal::Deserialize(Parser& parser, const reflection::EnumVal* val) {
   return true;
 }
 
+// The size a value of base type `t`, of a type whose enum is `enum_def`, is
+// stored at. A union's types are UTYPE to the schema, but are stored as the
+// union's underlying type: UTYPE, 1 byte, by default, but 4 bytes for
+// `union U: int`.
+static size_t SizeOfStored(BaseType t, const EnumDef* enum_def) {
+  return t == BASE_TYPE_UTYPE && enum_def
+             ? SizeOf(enum_def->underlying_type.base_type)
+             : SizeOf(t);
+}
+
 Offset<reflection::Type> Type::Serialize(FlatBufferBuilder* builder) const {
-  size_t element_size = SizeOf(element);
+  size_t element_size = SizeOfStored(element, enum_def);
   if (base_type == BASE_TYPE_VECTOR && element == BASE_TYPE_STRUCT &&
       struct_def->bytesize != 0) {
     // struct_def->bytesize==0 means struct is table
@@ -4824,7 +4874,7 @@ Offset<reflection::Type> Type::Serialize(FlatBufferBuilder* builder) const {
       *builder, static_cast<reflection::BaseType>(base_type),
       static_cast<reflection::BaseType>(element),
       struct_def ? struct_def->index : (enum_def ? enum_def->index : -1),
-      fixed_length, static_cast<uint32_t>(SizeOf(base_type)),
+      fixed_length, static_cast<uint32_t>(SizeOfStored(base_type, enum_def)),
       static_cast<uint32_t>(element_size));
 }
 

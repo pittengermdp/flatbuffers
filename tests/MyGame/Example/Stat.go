@@ -217,14 +217,14 @@ func (rcv_ *Stat) LookupByKey(key_ uint16, vectorLocation_ flatbuffers.UOffsetT,
 func StatStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(3)
 }
-func StatAddId(builder_ *flatbuffers.Builder, id_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(id_), 0)
+func StatAddId(builder_ *flatbuffers.Builder, idArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(idArg_), 0)
 }
-func StatAddVal(builder_ *flatbuffers.Builder, val_ int64) {
-	builder_.PrependInt64Slot(1, val_, 0)
+func StatAddVal(builder_ *flatbuffers.Builder, valArg_ int64) {
+	builder_.PrependInt64Slot(1, valArg_, 0)
 }
-func StatAddCount(builder_ *flatbuffers.Builder, count_ uint16) {
-	builder_.PrependUint16Slot(2, count_, 0)
+func StatAddCount(builder_ *flatbuffers.Builder, countArg_ uint16) {
+	builder_.PrependUint16Slot(2, countArg_, 0)
 }
 func StatEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder_.EndObject()

@@ -2,32 +2,38 @@
 
 package NamespaceC;
 
-import com.google.flatbuffers.*;
-import java.nio.*;
-import java.util.*;
+import com.google.flatbuffers.BaseVector;
+import com.google.flatbuffers.BooleanVector;
+import com.google.flatbuffers.ByteVector;
+import com.google.flatbuffers.Constants;
+import com.google.flatbuffers.DoubleVector;
+import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.flatbuffers.FloatVector;
+import com.google.flatbuffers.IntVector;
+import com.google.flatbuffers.LongVector;
+import com.google.flatbuffers.ShortVector;
+import com.google.flatbuffers.StringVector;
+import com.google.flatbuffers.Struct;
+import com.google.flatbuffers.UnionVector;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 public class TableInCT {
   private NamespaceA.TableInFirstNST referToA1;
   private NamespaceA.SecondTableInAT referToA2;
 
-  public NamespaceA.TableInFirstNST getReferToA1() {
-    return referToA1;
-  }
+  public NamespaceA.TableInFirstNST getReferToA1() { return referToA1; }
 
-  public void setReferToA1(NamespaceA.TableInFirstNST referToA1) {
-    this.referToA1 = referToA1;
-  }
+  public void setReferToA1(NamespaceA.TableInFirstNST referToA1) { this.referToA1 = referToA1; }
 
-  public NamespaceA.SecondTableInAT getReferToA2() {
-    return referToA2;
-  }
+  public NamespaceA.SecondTableInAT getReferToA2() { return referToA2; }
 
-  public void setReferToA2(NamespaceA.SecondTableInAT referToA2) {
-    this.referToA2 = referToA2;
-  }
+  public void setReferToA2(NamespaceA.SecondTableInAT referToA2) { this.referToA2 = referToA2; }
+
 
   public TableInCT() {
     this.referToA1 = null;
     this.referToA2 = null;
   }
 }
+

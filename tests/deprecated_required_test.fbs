@@ -1,0 +1,21 @@
+// A field marked both required and deprecated. Generated code treats it as
+// optional: the builder's Finish() does not require it, and the verifier skips
+// it. `gone` precedes `name` so that a buffer without it still has a vtable
+// slot for it, holding 0.
+namespace DeprecatedRequired;
+
+table Reader {
+  gone: string (required, deprecated);
+  name: string (required);
+  count: int;
+}
+
+// Reader's layout with nothing required, to write the buffer that Reader's
+// generated builder refuses to: one without `name`.
+table Writer {
+  gone: string (deprecated);
+  name: string;
+  count: int;
+}
+
+root_type Reader;

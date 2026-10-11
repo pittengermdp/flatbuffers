@@ -4,198 +4,178 @@
 
 import flatbuffers
 from flatbuffers.compat import import_numpy
-
 np = import_numpy()
 
-
 class TableInFirstNS(object):
-  __slots__ = ['_tab']
+    __slots__ = ['_tab']
 
-  @classmethod
-  def GetRootAs(cls, buf, offset=0):
-    n = flatbuffers.encode.Get(flatbuffers.packer.uoffset, buf, offset)
-    x = TableInFirstNS()
-    x.Init(buf, n + offset)
-    return x
+    @classmethod
+    def GetRootAs(cls, buf, offset=0):
+        n = flatbuffers.encode.Get(flatbuffers.packer.uoffset, buf, offset)
+        x = TableInFirstNS()
+        x.Init(buf, n + offset)
+        return x
 
-  @classmethod
-  def GetRootAsTableInFirstNS(cls, buf, offset=0):
-    """This method is deprecated. Please switch to GetRootAs."""
-    return cls.GetRootAs(buf, offset)
+    @classmethod
+    def GetRootAsTableInFirstNS(cls, buf, offset=0):
+        """This method is deprecated. Please switch to GetRootAs."""
+        return cls.GetRootAs(buf, offset)
+    # TableInFirstNS
+    def Init(self, buf, pos):
+        self._tab = flatbuffers.table.Table(buf, pos)
 
-  # TableInFirstNS
-  def Init(self, buf, pos):
-    self._tab = flatbuffers.table.Table(buf, pos)
+    # TableInFirstNS
+    def FooTable(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(4))
+        if o != 0:
+            x = self._tab.Indirect(o + self._tab.Pos)
+            obj = TableInNestedNS()
+            obj.Init(self._tab.Bytes, x)
+            return obj
+        return None
 
-  # TableInFirstNS
-  def FooTable(self):
-    o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(4))
-    if o != 0:
-      x = self._tab.Indirect(o + self._tab.Pos)
-      obj = TableInNestedNS()
-      obj.Init(self._tab.Bytes, x)
-      return obj
-    return None
+    # TableInFirstNS
+    def FooEnum(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(6))
+        if o != 0:
+            return self._tab.Get(flatbuffers.number_types.Int8Flags, o + self._tab.Pos)
+        return 0
 
-  # TableInFirstNS
-  def FooEnum(self):
-    o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(6))
-    if o != 0:
-      return self._tab.Get(
-          flatbuffers.number_types.Int8Flags, o + self._tab.Pos
-      )
-    return 0
+    # TableInFirstNS
+    def FooUnionType(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
+        if o != 0:
+            return self._tab.Get(flatbuffers.number_types.Uint8Flags, o + self._tab.Pos)
+        return 0
 
-  # TableInFirstNS
-  def FooUnionType(self):
-    o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
-    if o != 0:
-      return self._tab.Get(
-          flatbuffers.number_types.Uint8Flags, o + self._tab.Pos
-      )
-    return 0
+    # TableInFirstNS
+    def FooUnion(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
+        if o != 0:
+            from flatbuffers.table import Table
+            obj = Table(bytearray(), 0)
+            self._tab.Union(obj, o)
+            return obj
+        return None
 
-  # TableInFirstNS
-  def FooUnion(self):
-    o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
-    if o != 0:
-      from flatbuffers.table import Table
-
-      obj = Table(bytearray(), 0)
-      self._tab.Union(obj, o)
-      return obj
-    return None
-
-  # TableInFirstNS
-  def FooStruct(self):
-    o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
-    if o != 0:
-      x = o + self._tab.Pos
-      obj = StructInNestedNS()
-      obj.Init(self._tab.Bytes, x)
-      return obj
-    return None
-
+    # TableInFirstNS
+    def FooStruct(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
+        if o != 0:
+            x = o + self._tab.Pos
+            obj = StructInNestedNS()
+            obj.Init(self._tab.Bytes, x)
+            return obj
+        return None
 
 def TableInFirstNSStart(builder):
-  builder.StartObject(5)
-
+    builder.StartObject(5)
 
 def Start(builder):
-  return TableInFirstNSStart(builder)
-
+    TableInFirstNSStart(builder)
 
 def TableInFirstNSAddFooTable(builder, fooTable):
-  builder.PrependUOffsetTRelativeSlot(
-      0, flatbuffers.number_types.UOffsetTFlags.py_type(fooTable), 0
-  )
-
+    builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(fooTable), 0)
 
 def AddFooTable(builder, fooTable):
-  return TableInFirstNSAddFooTable(builder, fooTable)
-
+    TableInFirstNSAddFooTable(builder, fooTable)
 
 def TableInFirstNSAddFooEnum(builder, fooEnum):
-  builder.PrependInt8Slot(1, fooEnum, 0)
-
+    builder.PrependInt8Slot(1, fooEnum, 0)
 
 def AddFooEnum(builder, fooEnum):
-  return TableInFirstNSAddFooEnum(builder, fooEnum)
-
+    TableInFirstNSAddFooEnum(builder, fooEnum)
 
 def TableInFirstNSAddFooUnionType(builder, fooUnionType):
-  builder.PrependUint8Slot(2, fooUnionType, 0)
-
+    builder.PrependUint8Slot(2, fooUnionType, 0)
 
 def AddFooUnionType(builder, fooUnionType):
-  return TableInFirstNSAddFooUnionType(builder, fooUnionType)
-
+    TableInFirstNSAddFooUnionType(builder, fooUnionType)
 
 def TableInFirstNSAddFooUnion(builder, fooUnion):
-  builder.PrependUOffsetTRelativeSlot(
-      3, flatbuffers.number_types.UOffsetTFlags.py_type(fooUnion), 0
-  )
-
+    builder.PrependUOffsetTRelativeSlot(3, flatbuffers.number_types.UOffsetTFlags.py_type(fooUnion), 0)
 
 def AddFooUnion(builder, fooUnion):
-  return TableInFirstNSAddFooUnion(builder, fooUnion)
-
+    TableInFirstNSAddFooUnion(builder, fooUnion)
 
 def TableInFirstNSAddFooStruct(builder, fooStruct):
-  builder.PrependStructSlot(
-      4, flatbuffers.number_types.UOffsetTFlags.py_type(fooStruct), 0
-  )
-
+    builder.PrependStructSlot(4, flatbuffers.number_types.UOffsetTFlags.py_type(fooStruct), 0)
 
 def AddFooStruct(builder, fooStruct):
-  return TableInFirstNSAddFooStruct(builder, fooStruct)
-
+    TableInFirstNSAddFooStruct(builder, fooStruct)
 
 def TableInFirstNSEnd(builder):
-  return builder.EndObject()
-
+    return builder.EndObject()
 
 def End(builder):
-  return TableInFirstNSEnd(builder)
-
+    return TableInFirstNSEnd(builder)
 
 try:
-  from typing import Optional, Union
+    from typing import Optional, Union
 except:
-  pass
-
+    pass
 
 class TableInFirstNST(object):
 
-  # TableInFirstNST
-  def __init__(self):
-    self.fooTable = None  # type: Optional[TableInNestedNST]
-    self.fooEnum = 0  # type: int
-    self.fooUnionType = 0  # type: int
-    self.fooUnion = None  # type: Union[None, TableInNestedNST]
-    self.fooStruct = None  # type: Optional[StructInNestedNST]
+    # TableInFirstNST
+    def __init__(
+        self,
+        fooTable = None,
+        fooEnum = 0,
+        fooUnionType = 0,
+        fooUnion = None,
+        fooStruct = None,
+    ):
+        self.fooTable = fooTable  # type: Optional[TableInNestedNST]
+        self.fooEnum = fooEnum  # type: int
+        self.fooUnionType = fooUnionType  # type: int
+        self.fooUnion = fooUnion  # type: Union[None, 'TableInNestedNST']
+        self.fooStruct = fooStruct  # type: Optional[StructInNestedNST]
 
-  @classmethod
-  def InitFromBuf(cls, buf, pos):
-    tableInFirstNS = TableInFirstNS()
-    tableInFirstNS.Init(buf, pos)
-    return cls.InitFromObj(tableInFirstNS)
+    @classmethod
+    def InitFromBuf(cls, buf, pos):
+        tableInFirstNs = TableInFirstNS()
+        tableInFirstNs.Init(buf, pos)
+        return cls.InitFromObj(tableInFirstNs)
 
-  @classmethod
-  def InitFromObj(cls, tableInFirstNS):
-    x = TableInFirstNST()
-    x._UnPack(tableInFirstNS)
-    return x
+    @classmethod
+    def InitFromPackedBuf(cls, buf, pos=0):
+        n = flatbuffers.encode.Get(flatbuffers.packer.uoffset, buf, pos)
+        return cls.InitFromBuf(buf, pos+n)
 
-  # TableInFirstNST
-  def _UnPack(self, tableInFirstNS):
-    if tableInFirstNS is None:
-      return
-    if tableInFirstNS.FooTable() is not None:
-      self.fooTable = TableInNestedNST.InitFromObj(tableInFirstNS.FooTable())
-    self.fooEnum = tableInFirstNS.FooEnum()
-    self.fooUnionType = tableInFirstNS.FooUnionType()
-    self.fooUnion = UnionInNestedNSCreator(
-        self.fooUnionType, tableInFirstNS.FooUnion()
-    )
-    if tableInFirstNS.FooStruct() is not None:
-      self.fooStruct = StructInNestedNST.InitFromObj(tableInFirstNS.FooStruct())
+    @classmethod
+    def InitFromObj(cls, tableInFirstNs):
+        x = TableInFirstNST()
+        x._UnPack(tableInFirstNs)
+        return x
 
-  # TableInFirstNST
-  def Pack(self, builder):
-    if self.fooTable is not None:
-      fooTable = self.fooTable.Pack(builder)
-    if self.fooUnion is not None:
-      fooUnion = self.fooUnion.Pack(builder)
-    TableInFirstNSStart(builder)
-    if self.fooTable is not None:
-      TableInFirstNSAddFooTable(builder, fooTable)
-    TableInFirstNSAddFooEnum(builder, self.fooEnum)
-    TableInFirstNSAddFooUnionType(builder, self.fooUnionType)
-    if self.fooUnion is not None:
-      TableInFirstNSAddFooUnion(builder, fooUnion)
-    if self.fooStruct is not None:
-      fooStruct = self.fooStruct.Pack(builder)
-      TableInFirstNSAddFooStruct(builder, fooStruct)
-    tableInFirstNS = TableInFirstNSEnd(builder)
-    return tableInFirstNS
+    # TableInFirstNST
+    def _UnPack(self, tableInFirstNs):
+        if tableInFirstNs is None:
+            return
+        if tableInFirstNs.FooTable() is not None:
+            self.fooTable = TableInNestedNST.InitFromObj(tableInFirstNs.FooTable())
+        self.fooEnum = tableInFirstNs.FooEnum()
+        self.fooUnionType = tableInFirstNs.FooUnionType()
+        self.fooUnion = UnionInNestedNsCreator(self.fooUnionType, tableInFirstNs.FooUnion())
+        if tableInFirstNs.FooStruct() is not None:
+            self.fooStruct = StructInNestedNST.InitFromObj(tableInFirstNs.FooStruct())
+
+    # TableInFirstNST
+    def Pack(self, builder):
+        if self.fooTable is not None:
+            fooTable = self.fooTable.Pack(builder)
+        if self.fooUnion is not None:
+            fooUnion = self.fooUnion.Pack(builder)
+        TableInFirstNSStart(builder)
+        if self.fooTable is not None:
+            TableInFirstNSAddFooTable(builder, fooTable)
+        TableInFirstNSAddFooEnum(builder, self.fooEnum)
+        TableInFirstNSAddFooUnionType(builder, self.fooUnionType)
+        if self.fooUnion is not None:
+            TableInFirstNSAddFooUnion(builder, fooUnion)
+        if self.fooStruct is not None:
+            fooStruct = self.fooStruct.Pack(builder)
+            TableInFirstNSAddFooStruct(builder, fooStruct)
+        tableInFirstNs = TableInFirstNSEnd(builder)
+        return tableInFirstNs
