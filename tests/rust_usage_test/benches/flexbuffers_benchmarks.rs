@@ -16,9 +16,9 @@ use bencher::{benchmark_group, benchmark_main, Bencher};
 use flexbuffers::*;
 
 fn push_vec_u64_to_map(b: &mut Bencher) {
-    let va = vec![u64::max_value() - 10; 512];
-    let vb = vec![u64::max_value() - 20; 512];
-    let vc = vec![u64::max_value() - 30; 512];
+    let va = vec![u64::MAX - 10; 512];
+    let vb = vec![u64::MAX - 20; 512];
+    let vc = vec![u64::MAX - 30; 512];
     let mut n = 0;
 
     b.iter(|| {
@@ -45,9 +45,9 @@ fn push_vec_u64_to_map(b: &mut Bencher) {
     b.bytes = n as u64;
 }
 fn push_vec_u64_to_map_reused(b: &mut Bencher) {
-    let va = vec![u64::max_value() - 10; 512];
-    let vb = vec![u64::max_value() - 20; 512];
-    let vc = vec![u64::max_value() - 30; 512];
+    let va = vec![u64::MAX - 10; 512];
+    let vb = vec![u64::MAX - 20; 512];
+    let vc = vec![u64::MAX - 30; 512];
     let mut fxb = Builder::default();
     let mut n = 0;
     let mut go = || {
@@ -75,9 +75,9 @@ fn push_vec_u64_to_map_reused(b: &mut Bencher) {
     b.bytes = n as u64;
 }
 fn push_vec_u64_to_map_direct(b: &mut Bencher) {
-    let va = vec![u64::max_value() - 10; 512];
-    let vb = vec![u64::max_value() - 20; 512];
-    let vc = vec![u64::max_value() - 30; 512];
+    let va = vec![u64::MAX - 10; 512];
+    let vb = vec![u64::MAX - 20; 512];
+    let vc = vec![u64::MAX - 30; 512];
     let mut n = 0;
 
     b.iter(|| {
@@ -92,9 +92,9 @@ fn push_vec_u64_to_map_direct(b: &mut Bencher) {
     b.bytes = n as u64;
 }
 fn push_vec_u64_to_map_direct_reused(b: &mut Bencher) {
-    let va = vec![u64::max_value() - 10; 512];
-    let vb = vec![u64::max_value() - 20; 512];
-    let vc = vec![u64::max_value() - 30; 512];
+    let va = vec![u64::MAX - 10; 512];
+    let vb = vec![u64::MAX - 20; 512];
+    let vc = vec![u64::MAX - 30; 512];
     let mut n = 0;
     let mut fxb = Builder::default();
     let mut go = || {
@@ -118,7 +118,7 @@ fn push_vec_without_indirect(b: &mut Bencher) {
         for i in 0..1024u16 {
             b.push(i);
         }
-        b.push(i64::max_value());
+        b.push(i64::MAX);
         b.end_vector();
         n = builder.view().len();
     };
@@ -136,7 +136,7 @@ fn push_vec_with_indirect(b: &mut Bencher) {
         for i in 0..1024u16 {
             b.push(i);
         }
-        b.push(IndirectInt(i64::max_value()));
+        b.push(IndirectInt(i64::MAX));
         b.end_vector();
         n = builder.view().len();
     };
