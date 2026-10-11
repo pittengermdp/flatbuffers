@@ -27,7 +27,10 @@ The test code itself is located in [go_test.go](https://github.com/google/
 flatbuffers/blob/master/tests/go_test.go).
 
 To run the tests, use the [GoTest.sh](https://github.com/google/flatbuffers/
-blob/master/tests/GoTest.sh) shell script.
+blob/master/tests/GoTest.sh) shell script. It also vets and tests every Go
+module under `tests/` and `examples/`, such as the union-of-unions round trip in
+`tests/union_of_union_test` and `examples/go-echo`. Each builds against the
+runtime in this repository through a `replace` directive.
 
 *Note: The shell script requires [Go](https://golang.org/doc/install) to
 be installed.*
@@ -102,8 +105,13 @@ generated code declares ends in an underscore:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.go}
     func (rcv_ *Monster) Pos(obj_ *Vec3) *Vec3
     func (t_ *MonsterT) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT
-    func MonsterAddHp(builder_ *flatbuffers.Builder, hp_ int16)
+    func MonsterAddHp(builder_ *flatbuffers.Builder, hpArg_ int16)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A name derived from a field also carries a role before the underscore --
+`hpArg_` in `MonsterAddHp`, `xArg_` in `CreateVec3`, `nameOffset_` in
+`MonsterT.Pack` -- so a field named `builder` cannot collide with the
+`builder_` parameter beside it.
 
 Parameter names are not part of a Go function's type, so callers are
 unaffected. A schema name that itself ends in an underscore can still collide

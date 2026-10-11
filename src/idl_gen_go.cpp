@@ -252,6 +252,18 @@ class GoGenerator : public BaseGenerator {
   // of which may be a single word such as x, o or t. A plain local, or a
   // parameter named after a field, would shadow one and break the build. Only
   // a schema name that itself ends in an underscore can still collide.
+  //
+  // A name derived from a field also puts a role between the field and the
+  // underscore: <field>Arg_ for a builder function's parameter (FieldArg),
+  // <field>Offset_, <field>Length_ and so on for a local. No field can then
+  // produce builder_, the parameter declared beside every <field>Arg_, as a
+  // field named builder would if its parameter were just <field>_.
+
+  // The parameter a builder function -- <Table>Add<Field>, Create<Struct> --
+  // takes for a field. See the naming rule above.
+  std::string FieldArg(const FieldDef& field) {
+    return namer_.Variable(field) + "Arg_";
+  }
 
   // Most field accessors need to retrieve and test the field offset first,
   // this is the prefix code for that.
@@ -700,7 +712,7 @@ class GoGenerator : public BaseGenerator {
       } else {
         std::string& code = *code_ptr;
         code += std::string(", ") + nameprefix;
-        code += namer_.Variable(field) + "_";
+        code += FieldArg(field);
         code += " " + TypeName(field);
       }
     }
@@ -729,8 +741,7 @@ class GoGenerator : public BaseGenerator {
                           (nameprefix + (field.name + "_")).c_str(), code_ptr);
       } else {
         code += "\tbuilder_.Prepend" + GenMethod(field) + "(";
-        code += CastToBaseType(field.value.type,
-                               nameprefix + namer_.Variable(field) + "_") +
+        code += CastToBaseType(field.value.type, nameprefix + FieldArg(field)) +
                 ")\n";
       }
     }
@@ -756,7 +767,7 @@ class GoGenerator : public BaseGenerator {
   void BuildFieldOfTable(const StructDef& struct_def, const FieldDef& field,
                          const size_t offset, std::string* code_ptr) {
     std::string& code = *code_ptr;
-    const std::string field_var = namer_.Variable(field) + "_";
+    const std::string field_var = FieldArg(field);
     code += "func " + namer_.Type(struct_def) + "Add" + namer_.Function(field);
     code += "(builder_ *flatbuffers.Builder, ";
     code += field_var + " ";

@@ -111,7 +111,7 @@ inline ::flatbuffers::Offset<RootTable> CreateRootTableDirect(
 
 inline bool operator==(const RootTableT &lhs, const RootTableT &rhs) {
   return
-      (lhs.a == rhs.a) &&
+      ::flatbuffers::IsFloatTheSameAs(lhs.a, rhs.a) &&
       (lhs.b == rhs.b);
 }
 

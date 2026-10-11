@@ -13,28 +13,28 @@ namespace NamespaceA
 
 class SecondTableInA
 
-class TableInFirstNS : flatbuffers_handle
-    def foo_table():
-        let o = buf_.flatbuffers_field_table(pos_, 4)
-        return if o: NamespaceA_NamespaceB_TableInNestedNS { buf_, o } else: nil
-    def foo_enum():
-        return EnumInNestedNS(buf_.flatbuffers_field_int8(pos_, 6, 0))
-    def foo_union_type():
-        return UnionInNestedNS(buf_.flatbuffers_field_int8(pos_, 8, 0))
+class TableInFirstNS : flatbuffers.handle
+    def foo_table() -> NamespaceA.NamespaceB.TableInNestedNS?:
+        let o = flatbuffers.field_table(buf_, pos_, 4)
+        return if o: NamespaceA.NamespaceB.TableInNestedNS { buf_, o } else: nil
+    def foo_enum() -> EnumInNestedNS:
+        return EnumInNestedNS(flatbuffers.field_int8(buf_, pos_, 6, 0))
+    def foo_union_type() -> UnionInNestedNS:
+        return UnionInNestedNS(flatbuffers.field_uint8(buf_, pos_, 8, 0))
     def foo_union_as_TableInNestedNS():
-        return NamespaceA_NamespaceB_TableInNestedNS { buf_, buf_.flatbuffers_field_table(pos_, 10) }
-    def foo_struct():
-        let o = buf_.flatbuffers_field_struct(pos_, 12)
-        return if o: NamespaceA_NamespaceB_StructInNestedNS { buf_, o } else: nil
+        return NamespaceA.NamespaceB.TableInNestedNS { buf_, flatbuffers.field_table(buf_, pos_, 10) }
+    def foo_struct() -> NamespaceA.NamespaceB.StructInNestedNS?:
+        let o = flatbuffers.field_struct(buf_, pos_, 12)
+        return if o: NamespaceA.NamespaceB.StructInNestedNS { buf_, o } else: nil
 
-def GetRootAsTableInFirstNS(buf:string): return TableInFirstNS { buf, buf.flatbuffers_indirect(0) }
+def GetRootAsTableInFirstNS(buf:string): return TableInFirstNS { buf, flatbuffers.indirect(buf, 0) }
 
 struct TableInFirstNSBuilder:
-    b_:flatbuffers_builder
+    b_:flatbuffers.builder
     def start():
         b_.StartObject(5)
         return this
-    def add_foo_table(foo_table:flatbuffers_offset):
+    def add_foo_table(foo_table:flatbuffers.offset):
         b_.PrependUOffsetTRelativeSlot(0, foo_table)
         return this
     def add_foo_enum(foo_enum:EnumInNestedNS):
@@ -43,10 +43,10 @@ struct TableInFirstNSBuilder:
     def add_foo_union_type(foo_union_type:UnionInNestedNS):
         b_.PrependUint8Slot(2, foo_union_type, 0)
         return this
-    def add_foo_union(foo_union:flatbuffers_offset):
+    def add_foo_union(foo_union:flatbuffers.offset):
         b_.PrependUOffsetTRelativeSlot(3, foo_union)
         return this
-    def add_foo_struct(foo_struct:flatbuffers_offset):
+    def add_foo_struct(foo_struct:flatbuffers.offset):
         b_.PrependStructSlot(4, foo_struct)
         return this
     def end():
@@ -54,25 +54,25 @@ struct TableInFirstNSBuilder:
 
 namespace NamespaceC
 
-class TableInC : flatbuffers_handle
-    def refer_to_a1():
-        let o = buf_.flatbuffers_field_table(pos_, 4)
-        return if o: NamespaceA_TableInFirstNS { buf_, o } else: nil
-    def refer_to_a2():
-        let o = buf_.flatbuffers_field_table(pos_, 6)
-        return if o: NamespaceA_SecondTableInA { buf_, o } else: nil
+class TableInC : flatbuffers.handle
+    def refer_to_a1() -> NamespaceA.TableInFirstNS?:
+        let o = flatbuffers.field_table(buf_, pos_, 4)
+        return if o: NamespaceA.TableInFirstNS { buf_, o } else: nil
+    def refer_to_a2() -> NamespaceA.SecondTableInA?:
+        let o = flatbuffers.field_table(buf_, pos_, 6)
+        return if o: NamespaceA.SecondTableInA { buf_, o } else: nil
 
-def GetRootAsTableInC(buf:string): return TableInC { buf, buf.flatbuffers_indirect(0) }
+def GetRootAsTableInC(buf:string): return TableInC { buf, flatbuffers.indirect(buf, 0) }
 
 struct TableInCBuilder:
-    b_:flatbuffers_builder
+    b_:flatbuffers.builder
     def start():
         b_.StartObject(2)
         return this
-    def add_refer_to_a1(refer_to_a1:flatbuffers_offset):
+    def add_refer_to_a1(refer_to_a1:flatbuffers.offset):
         b_.PrependUOffsetTRelativeSlot(0, refer_to_a1)
         return this
-    def add_refer_to_a2(refer_to_a2:flatbuffers_offset):
+    def add_refer_to_a2(refer_to_a2:flatbuffers.offset):
         b_.PrependUOffsetTRelativeSlot(1, refer_to_a2)
         return this
     def end():
@@ -80,19 +80,19 @@ struct TableInCBuilder:
 
 namespace NamespaceA
 
-class SecondTableInA : flatbuffers_handle
-    def refer_to_c():
-        let o = buf_.flatbuffers_field_table(pos_, 4)
-        return if o: NamespaceC_TableInC { buf_, o } else: nil
+class SecondTableInA : flatbuffers.handle
+    def refer_to_c() -> NamespaceC.TableInC?:
+        let o = flatbuffers.field_table(buf_, pos_, 4)
+        return if o: NamespaceC.TableInC { buf_, o } else: nil
 
-def GetRootAsSecondTableInA(buf:string): return SecondTableInA { buf, buf.flatbuffers_indirect(0) }
+def GetRootAsSecondTableInA(buf:string): return SecondTableInA { buf, flatbuffers.indirect(buf, 0) }
 
 struct SecondTableInABuilder:
-    b_:flatbuffers_builder
+    b_:flatbuffers.builder
     def start():
         b_.StartObject(1)
         return this
-    def add_refer_to_c(refer_to_c:flatbuffers_offset):
+    def add_refer_to_c(refer_to_c:flatbuffers.offset):
         b_.PrependUOffsetTRelativeSlot(0, refer_to_c)
         return this
     def end():

@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#![allow(clippy::wrong_self_convention)]
 
 use core::mem::size_of;
 
@@ -147,11 +146,7 @@ pub unsafe fn emplace_scalar<T: EndianScalar>(s: &mut [u8], x: T) {
     );
 
     let x_le = x.to_little_endian();
-    core::ptr::copy_nonoverlapping(
-        &x_le as *const T::Scalar as *const u8,
-        s.as_mut_ptr() as *mut u8,
-        size,
-    );
+    core::ptr::copy_nonoverlapping(&x_le as *const T::Scalar as *const u8, s.as_mut_ptr(), size);
 }
 
 /// Read an EndianScalar from the provided byte slice at the specified location.

@@ -157,18 +157,13 @@ impl ::flatbuffers::SimpleToVerifyInSlice for AnyUniqueAliases {}
 pub struct AnyUniqueAliasesUnionTableOffset {}
 
 #[allow(clippy::upper_case_acronyms)]
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Default, serde::Serialize, serde::Deserialize)]
 pub enum AnyUniqueAliasesT {
+    #[default]
     NONE,
     M(Box<MonsterT>),
     TS(Box<TestSimpleTableWithEnumT>),
     M2(Box<super::example_2::MonsterT>),
-}
-
-impl Default for AnyUniqueAliasesT {
-    fn default() -> Self {
-        Self::NONE
-    }
 }
 
 impl AnyUniqueAliasesT {

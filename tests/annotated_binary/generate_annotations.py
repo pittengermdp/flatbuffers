@@ -16,7 +16,9 @@
 
 from pathlib import Path
 import platform
+import shutil
 import subprocess
+import tempfile
 
 # Get the path where this script is located so we can invoke the script from
 # any directory and have the paths work correctly.
@@ -74,3 +76,19 @@ test_files = [
 
 for test_file in test_files:
   flatc_annotate("annotated_binary.fbs", test_file)
+
+# annotated_binary_old.afb is annotated_binary.bin read with an older schema,
+# one without its last field, so the binary has a slot the schema does not
+# know. flatc names its output after the binary, which would overwrite
+# annotated_binary.afb, so annotate copies in a scratch directory. The copies
+# keep their names, which the output's header records.
+with tempfile.TemporaryDirectory() as scratch_dir:
+  for input_file in ["annotated_binary_old.fbs", "annotated_binary.bin"]:
+    shutil.copy(Path(script_path, input_file), scratch_dir)
+  flatc_annotate(
+      "annotated_binary_old.fbs", "annotated_binary.bin", cwd=scratch_dir
+  )
+  shutil.copyfile(
+      Path(scratch_dir, "annotated_binary.afb"),
+      Path(script_path, "annotated_binary_old.afb"),
+  )

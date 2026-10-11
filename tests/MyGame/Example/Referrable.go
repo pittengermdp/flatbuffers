@@ -169,8 +169,8 @@ func (rcv_ *Referrable) LookupByKey(key_ uint64, vectorLocation_ flatbuffers.UOf
 func ReferrableStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(1)
 }
-func ReferrableAddId(builder_ *flatbuffers.Builder, id_ uint64) {
-	builder_.PrependUint64Slot(0, id_, 0)
+func ReferrableAddId(builder_ *flatbuffers.Builder, idArg_ uint64) {
+	builder_.PrependUint64Slot(0, idArg_, 0)
 }
 func ReferrableEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder_.EndObject()
