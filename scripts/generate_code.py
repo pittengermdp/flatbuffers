@@ -17,11 +17,12 @@
 import filecmp
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
 import generate_grpc_examples
-from util import args, flatc, flatc_path, root_path, tests_path
+from util import args, flatc, flatc_path, root_path, rust_output_dirs, tests_path
 
 # Specify the other paths that will be referenced
 swift_code_gen = Path(root_path, "tests/swift/fuzzer/CodeGenerationTests")
@@ -473,7 +474,13 @@ flatc(
 )
 
 flatc(
-    ["--cpp", "--gen-compare", "--gen-mutable", "--gen-object-api", "--reflect-names"],
+    [
+        "--cpp",
+        "--gen-compare",
+        "--gen-mutable",
+        "--gen-object-api",
+        "--reflect-names",
+    ],
     schema="native_type_test.fbs",
 )
 
@@ -489,7 +496,13 @@ flatc(
 )
 
 flatc(
-    ["--cpp", "--gen-compare", "--gen-mutable", "--gen-object-api", "--reflect-names"],
+    [
+        "--cpp",
+        "--gen-compare",
+        "--gen-mutable",
+        "--gen-object-api",
+        "--reflect-names",
+    ],
     schema="cross_namespace_pack_test.fbs",
 )
 
@@ -649,6 +662,9 @@ flatc(
 
 # Generate string/vector default code for tests
 flatc(RUST_OPTS, prefix="more_defaults", schema="more_defaults.fbs")
+
+# Generate exact float default code for Rust tests
+flatc(RUST_STANDALONE_OPTS, schema="rust_float_defaults_test.fbs")
 
 # Generate the schema evolution tests
 flatc(
@@ -884,6 +900,11 @@ flatc(
 )
 flatc(
     CPP_TEST_OPTS,
+    prefix="64bit",
+    schema="64bit/empty_force_align.fbs",
+)
+flatc(
+    CPP_TEST_OPTS,
     prefix="64bit/evolution",
     schema=["64bit/evolution/v1.fbs", "64bit/evolution/v2.fbs"],
 )
@@ -926,8 +947,9 @@ flatc_reflection(
     "com/google/flatbuffers/reflection",
 )
 
-# Rust Reflection
-flatc_reflection(["-r"], "rust/reflection/src", "reflection_generated.rs")
+# Rust Reflection, compiled by the flatbuffers-reflection crate. Formatted below
+# with that crate's edition.
+flatc_reflection(["--rust"], "rust/reflection/src", "reflection_generated.rs")
 
 # Annotation
 
@@ -1065,7 +1087,8 @@ def format_generated_code():
 
   def sources(path, pattern):
     files = [
-        f for f in glob(path, pattern)
+        f
+        for f in glob(path, pattern)
         if not skip_dirs.intersection(Path(f).parts)
     ]
     # Hand the formatters LF no matter how the tree was checked out.
@@ -1093,20 +1116,40 @@ def format_generated_code():
   # formatted C++, so we leave it as-is. The formatters used below (gofmt,
   # rustfmt, prettier) are stable/pinnable across the toolchains CI installs.
 
-  # Rust generated modules.
+  # Rust generated modules, under every root this script writes Rust into.
+  # Each file is formatted with the edition of the nearest enclosing crate, so
+  # `cargo fmt` in that crate agrees with what is committed; editions differ
+  # in style (2024 is not 2018). Files outside any crate, like the shared test
+  # corpus, use 2018.
+  def rust_edition(path):
+    for parent in Path(path).parents:
+      manifest = Path(parent, "Cargo.toml")
+      if manifest.is_file():
+        found = re.search(
+            r'^edition\s*=\s*"(\d+)"', manifest.read_text(), re.MULTILINE
+        )
+        if found:
+          return found.group(1)
+      if parent == root_path:
+        break
+    return "2018"
+
   if have("rustfmt"):
-    rs = sources(tests, "**/*_generated.rs")
-    if rs:
-      run_chunked(["rustfmt", "--edition", "2018"], rs)
-    # The edition of the crate it belongs to, so `cargo fmt` there agrees.
-    reflection_rs = sources(
-        Path(root_path, "rust/reflection/src"), "*_generated.rs"
-    )
-    run_chunked(["rustfmt", "--edition", "2024"], reflection_rs)
-    print(
-        f"[format] rustfmt: {len(rs) + len(reflection_rs)} Rust files",
-        flush=True,
-    )
+    by_edition = {}
+    # The reflection module is generated into a scratch directory, then moved
+    # into the crate, so its final location is listed here.
+    for f in sorted({
+        f
+        for d in (*rust_output_dirs, Path(root_path, "rust/reflection/src"))
+        for f in sources(d, "**/*_generated.rs")
+    }):
+      by_edition.setdefault(rust_edition(f), []).append(f)
+    for edition, rs in sorted(by_edition.items()):
+      run_chunked(["rustfmt", "--edition", edition], rs)
+      print(
+          f"[format] rustfmt --edition {edition}: {len(rs)} Rust files",
+          flush=True,
+      )
   else:
     print("[format] rustfmt not found; skipping Rust", flush=True)
 

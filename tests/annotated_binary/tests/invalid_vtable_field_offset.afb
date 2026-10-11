@@ -40,7 +40,6 @@ vtable (AnnotatedBinary.Foo):
   +0x003E | 00 00                   | VOffset16    | 0x0000 (0)                    | offset to field `temperature` (id: 24) <defaults to 98.600000> (Float)
   +0x0040 | 00 00                   | VOffset16    | 0x0000 (0)                    | offset to field `teetotaler` (id: 25) <null> (Obj)
   +0x0042 | 64 00                   | VOffset16    | 0x0064 (100)                  | offset to field `charlie` (id: 26)
-  +0x0042 | 64 00                   | VOffset16    | 0x0064 (100)                  | offset to unknown field (id: 26)
 
 root_table (AnnotatedBinary.Foo):
   +0x0044 | 3A 00 00 00             | SOffset32    | 0x0000003A (58) Loc: 0x000A   | offset to vtable

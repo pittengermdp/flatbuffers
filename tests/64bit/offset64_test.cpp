@@ -2,15 +2,23 @@
 
 #include <stdint.h>
 
+#include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <fstream>
 #include <limits>
+#include <memory>
 #include <ostream>
+#include <type_traits>
+#include <vector>
 
 #include "flatbuffers/base.h"
 #include "flatbuffers/buffer.h"
 #include "flatbuffers/flatbuffer_builder.h"
 #include "flatbuffers/flatbuffers.h"
+#include "tests/64bit/empty_force_align_generated.h"
+#include "flatbuffers/idl.h"
+#include "flatbuffers/reflection.h"
 #include "tests/64bit/evolution/v1_generated.h"
 #include "tests/64bit/evolution/v2_generated.h"
 #include "tests/64bit/test_64bit_generated.h"
@@ -343,6 +351,66 @@ void Offset64VectorOfStructs() {
   TEST_EQ(root_table->big_struct_vector()->Get(2)->b(), 92.8);
 }
 
+// Serializes a RootTable whose far_struct_vector elements are aligned to
+// `elem_align`, and returns the offset of the element data in the buffer.
+static size_t BuildFarStructVector(FlatBufferBuilder64& builder,
+                                   const size_t elem_align) {
+  const std::vector<LeafStruct> leaves{LeafStruct{123, 4.567},
+                                       LeafStruct{987, 6.543}};
+
+  // Start 4 bytes past an 8-byte boundary. Everything before a 64-bit-offset
+  // object must be in the 64-bit region too: Pad() would put the 4 bytes in
+  // the 32-bit region, which the builder asserts against (in a build with
+  // assertions on). An unreferenced 64-bit vector -- 8 bytes of data and a
+  // 4-byte length -- leaves the builder 12 bytes in, inside that region.
+  const std::vector<uint8_t> filler(8, 0);
+  builder.CreateVector64<Vector>(filler);
+  TEST_EQ(builder.GetSize() % AlignOf<LeafStruct>(), sizeof(uint32_t));
+
+  // CreateVectorOfStructs64<Vector>() with a caller-chosen element alignment.
+  builder.StartVector<Offset64, uint32_t>(leaves.size(), sizeof(LeafStruct),
+                                          elem_align);
+  builder.PushBytes(reinterpret_cast<const uint8_t*>(leaves.data()),
+                    sizeof(LeafStruct) * leaves.size());
+  const Offset64<Vector<const LeafStruct*>> far_struct_vector(
+      builder.EndVector<uint32_t, uoffset64_t>(leaves.size()));
+
+  RootTableBuilder root_table_builder(builder);
+  root_table_builder.add_far_struct_vector(far_struct_vector);
+  builder.Finish(root_table_builder.Finish());
+
+  const uint8_t* const buf = builder.GetBufferPointer();
+  return static_cast<size_t>(GetRootTable(buf)->far_struct_vector()->Data() -
+                             buf);
+}
+
+void Offset64VectorOfStructsMisaligned() {
+  Verifier::Options options;
+  // Allow the verifier to verify 64-bit buffers.
+  options.max_size = FLATBUFFERS_MAX_64_BUFFER_SIZE;
+  const auto verifies = [](const FlatBufferBuilder64& builder,
+                           const Verifier::Options& opts) {
+    Verifier verifier(builder.GetBufferPointer(), builder.GetSize(), opts);
+    return VerifyRootTableBuffer(verifier);
+  };
+
+  FlatBufferBuilder64 aligned;
+  const size_t aligned_offset =
+      BuildFarStructVector(aligned, AlignOf<LeafStruct>());
+  TEST_EQ(aligned_offset % AlignOf<LeafStruct>(), 0u);
+  TEST_EQ(verifies(aligned, options), true);
+
+  // Elements at 4 mod 8: the length prefix is aligned, the element data is not.
+  FlatBufferBuilder64 misaligned;
+  const size_t misaligned_offset =
+      BuildFarStructVector(misaligned, sizeof(uint32_t));
+  TEST_EQ(misaligned_offset % AlignOf<LeafStruct>(), sizeof(uint32_t));
+  TEST_EQ(verifies(misaligned, options), false);
+
+  options.check_alignment = false;
+  TEST_EQ(verifies(misaligned, options), true);
+}
+
 void Offset64SizePrefix() {
   FlatBufferBuilder64 builder;
 
@@ -458,6 +526,841 @@ void Offset64ForceAlign() {
 
   // Finish the buffer.
   FinishRootTableBuffer(builder, root_table_offset);
+}
+
+void Offset64ForceAlignEmptyVector() {
+  using empty_force_align::ChildT;
+  using empty_force_align::ParentT;
+
+  // Both children leave their force-aligned 64-bit vector empty. Pack() still
+  // forces its alignment, and it packs the second child after the first one's
+  // 32-bit table, so that call comes after the 64-bit region has closed. An
+  // empty vector writes nothing, so this must not trip the region check.
+  ParentT parent;
+  for (int32_t id = 1; id <= 2; ++id) {
+    parent.children.emplace_back(new ChildT());
+    parent.children.back()->id = id;
+  }
+
+  FlatBufferBuilder64 builder;
+  empty_force_align::FinishParentBuffer(
+      builder, empty_force_align::Parent::Pack(builder, &parent));
+
+  Verifier::Options options;
+  options.max_size = FLATBUFFERS_MAX_64_BUFFER_SIZE;
+  Verifier verifier(builder.GetBufferPointer(), builder.GetSize(), options);
+  TEST_EQ(empty_force_align::VerifyParentBuffer(verifier), true);
+
+  const auto* root = empty_force_align::GetParent(builder.GetBufferPointer());
+  TEST_EQ(root->children()->size(), 2u);
+  TEST_EQ(root->children()->Get(0)->id(), 1);
+  TEST_EQ(root->children()->Get(1)->id(), 2);
+  TEST_ASSERT(root->children()->Get(1)->data() == nullptr);
+
+  std::unique_ptr<ParentT> unpacked(root->UnPack());
+  TEST_ASSERT(*unpacked == parent);
+
+  // A hand-written caller gets the same guarantee: forcing the alignment of an
+  // empty vector after 32-bit data neither asserts nor writes padding.
+  FlatBufferBuilder64 direct;
+  direct.CreateString("32-bit data");
+  const auto size = direct.GetSize();
+  direct.ForceVectorAlignment64(0, sizeof(uint8_t), 16);
+  TEST_EQ(direct.GetSize(), size);
+}
+
+static bool GeneratedVerify(const std::vector<uint8_t>& buf);
+// Packs a RootTable with every 64-bit offset field set. near_string and
+// many_vectors stay empty: Pack() serializes them ahead of the 64-bit
+// nested_root and forced_aligned_vector, which the builder does not allow.
+static std::vector<uint8_t> PackCopyFixture() {
+  RootTableT nested;
+  nested.a = 7;
+  FlatBufferBuilder64 nested_fbb;
+  FinishRootTableBuffer(nested_fbb, RootTable::Pack(nested_fbb, &nested));
+
+  RootTableT root;
+  root.far_vector = {1, 2, 3};
+  root.a = 42;
+  root.far_string = "some far string";
+  root.big_bool_vector = {1, 0, 1};
+  root.big_vector = {4, 5, 6, 7};
+  root.nested_root.assign(nested_fbb.GetBufferPointer(),
+                          nested_fbb.GetBufferPointer() + nested_fbb.GetSize());
+  root.far_struct_vector = {LeafStruct{123, 4.567}, LeafStruct{987, 6.543}};
+  root.big_struct_vector = {LeafStruct{72, 72.8}};
+  root.forced_aligned_vector = {8, 9};
+
+  FlatBufferBuilder64 fbb;
+  FinishRootTableBuffer(fbb, RootTable::Pack(fbb, &root));
+  std::vector<uint8_t> buf(fbb.GetBufferPointer(),
+                           fbb.GetBufferPointer() + fbb.GetSize());
+
+  const std::unique_ptr<RootTableT> unpacked(
+      GetRootTable(buf.data())->UnPack());
+  TEST_ASSERT(*unpacked == root);
+  return buf;
+}
+
+// Returns `buf` with every 64-bit field of its root table except `keep` (none
+// when null) made absent, by zeroing its vtable entry as if it was never set.
+static std::vector<uint8_t> Keep64BitField(const std::vector<uint8_t>& buf,
+                                           const reflection::Object& root_table,
+                                           const reflection::Field* keep) {
+  std::vector<uint8_t> out = buf;
+  const Table* const root = GetAnyRoot(out.data());
+  const size_t vtable = static_cast<size_t>(root->GetVTable() - out.data());
+  for (const reflection::Field* const field : *root_table.fields()) {
+    if (!field->offset64() || field == keep) continue;
+    TEST_EQ(root->CheckField(field->offset()), true);
+    WriteScalar<voffset_t>(out.data() + vtable + field->offset(), 0);
+  }
+  TEST_EQ(GeneratedVerify(out), true);
+  return out;
+}
+
+// Copies the root table of `buf` into a 32-bit builder with reflection.
+static Offset<const Table*> ReflectionCopy(FlatBufferBuilder& fbb,
+                                           const reflection::Schema& schema,
+                                           const std::vector<uint8_t>& buf,
+                                           bool use_string_pooling = false) {
+  return CopyTable(fbb, schema, *schema.root_table(), *GetAnyRoot(buf.data()),
+                   use_string_pooling);
+}
+
+// Copies the fixture without its 64-bit fields into `fbb` and checks the copy,
+// so a rejected copy before it shows that it left fbb usable.
+static void CheckCopyWithout64BitFields(FlatBufferBuilder& fbb,
+                                        const reflection::Schema& schema,
+                                        const std::vector<uint8_t>& buf) {
+  const Offset<const Table*> copy = ReflectionCopy(
+      fbb, schema, Keep64BitField(buf, *schema.root_table(), nullptr));
+  TEST_EQ(copy.IsNull(), false);
+  fbb.Finish(copy);
+  const std::vector<uint8_t> copied(fbb.GetBufferPointer(),
+                                    fbb.GetBufferPointer() + fbb.GetSize());
+  TEST_EQ(GeneratedVerify(copied), true);
+  RootTableT expected;
+  expected.a = 42;
+  const std::unique_ptr<RootTableT> unpacked(
+      GetRootTable(copied.data())->UnPack());
+  TEST_ASSERT(*unpacked == expected);
+}
+
+void Offset64ReflectionCopyTable() {
+  const reflection::Schema& schema =
+      *reflection::GetSchema(RootTable::BinarySchema::data());
+  const reflection::Object& root_table = *schema.root_table();
+  const std::vector<uint8_t> buf = PackCopyFixture();
+
+  // Without its 64-bit fields, the table copies as it always has.
+  {
+    FlatBufferBuilder fbb;
+    CheckCopyWithout64BitFields(fbb, schema, buf);
+  }
+
+  // A 32-bit builder cannot write a 64-bit offset, so a copy that reaches one
+  // is rejected with a null offset, in every build type. Each field on its
+  // own, as the first one CopyTable reaches would otherwise mask the rest.
+  for (const reflection::Field* const field : *root_table.fields()) {
+    if (!field->offset64()) continue;
+    const std::vector<uint8_t> only_field =
+        Keep64BitField(buf, root_table, field);
+    FlatBufferBuilder fbb;
+    TEST_EQ(ReflectionCopy(fbb, schema, only_field).IsNull(), true);
+    CheckCopyWithout64BitFields(fbb, schema, buf);
+  }
+
+  // A schema not written by flatc may leave offset64 unset on a Vector64
+  // field. Its 64-bit offset is still no scalar to copy inline.
+  {
+    const uint8_t* const data = RootTable::BinarySchema::data();
+    std::vector<uint8_t> bfbs(data, data + RootTable::BinarySchema::size());
+    const reflection::Schema& flagless = *reflection::GetSchema(bfbs.data());
+    const reflection::Field& big_vector =
+        *flagless.root_table()->fields()->LookupByKey("big_vector");
+    // Field derives privately from Table, which knows where the flag is stored.
+    const uint8_t* const flag =
+        reinterpret_cast<const Table*>(&big_vector)
+            ->GetAddressOf(reflection::Field::VT_OFFSET64);
+    TEST_NOTNULL(flag);
+    bfbs[static_cast<size_t>(flag - bfbs.data())] = 0;
+    TEST_EQ(big_vector.offset64(), false);
+    TEST_EQ(big_vector.type()->base_type(), reflection::Vector64);
+
+    const std::vector<uint8_t> only_big_vector = Keep64BitField(
+        buf, root_table, root_table.fields()->LookupByKey("big_vector"));
+    FlatBufferBuilder fbb;
+    TEST_EQ(ReflectionCopy(fbb, flagless, only_big_vector).IsNull(), true);
+    CheckCopyWithout64BitFields(fbb, schema, buf);
+  }
+}
+
+// A 64-bit field below a table, union, vector of tables or vector of unions,
+// none of which test_64bit.fbs has. Field names sort as s, t, ts, u, us, so
+// each place a copy fails in leaves what came before it copied.
+static const char kSubTablesSchema[] =
+    "table Inner { v:[ubyte] (offset64); }"
+    "union U { Inner }"
+    "table Outer { s:string; t:Inner; u:U; ts:[Inner]; us:[U]; }"
+    "root_type Outer;";
+
+// Which Inner of an Outer has its 64-bit field set.
+enum class Far { kNone, kTable, kUnion, kLastOfVector, kLastOfUnionVector };
+
+// Packs an Outer with every field set, but Inner.v only in the Inner at `far`.
+// The schema has no generated code, so fields go to their reflected offsets.
+static std::vector<uint8_t> PackOuter(const reflection::Schema& schema,
+                                      const Far far) {
+  const auto offset_of = [](const reflection::Object& object,
+                            const char* const name) {
+    return object.fields()->LookupByKey(name)->offset();
+  };
+  const reflection::Object& inner = *schema.objects()->LookupByKey("Inner");
+  const reflection::Object& outer = *schema.root_table();
+  const reflection::EnumVal& inner_type =
+      *schema.enums()->LookupByKey("U")->values()->Get(1);
+  TEST_EQ_STR(inner_type.name()->c_str(), "Inner");
+
+  FlatBufferBuilder64 fbb;
+  // The builder keeps 64-bit data at the tail of the buffer: serialize it
+  // before anything else.
+  const std::vector<uint8_t> data = {1, 2, 3};
+  const Offset64<Vector<uint8_t>> v = fbb.CreateVector64<Vector>(data);
+  const auto pack_inner = [&](const bool with_v) {
+    const uoffset_t start = fbb.StartTable();
+    if (with_v) fbb.AddOffset(offset_of(inner, "v"), v);
+    return Offset<void>(fbb.EndTable(start));
+  };
+  const Offset<void> t = pack_inner(far == Far::kTable);
+  const Offset<void> u = pack_inner(far == Far::kUnion);
+  const std::vector<Offset<void>> ts = {pack_inner(false), pack_inner(false),
+                                        pack_inner(far == Far::kLastOfVector)};
+  const auto ts_vector = fbb.CreateVector(ts);
+  const std::vector<Offset<void>> us = {
+      pack_inner(false), pack_inner(far == Far::kLastOfUnionVector)};
+  const auto us_vector = fbb.CreateVector(us);
+  const auto us_type_vector = fbb.CreateVector(std::vector<uint8_t>(
+      us.size(), static_cast<uint8_t>(inner_type.value())));
+  const Offset<String> s = fbb.CreateString("near");
+
+  const uoffset_t start = fbb.StartTable();
+  fbb.AddOffset(offset_of(outer, "s"), s);
+  fbb.AddOffset(offset_of(outer, "t"), t);
+  fbb.AddElement<uint8_t>(offset_of(outer, "u_type"),
+                          static_cast<uint8_t>(inner_type.value()), 0);
+  fbb.AddOffset(offset_of(outer, "u"), u);
+  fbb.AddOffset(offset_of(outer, "ts"), ts_vector);
+  fbb.AddOffset(offset_of(outer, "us_type"), us_type_vector);
+  fbb.AddOffset(offset_of(outer, "us"), us_vector);
+  fbb.Finish(Offset<void>(fbb.EndTable(start)));
+  return std::vector<uint8_t>(fbb.GetBufferPointer(),
+                              fbb.GetBufferPointer() + fbb.GetSize());
+}
+
+// Copies an Outer without its 64-bit field into `fbb` and checks the copy.
+static void CheckOuterCopy(FlatBufferBuilder& fbb,
+                           const reflection::Schema& schema,
+                           const bool use_string_pooling) {
+  const Offset<const Table*> copy = ReflectionCopy(
+      fbb, schema, PackOuter(schema, Far::kNone), use_string_pooling);
+  TEST_EQ(copy.IsNull(), false);
+  fbb.Finish(copy);
+
+  const reflection::Object& outer = *schema.root_table();
+  TEST_EQ(
+      flatbuffers::Verify(schema, outer, fbb.GetBufferPointer(), fbb.GetSize()),
+      true);
+  const Table& root = *GetAnyRoot(fbb.GetBufferPointer());
+  const auto field = [&](const char* const name) -> const reflection::Field& {
+    return *outer.fields()->LookupByKey(name);
+  };
+  TEST_EQ_STR(GetFieldS(root, field("s"))->c_str(), "near");
+  TEST_NOTNULL(GetFieldT(root, field("t")));
+  TEST_NOTNULL(GetFieldT(root, field("u")));
+  TEST_EQ(GetFieldAnyV(root, field("ts"))->size(), 3u);
+  TEST_EQ(GetFieldAnyV(root, field("us_type"))->size(), 2u);
+  TEST_EQ(GetFieldAnyV(root, field("us"))->size(), 2u);
+}
+
+void Offset64ReflectionCopyTableSubTables() {
+  Parser parser;
+  TEST_EQ(parser.Parse(kSubTablesSchema), true);
+  parser.Serialize();
+  const reflection::Schema& schema =
+      *reflection::GetSchema(parser.builder_.GetBufferPointer());
+
+  for (const bool use_string_pooling : {false, true}) {
+    {
+      FlatBufferBuilder fbb;
+      CheckOuterCopy(fbb, schema, use_string_pooling);
+    }
+    // A sub-table that fails the copy fails its parent, and every table above
+    // that, rather than leave a null offset in them.
+    for (const Far far : {Far::kTable, Far::kUnion, Far::kLastOfVector,
+                          Far::kLastOfUnionVector}) {
+      FlatBufferBuilder fbb;
+      TEST_EQ(ReflectionCopy(fbb, schema, PackOuter(schema, far),
+                             use_string_pooling)
+                  .IsNull(),
+              true);
+      CheckOuterCopy(fbb, schema, use_string_pooling);
+    }
+  }
+}
+
+void Offset64ObjectApiRoundTrip() {
+  // First pack a RootTable buffer to carry in the nested_root field.
+  std::vector<uint8_t> nested_data;
+  {
+    RootTableT nested;
+    nested.near_string = "nested: some near string";
+
+    FlatBufferBuilder64 nested_builder;
+    FinishRootTableBuffer(nested_builder,
+                          RootTable::Pack(nested_builder, &nested));
+    nested_data.assign(
+        nested_builder.GetBufferPointer(),
+        nested_builder.GetBufferPointer() + nested_builder.GetSize());
+  }
+
+  // Populate every field, so Pack() has to interleave the 64-bit fields with
+  // the 32-bit near_string and many_vectors in declaration order.
+  RootTableT original;
+  original.far_vector = {4, 0, 0, 2};
+  original.a = 42;
+  original.far_string = "some far string";
+  original.big_bool_vector = {1, 0, 1, 1, 0, 0, 1};
+  original.big_vector = {8, 0, 0, 3};
+  original.near_string = "some near string";
+  original.nested_root = nested_data;
+  original.far_struct_vector = {LeafStruct(1, 1.5), LeafStruct(2, 2.5)};
+  original.big_struct_vector = {LeafStruct(3, 3.5), LeafStruct(4, 4.5)};
+  // WrapperTableT::vector stays empty: a child table is packed in the parent's
+  // 32-bit phase, after which no 64-bit object can be added. See
+  // Offset64ManyVectors for building that shape with the builder API.
+  for (int i = 0; i < 3; ++i) {
+    original.many_vectors.push_back(
+        std::unique_ptr<WrapperTableT>(new WrapperTableT()));
+  }
+  original.forced_aligned_vector = {1, 2, 3};
+
+  FlatBufferBuilder64 builder;
+  FinishRootTableBuffer(builder, RootTable::Pack(builder, &original));
+
+  Verifier::Options options;
+  // Allow the verifier to verify 64-bit buffers.
+  options.max_size = FLATBUFFERS_MAX_64_BUFFER_SIZE;
+  options.assert = true;
+
+  Verifier verifier(builder.GetBufferPointer(), builder.GetSize(), options);
+
+  TEST_EQ(VerifyRootTableBuffer(verifier), true);
+
+  const uint8_t* const buf = builder.GetBufferPointer();
+  const RootTable* root_table = GetRootTable(buf);
+
+  // The builder writes back to front, so whatever is serialized first sits at
+  // the highest address. Every 64-bit object must lie above every 32-bit one.
+  // Checking the layout directly keeps this test meaningful in Release, where
+  // the builder's own ordering assertion is compiled out.
+  const auto addr = [](const void* p) {
+    return reinterpret_cast<const uint8_t*>(p);
+  };
+  const uint8_t* const lowest_64_bit = std::min(
+      {addr(root_table->far_vector()), addr(root_table->far_string()),
+       addr(root_table->big_bool_vector()), addr(root_table->big_vector()),
+       addr(root_table->nested_root()), addr(root_table->far_struct_vector()),
+       addr(root_table->big_struct_vector()),
+       addr(root_table->forced_aligned_vector())});
+  const uint8_t* highest_32_bit = std::max(addr(root_table->near_string()),
+                                           addr(root_table->many_vectors()));
+  for (const WrapperTable* wrapper : *root_table->many_vectors()) {
+    highest_32_bit = std::max(highest_32_bit, addr(wrapper));
+  }
+  TEST_ASSERT(highest_32_bit < lowest_64_bit);
+
+  // force_align:32 holds relative to the start of the finished buffer.
+  const ptrdiff_t forced_aligned_offset =
+      root_table->forced_aligned_vector()->data() - buf;
+  TEST_EQ(forced_aligned_offset % 32, static_cast<ptrdiff_t>(0));
+
+  const std::unique_ptr<RootTableT> unpacked = UnPackRootTable(buf);
+  TEST_NOTNULL(unpacked.get());
+  TEST_ASSERT(*unpacked == original);
+}
+
+// Packs a RootTable with every 64-bit offset field set, alongside the 32-bit
+// near_string and many_vectors. The WrapperTables stay empty: a child table is
+// packed in the parent's 32-bit phase, after which no 64-bit object can be
+// added. With size_prefixed, the buffer starts with FlatBufferBuilder64's
+// 64-bit size prefix.
+static std::vector<uint8_t> PackRootTableWith64BitFields(
+    const bool size_prefixed = false) {
+  RootTableT nested;
+  nested.a = 7;
+  FlatBufferBuilder64 nested_fbb;
+  FinishRootTableBuffer(nested_fbb, RootTable::Pack(nested_fbb, &nested));
+
+  RootTableT root;
+  root.far_vector = {1, 2, 3};
+  root.a = 42;
+  root.far_string = "some far string";
+  root.big_bool_vector = {1, 0, 1};
+  root.big_vector = {4, 5, 6, 7};
+  root.near_string = "some near string";
+  root.nested_root.assign(nested_fbb.GetBufferPointer(),
+                          nested_fbb.GetBufferPointer() + nested_fbb.GetSize());
+  root.far_struct_vector = {LeafStruct{123, 4.567}, LeafStruct{987, 6.543}};
+  root.big_struct_vector = {LeafStruct{72, 72.8}};
+  root.many_vectors.push_back(
+      std::unique_ptr<WrapperTableT>(new WrapperTableT()));
+  root.forced_aligned_vector = {8, 9};
+
+  FlatBufferBuilder64 fbb;
+  const Offset<RootTable> root_offset = RootTable::Pack(fbb, &root);
+  if (size_prefixed) {
+    FinishSizePrefixedRootTableBuffer(fbb, root_offset);
+  } else {
+    FinishRootTableBuffer(fbb, root_offset);
+  }
+  std::vector<uint8_t> buf(fbb.GetBufferPointer(),
+                           fbb.GetBufferPointer() + fbb.GetSize());
+
+  const RootTable* const table = size_prefixed
+                                     ? GetSizePrefixedRootTable(buf.data())
+                                     : GetRootTable(buf.data());
+  const std::unique_ptr<RootTableT> unpacked(table->UnPack());
+  TEST_ASSERT(*unpacked == root);
+  return buf;
+}
+
+// The reflection Verify() overloads are compiled once, in the library, and take
+// Verifier::Options; tests/BUILD.bazel compiles these tests, but not the
+// library, with FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE. They link only if the
+// options type is the same for both kinds of verifier.
+static_assert(std::is_same<SizeVerifier::Options,
+                           VerifierTemplate<false>::Options>::value,
+              "Verifier::Options must not depend on TrackVerifierBufferSize");
+
+static Verifier::Options OptionsWithMaxSize(const size_t max_size) {
+  Verifier::Options options;
+  options.max_size = max_size;
+  return options;
+}
+
+// The verifier options a FlatBufferBuilder64 buffer needs: one may be larger
+// than the default max_size, FLATBUFFERS_MAX_BUFFER_SIZE.
+static Verifier::Options Options64() {
+  return OptionsWithMaxSize(FLATBUFFERS_MAX_64_BUFFER_SIZE);
+}
+
+static bool GeneratedVerify(const std::vector<uint8_t>& buf) {
+  Verifier verifier(buf.data(), buf.size(), Options64());
+  return VerifyRootTableBuffer(verifier);
+}
+
+static bool GeneratedVerifySizePrefixed(const std::vector<uint8_t>& buf) {
+  Verifier verifier(buf.data(), buf.size(), Options64());
+  return VerifySizePrefixedRootTableBuffer(verifier);
+}
+
+// The RootTable schema embedded by --bfbs-gen-embed, verified before use.
+static const reflection::Schema& RootTableSchema() {
+  Verifier schema_verifier(RootTable::BinarySchema::data(),
+                           RootTable::BinarySchema::size());
+  TEST_EQ(reflection::VerifySchemaBuffer(schema_verifier), true);
+  return *reflection::GetSchema(RootTable::BinarySchema::data());
+}
+
+static bool ReflectionVerify(const reflection::Schema& schema,
+                             const std::vector<uint8_t>& buf) {
+  return flatbuffers::Verify(schema, *schema.root_table(), buf.data(),
+                             buf.size());
+}
+
+static bool ReflectionVerifySizePrefixed(const reflection::Schema& schema,
+                                         const std::vector<uint8_t>& buf) {
+  return flatbuffers::VerifySizePrefixed<uoffset64_t>(
+      schema, *schema.root_table(), buf.data(), buf.size(), Options64());
+}
+
+// Adds 2^32 to the 64-bit value at `p`. A verifier that reads only the low 32
+// bits still sees the original, valid value; a 64-bit reader does not.
+static void SetHighWord(uint8_t* const p) {
+  WriteScalar(p, ReadScalar<uint64_t>(p) + (uint64_t{1} << 32));
+}
+
+void Offset64ReflectionVerify() {
+  const reflection::Schema& schema = RootTableSchema();
+  const auto* const fields = schema.root_table()->fields();
+
+  // The two shapes a 64-bit offset takes in a schema: a Vector64 base type,
+  // and a 32-bit String or Vector base type flagged offset64.
+  TEST_EQ(fields->LookupByKey("big_vector")->type()->base_type(),
+          reflection::Vector64);
+  TEST_EQ(fields->LookupByKey("far_string")->type()->base_type(),
+          reflection::String);
+  TEST_EQ(fields->LookupByKey("far_string")->offset64(), true);
+
+  const std::vector<uint8_t> buf = PackRootTableWith64BitFields();
+  TEST_EQ(GeneratedVerify(buf), true);
+  TEST_EQ(ReflectionVerify(schema, buf), true);
+
+  const Table* const root = GetAnyRoot(buf.data());
+  for (const reflection::Field* const field : *fields) {
+    if (!field->offset64()) continue;
+    // The fixture sets every 64-bit field, so a new one fails here until it
+    // is added there.
+    const uint8_t* const slot_ptr = root->GetAddressOf(field->offset());
+    TEST_NOTNULL(slot_ptr);
+    const size_t slot = static_cast<size_t>(slot_ptr - buf.data());
+    const size_t target = static_cast<size_t>(
+        root->GetPointer64<const uint8_t*>(field->offset()) - buf.data());
+
+    // The offset points past the buffer, but its low 32 bits are unchanged. A
+    // 32-bit host wraps it back to the original, readers included, so only a
+    // 64-bit host must reject it.
+    std::vector<uint8_t> far_offset = buf;
+    SetHighWord(far_offset.data() + slot);
+    TEST_EQ(ReflectionVerify(schema, far_offset), GeneratedVerify(far_offset));
+    if (IsConstTrue(sizeof(size_t) > sizeof(uoffset_t))) {
+      TEST_EQ(GeneratedVerify(far_offset), false);
+    }
+
+    // The length runs past the buffer: by 2^32 elements for a 64-bit length,
+    // or as the largest 32-bit length otherwise.
+    std::vector<uint8_t> long_length = buf;
+    if (field->type()->base_type() == reflection::Vector64) {
+      SetHighWord(long_length.data() + target);
+    } else {
+      WriteScalar(long_length.data() + target,
+                  std::numeric_limits<uoffset_t>::max());
+    }
+    TEST_EQ(GeneratedVerify(long_length), false);
+    TEST_EQ(ReflectionVerify(schema, long_length), false);
+  }
+}
+
+// Serializes a table whose `(offset64)` vector of longs, at `field`, has its
+// element data aligned to `elem_align`, and returns that data's offset in the
+// buffer.
+static size_t BuildFarLongVector(FlatBufferBuilder64& builder,
+                                 const voffset_t field,
+                                 const size_t elem_align) {
+  const std::vector<int64_t> longs{1, 2};
+
+  // Start 4 bytes past an 8-byte boundary, inside the 64-bit region, as
+  // BuildFarStructVector() does.
+  const std::vector<uint8_t> filler(8, 0);
+  builder.CreateVector64<Vector>(filler);
+  TEST_EQ(builder.GetSize() % sizeof(int64_t), sizeof(uint32_t));
+
+  builder.StartVector<Offset64, uint32_t>(longs.size(), sizeof(int64_t),
+                                          elem_align);
+  builder.PushBytes(reinterpret_cast<const uint8_t*>(longs.data()),
+                    sizeof(int64_t) * longs.size());
+  const Offset64<Vector<int64_t>> vec(
+      builder.EndVector<uint32_t, uoffset64_t>(longs.size()));
+
+  const uoffset_t start = builder.StartTable();
+  builder.AddOffset(field, vec);
+  builder.Finish(Offset<Table>(builder.EndTable(start)));
+
+  const uint8_t* const buf = builder.GetBufferPointer();
+  return static_cast<size_t>(
+      GetAnyRoot(buf)->GetPointer64<const Vector<int64_t>*>(field)->Data() -
+      buf);
+}
+
+void Offset64ReflectionVerifyAlignment() {
+  Parser parser;
+  TEST_EQ(parser.Parse("table Longs { longs:[long] (offset64); }"
+                       "root_type Longs;"),
+          true);
+  parser.Serialize();
+  const reflection::Schema& schema =
+      *reflection::GetSchema(parser.builder_.GetBufferPointer());
+  const voffset_t field =
+      schema.root_table()->fields()->LookupByKey("longs")->offset();
+  const auto verifies = [&schema](const FlatBufferBuilder64& builder) {
+    return flatbuffers::Verify(schema, *schema.root_table(),
+                               builder.GetBufferPointer(), builder.GetSize());
+  };
+
+  FlatBufferBuilder64 aligned;
+  TEST_EQ(BuildFarLongVector(aligned, field, AlignOf<int64_t>()) %
+              AlignOf<int64_t>(),
+          0u);
+  TEST_EQ(verifies(aligned), true);
+
+  // Elements at 4 mod 8: the length prefix is aligned, the element data is not.
+  if (IsConstTrue(AlignOf<int64_t>() > sizeof(uint32_t))) {
+    FlatBufferBuilder64 misaligned;
+    TEST_EQ(BuildFarLongVector(misaligned, field, sizeof(uint32_t)) %
+                AlignOf<int64_t>(),
+            sizeof(uint32_t));
+    TEST_EQ(verifies(misaligned), false);
+  }
+}
+
+void Offset64ReflectionVerifyRequired() {
+  Parser parser;
+  TEST_EQ(
+      parser.Parse("struct Leaf { a:int; }"
+                   "table Optional {"
+                   "  s:string (offset64);"
+                   "  v:[int] (offset64);"
+                   "  v64:[ubyte] (vector64);"
+                   "  structs:[Leaf] (vector64);"
+                   "}"
+                   "table RequiredString { s:string (offset64, required); }"
+                   "table RequiredVector { v:[int] (offset64, required); }"
+                   "table RequiredVector64 { v:[ubyte] (vector64, required); }"
+                   "table RequiredStructs { v:[Leaf] (vector64, required); }"
+                   "table DeprecatedRequiredString {"
+                   "  s:string (offset64, required, deprecated);"
+                   "}"
+                   "table DeprecatedRequiredVector {"
+                   "  v:[int] (offset64, required, deprecated);"
+                   "}"
+                   "table DeprecatedRequiredVector64 {"
+                   "  v:[ubyte] (vector64, required, deprecated);"
+                   "}"
+                   "table DeprecatedRequiredStructs {"
+                   "  v:[Leaf] (vector64, required, deprecated);"
+                   "}"
+                   "table DeprecatedRequiredOffset64Structs {"
+                   "  v:[Leaf] (offset64, required, deprecated);"
+                   "}"),
+      true);
+  parser.Serialize();
+  const reflection::Schema& schema =
+      *reflection::GetSchema(parser.builder_.GetBufferPointer());
+
+  // A table with no fields set satisfies every table without a required field.
+  // A deprecated field does not count. Each DeprecatedRequired* table holds one
+  // kind, so a failure names the path.
+  FlatBufferBuilder64 fbb;
+  fbb.Finish(Offset<Table>(fbb.EndTable(fbb.StartTable())));
+
+  for (const reflection::Object* const obj : *schema.objects()) {
+    if (obj->is_struct()) continue;
+    bool has_required = false;
+    for (const reflection::Field* const field : *obj->fields()) {
+      has_required =
+          has_required || (field->required() && !field->deprecated());
+    }
+    const bool verified = flatbuffers::Verify(
+        schema, *obj, fbb.GetBufferPointer(), fbb.GetSize());
+    if (verified == has_required) {
+      TEST_OUTPUT_LINE("An empty table %s %s",
+                       verified ? "verifies as" : "fails",
+                       obj->name()->c_str());
+    }
+    TEST_EQ(verified, !has_required);
+  }
+
+  // A deprecated field that is present is still verified, as reflection can
+  // still read it: here, a string whose 64-bit offset leads out of the buffer.
+  const reflection::Object& deprecated_string =
+      *schema.objects()->LookupByKey("DeprecatedRequiredString");
+  const voffset_t s = deprecated_string.fields()->LookupByKey("s")->offset();
+  FlatBufferBuilder64 present;
+  const Offset64<String> str = present.CreateString<Offset64>("deprecated");
+  const uoffset_t start = present.StartTable();
+  present.AddOffset(s, str);
+  present.Finish(Offset<Table>(present.EndTable(start)));
+  std::vector<uint8_t> buf(present.GetBufferPointer(),
+                           present.GetBufferPointer() + present.GetSize());
+  TEST_EQ(
+      flatbuffers::Verify(schema, deprecated_string, buf.data(), buf.size()),
+      true);
+  const uint8_t* const slot = GetAnyRoot(buf.data())->GetAddressOf(s);
+  TEST_NOTNULL(slot);
+  WriteScalar<uoffset64_t>(buf.data() + (slot - buf.data()), buf.size());
+  TEST_EQ(
+      flatbuffers::Verify(schema, deprecated_string, buf.data(), buf.size()),
+      false);
+}
+
+// `buf` with 0 for the 32-bit offset in the root table's slot for `field`.
+static std::vector<uint8_t> WithZeroOffset(std::vector<uint8_t> buf,
+                                           const voffset_t field) {
+  const uint8_t* const slot = GetAnyRoot(buf.data())->GetAddressOf(field);
+  TEST_NOTNULL(slot);
+  WriteScalar<uoffset_t>(buf.data() + (slot - buf.data()), 0);
+  return buf;
+}
+
+// A 32-bit offset of 0 points a field at its own slot. The generated verifier
+// rejects it in VerifyOffset(). The reflection verifier checked only that the
+// slot was in bounds, and read the slot itself as an empty vector or string.
+void Offset64ReflectionVerifyZeroOffset() {
+  const reflection::Schema& schema = RootTableSchema();
+
+  // The differential fuzzer's input: a RootTable whose many_vectors is empty,
+  // with its offset zeroed. Pack() omits an empty vector, so this one comes
+  // from the generated builder.
+  FlatBufferBuilder64 empty_fbb;
+  const auto empty =
+      empty_fbb.CreateVector(std::vector<Offset<WrapperTable>>());
+  RootTableBuilder empty_root(empty_fbb);
+  empty_root.add_many_vectors(empty);
+  FinishRootTableBuffer(empty_fbb, empty_root.Finish());
+  const std::vector<uint8_t> fuzzed = WithZeroOffset(
+      std::vector<uint8_t>(empty_fbb.GetBufferPointer(),
+                           empty_fbb.GetBufferPointer() + empty_fbb.GetSize()),
+      RootTable::VT_MANY_VECTORS);
+  const std::vector<uint8_t> fuzzed_bytes = {
+      0x1c, 0x00, 0x00, 0x00, 0x18, 0x00, 0x08, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x18, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  };
+  TEST_ASSERT(fuzzed == fuzzed_bytes);
+  TEST_EQ(GeneratedVerify(fuzzed), false);
+  TEST_EQ(ReflectionVerify(schema, fuzzed), false);
+
+  // An empty near_string, likewise from the builder. The string follows the
+  // table, so its zero length is right after the slot: with the slot zeroed,
+  // that length is the terminator of an empty string on the slot.
+  FlatBufferBuilder64 string_fbb;
+  const auto near_string = string_fbb.CreateString("");
+  RootTableBuilder string_root(string_fbb);
+  string_root.add_near_string(near_string);
+  FinishRootTableBuffer(string_fbb, string_root.Finish());
+  const std::vector<uint8_t> empty_string(
+      string_fbb.GetBufferPointer(),
+      string_fbb.GetBufferPointer() + string_fbb.GetSize());
+  TEST_EQ(GeneratedVerify(empty_string), true);
+  TEST_EQ(ReflectionVerify(schema, empty_string), true);
+  const std::vector<uint8_t> zero_string =
+      WithZeroOffset(empty_string, RootTable::VT_NEAR_STRING);
+  TEST_EQ(GeneratedVerify(zero_string), false);
+  TEST_EQ(ReflectionVerify(schema, zero_string), false);
+}
+
+void Offset64ReflectionVerifySizePrefixed() {
+  const reflection::Schema& schema = RootTableSchema();
+  const reflection::Object& root = *schema.root_table();
+  const std::vector<uint8_t> buf =
+      PackRootTableWith64BitFields(/*size_prefixed=*/true);
+  // FlatBufferBuilder64 writes a 64-bit size prefix.
+  TEST_EQ(GetPrefixedSize<uoffset64_t>(buf.data()),
+          buf.size() - sizeof(uoffset64_t));
+  TEST_EQ(GeneratedVerifySizePrefixed(buf), true);
+  TEST_EQ(ReflectionVerifySizePrefixed(schema, buf), true);
+  // The root it verified is the one the generated accessor reads.
+  TEST_EQ(GetAnySizePrefixedRoot<uoffset64_t>(buf.data()),
+          reinterpret_cast<const Table*>(GetSizePrefixedRootTable(buf.data())));
+  // Without a width, the accessor still resolves to the 32-bit overload, also
+  // through a function pointer.
+  const Table* (*const get_root_32)(const uint8_t*) = &GetAnySizePrefixedRoot;
+  TEST_EQ(get_root_32(buf.data()),
+          GetAnySizePrefixedRoot<uoffset_t>(buf.data()));
+
+  // Read with a 32-bit prefix, the root offset is the prefix's high word: 0.
+  TEST_EQ(flatbuffers::VerifySizePrefixed(schema, root, buf.data(), buf.size()),
+          false);
+  TEST_EQ(flatbuffers::VerifySizePrefixed<uoffset_t>(schema, root, buf.data(),
+                                                     buf.size(), Options64()),
+          false);
+
+  // Everything after the prefix overwritten.
+  std::vector<uint8_t> garbage = buf;
+  std::fill(garbage.begin() + sizeof(uoffset64_t), garbage.end(),
+            static_cast<uint8_t>(0xAB));
+  TEST_EQ(GeneratedVerifySizePrefixed(garbage), false);
+  TEST_EQ(ReflectionVerifySizePrefixed(schema, garbage), false);
+  TEST_EQ(flatbuffers::VerifySizePrefixed(schema, root, garbage.data(),
+                                          garbage.size()),
+          false);
+
+  // A prefix that claims one byte more than follows it.
+  std::vector<uint8_t> long_prefix = buf;
+  WriteScalar<uoffset64_t>(long_prefix.data(),
+                           buf.size() - sizeof(uoffset64_t) + 1);
+  TEST_EQ(GeneratedVerifySizePrefixed(long_prefix), false);
+  TEST_EQ(ReflectionVerifySizePrefixed(schema, long_prefix), false);
+
+  // A prefix past the end of any buffer, which wraps to 0 when its own width
+  // is added to it.
+  std::vector<uint8_t> wrapping_prefix = buf;
+  WriteScalar<uoffset64_t>(
+      wrapping_prefix.data(),
+      std::numeric_limits<uoffset64_t>::max() - sizeof(uoffset64_t) + 1);
+  TEST_EQ(GeneratedVerifySizePrefixed(wrapping_prefix), false);
+  TEST_EQ(ReflectionVerifySizePrefixed(schema, wrapping_prefix), false);
+}
+
+void Offset64ReflectionVerifyRoot() {
+  const reflection::Schema& schema = RootTableSchema();
+  const std::vector<uint8_t> buf = PackRootTableWith64BitFields();
+
+  // A root offset of 0, which puts the root table on the offset itself.
+  std::vector<uint8_t> zero_root = buf;
+  WriteScalar<uoffset_t>(zero_root.data(), 0);
+  TEST_EQ(GeneratedVerify(zero_root), false);
+  TEST_EQ(ReflectionVerify(schema, zero_root), false);
+
+  // Shorter than the smallest flatbuffer, with an in-bounds root offset.
+  // Written as bytes because no builder produces it.
+  const std::vector<uint8_t> too_short = {4, 0, 0, 0, 0, 0, 0, 0};
+  TEST_EQ(too_short.size() < FLATBUFFERS_MIN_BUFFER_SIZE, true);
+  TEST_EQ(GeneratedVerify(too_short), false);
+  TEST_EQ(ReflectionVerify(schema, too_short), false);
+}
+
+void Offset64ReflectionVerifyMaxSize() {
+  const reflection::Schema& schema = RootTableSchema();
+  const reflection::Object& root = *schema.root_table();
+  const std::vector<uint8_t> buf = PackRootTableWith64BitFields();
+  const std::vector<uint8_t> prefixed =
+      PackRootTableWith64BitFields(/*size_prefixed=*/true);
+
+  // max_size bounds the length exclusively, as the Verifier constructor
+  // asserts; reflection rejects a length at the bound instead of asserting.
+  TEST_EQ(flatbuffers::Verify(schema, root, buf.data(), buf.size(),
+                              OptionsWithMaxSize(buf.size())),
+          false);
+  TEST_EQ(flatbuffers::Verify(schema, root, buf.data(), buf.size(),
+                              OptionsWithMaxSize(buf.size() + 1)),
+          true);
+  TEST_EQ(flatbuffers::VerifySizePrefixed<uoffset64_t>(
+              schema, root, prefixed.data(), prefixed.size(),
+              OptionsWithMaxSize(prefixed.size())),
+          false);
+  TEST_EQ(flatbuffers::VerifySizePrefixed<uoffset64_t>(
+              schema, root, prefixed.data(), prefixed.size(),
+              OptionsWithMaxSize(prefixed.size() + 1)),
+          true);
+
+  // A FlatBufferBuilder64 buffer may be larger than the default max_size,
+  // FLATBUFFERS_MAX_BUFFER_SIZE. Allocating one is too slow for a unit test,
+  // so claim that length for a valid buffer instead. Nothing past its real end
+  // is read: the default options reject the length before reading anything,
+  // and otherwise the verifier reads only where the buffer's offsets lead.
+  const size_t big = static_cast<size_t>(FLATBUFFERS_MAX_BUFFER_SIZE) + 1;
+  TEST_EQ(flatbuffers::Verify(schema, root, buf.data(), big), false);
+  TEST_EQ(flatbuffers::VerifySizePrefixed(schema, root, prefixed.data(), big),
+          false);
+  TEST_EQ(flatbuffers::Verify(schema, root, buf.data(), big, Options64()),
+          true);
+  TEST_EQ(flatbuffers::VerifySizePrefixed<uoffset64_t>(
+              schema, root, prefixed.data(), big, Options64()),
+          true);
+}
+
+// A 64-bit size prefix puts the identifier at bytes 12 to 16, past the end of
+// a minimum-size buffer. No such buffer verifies, so only a sanitizer build
+// (FLATBUFFERS_CODE_SANITIZE) sees an identifier read past its end.
+void Offset64SizePrefixedIdentifierBounds() {
+  std::vector<uint8_t> buf(FLATBUFFERS_MIN_BUFFER_SIZE);
+  WriteScalar<uoffset64_t>(buf.data(), buf.size() - sizeof(uoffset64_t));
+  Verifier verifier(buf.data(), buf.size(), Options64());
+  TEST_EQ((verifier.VerifySizePrefixedBuffer<RootTable, uoffset64_t>("RTBL")),
+          false);
 }
 
 }  // namespace tests

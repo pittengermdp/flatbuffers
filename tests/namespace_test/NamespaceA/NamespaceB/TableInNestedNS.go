@@ -133,8 +133,8 @@ func (rcv_ *TableInNestedNS) MutateFoo(n_ int32) bool {
 func TableInNestedNSStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(1)
 }
-func TableInNestedNSAddFoo(builder_ *flatbuffers.Builder, foo_ int32) {
-	builder_.PrependInt32Slot(0, foo_, 0)
+func TableInNestedNSAddFoo(builder_ *flatbuffers.Builder, fooArg_ int32) {
+	builder_.PrependInt32Slot(0, fooArg_, 0)
 }
 func TableInNestedNSEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder_.EndObject()

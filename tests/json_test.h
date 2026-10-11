@@ -10,8 +10,10 @@ void JsonDefaultTest(const std::string& tests_data_path);
 void JsonEnumsTest(const std::string& tests_data_path);
 void JsonOptionalTest(const std::string& tests_data_path, bool default_scalars);
 void ParseIncorrectMonsterJsonTest(const std::string& tests_data_path);
+void JsonUnionUnderlyingTypeParseTest(const std::string& tests_data_path);
 void JsonUnsortedArrayTest();
 void JsonUnionStructTest();
+void JsonUnionUnderlyingTypeGenTextTest(const std::string& tests_data_path);
 
 }  // namespace tests
 }  // namespace flatbuffers

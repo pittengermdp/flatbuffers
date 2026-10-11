@@ -45,8 +45,9 @@ func TestNamespaceXRoundTrip(t *testing.T) {
 		Maybe: &red,
 		Point: &x.PointT{Px: 7, Color: x.ColorGreen},
 		Pair: &ShadowTest.PairT{
-			Point: &x.PointT{Px: 9, Color: x.ColorBlue},
-			Color: x.ColorRed,
+			Point:   &x.PointT{Px: 9, Color: x.ColorBlue},
+			Color:   x.ColorRed,
+			Builder: 11,
 		},
 		Leaf:   &x.LeafT{Id: 1, Name: "one"},
 		Colors: []x.Color{x.ColorRed, x.ColorBlue},
@@ -71,6 +72,7 @@ func TestNamespaceXRoundTrip(t *testing.T) {
 		ColorSet:    map[x.Color]struct{}{x.ColorBlue: {}},
 		Flatbuffers: "flatbuffers",
 		Math:        1.5,
+		Builder:     12,
 	}
 
 	b := flatbuffers.NewBuilder(0)

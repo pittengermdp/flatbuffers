@@ -169,11 +169,11 @@ func (rcv_ *Food) PizzaTest(obj_ *Pizza.Pizza) *Pizza.Pizza {
 func FoodStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(2)
 }
-func FoodAddPizza(builder_ *flatbuffers.Builder, pizza_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(pizza_), 0)
+func FoodAddPizza(builder_ *flatbuffers.Builder, pizzaArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(pizzaArg_), 0)
 }
-func FoodAddPizzaTest(builder_ *flatbuffers.Builder, pizzaTest_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(pizzaTest_), 0)
+func FoodAddPizzaTest(builder_ *flatbuffers.Builder, pizzaTestArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(pizzaTestArg_), 0)
 }
 func FoodEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder_.EndObject()

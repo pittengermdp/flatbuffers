@@ -1,0 +1,18 @@
+// A table with a force-aligned 64-bit vector. When that vector is left empty,
+// packing the table writes no 64-bit object, so it is legal to pack it after
+// 32-bit data has been serialized -- for example, as the second element of a
+// vector of tables.
+namespace empty_force_align;
+
+table Child {
+  // Distinguishes the children, so a misplaced reference does not compare
+  // equal to the table it should have pointed at.
+  id:int;
+  data:[ubyte] (vector64, force_align:16);
+}
+
+table Parent {
+  children:[Child];
+}
+
+root_type Parent;

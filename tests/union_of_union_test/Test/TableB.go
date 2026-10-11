@@ -137,8 +137,8 @@ func (rcv_ *TableB) Y() []byte {
 func TableBStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(1)
 }
-func TableBAddY(builder_ *flatbuffers.Builder, y_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(y_), 0)
+func TableBAddY(builder_ *flatbuffers.Builder, yArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(yArg_), 0)
 }
 func TableBEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder_.EndObject()
