@@ -804,19 +804,31 @@ void BinaryAnnotator::BuildTable(const uint64_t table_offset,
         // The union type field is always one less than the union itself.
         const uint16_t union_type_id = field->id() - 1;
 
+        offset_field_comment.default_value = "(union)";
+
         auto vtable_field = vtable->fields.find(union_type_id);
         if (vtable_field == vtable->fields.end()) {
-          // TODO(dbaileychess): need to capture this error condition.
+          // The type field's vtable slot points outside the binary (an error
+          // there), so the type is unknown and nothing is built.
+          SetError(offset_field_comment,
+                   BinaryRegionStatus::ERROR_INVALID_UNION_TYPE);
+          regions.push_back(MakeBinaryRegion(field_offset, length, region_type,
+                                             0, union_offset,
+                                             offset_field_comment));
           break;
         }
-        offset_field_comment.default_value = "(union)";
 
         const uint64_t type_offset =
             table_offset + vtable_field->second.offset_from_table;
 
+        // An absent type is its default, NONE, not the bytes at the table.
         const reflection::BaseType type_base_type =
             GetStoredType(field, reflection::BaseType::UType);
-        const auto realized_type = ReadScalar(type_offset, type_base_type);
+        const auto realized_type =
+            vtable_field->second.offset_from_table == 0
+                ? flatbuffers::Optional<int64_t>(
+                      vtable_field->second.field->default_integer())
+                : ReadScalar(type_offset, type_base_type);
         if (!realized_type.has_value()) {
           const uint64_t remaining = RemainingBytes(type_offset);
           SetError(offset_field_comment,
@@ -1257,42 +1269,45 @@ void BinaryAnnotator::BuildVector(
       // in the field->index() - 1 location.
       const uint16_t union_type_vector_id = field->id() - 1;
 
+      // A vector of unions without a vector of types (absent, or left out of
+      // the vtable for an invalid offset) has 0 types: the loop below flags
+      // every union.
+      flatbuffers::Optional<uint32_t> union_type_vector_length = 0;
+      uint64_t union_type_vector_data_offset = 0;
+
       auto vtable_entry = vtable_fields.find(union_type_vector_id);
-      if (vtable_entry == vtable_fields.end()) {
-        // TODO(dbaileychess): need to capture this error condition.
-        break;
+      if (vtable_entry != vtable_fields.end() &&
+          vtable_entry->second.offset_from_table != 0) {
+        const uint64_t union_type_vector_field_offset =
+            parent_table_offset + vtable_entry->second.offset_from_table;
+
+        const auto union_type_vector_field_relative_offset =
+            ReadScalar<uint32_t>(union_type_vector_field_offset);
+
+        if (!union_type_vector_field_relative_offset.has_value()) {
+          const uint64_t remaining = RemainingBytes(offset);
+          BinaryRegionComment vector_union_comment;
+          vector_union_comment.type = BinaryRegionCommentType::VectorUnionValue;
+          SetError(vector_union_comment,
+                   BinaryRegionStatus::ERROR_INCOMPLETE_BINARY, "4");
+
+          regions.push_back(
+              MakeBinaryRegion(offset, remaining, BinaryRegionType::Unknown,
+                               remaining, 0, vector_union_comment));
+
+          break;
+        }
+
+        // The + sizeof(uint32_t) is to skip over the vector's length.
+        // Validation happens within the loop below.
+        const uint64_t union_type_vector_offset =
+            union_type_vector_field_offset +
+            union_type_vector_field_relative_offset.value();
+        union_type_vector_length =
+            ReadScalar<uint32_t>(union_type_vector_offset);
+        union_type_vector_data_offset =
+            union_type_vector_offset + sizeof(uint32_t);
       }
-
-      const uint64_t union_type_vector_field_offset =
-          parent_table_offset + vtable_entry->second.offset_from_table;
-
-      const auto union_type_vector_field_relative_offset =
-          ReadScalar<uint32_t>(union_type_vector_field_offset);
-
-      if (!union_type_vector_field_relative_offset.has_value()) {
-        const uint64_t remaining = RemainingBytes(offset);
-        BinaryRegionComment vector_union_comment;
-        vector_union_comment.type = BinaryRegionCommentType::VectorUnionValue;
-        SetError(vector_union_comment,
-                 BinaryRegionStatus::ERROR_INCOMPLETE_BINARY, "4");
-
-        regions.push_back(MakeBinaryRegion(offset, remaining,
-                                           BinaryRegionType::Unknown, remaining,
-                                           0, vector_union_comment));
-
-        break;
-      }
-
-      // Get the vector of types, its length, and the offset to its first type
-      // (the + sizeof(uint32_t) is to skip over its length). Validation
-      // happens within the loop below.
-      const uint64_t union_type_vector_offset =
-          union_type_vector_field_offset +
-          union_type_vector_field_relative_offset.value();
-      const auto union_type_vector_length =
-          ReadScalar<uint32_t>(union_type_vector_offset);
-      const uint64_t union_type_vector_data_offset =
-          union_type_vector_offset + sizeof(uint32_t);
 
       const reflection::BaseType union_type =
           GetStoredType(field, reflection::BaseType::UType);
@@ -1353,8 +1368,7 @@ void BinaryAnnotator::BuildVector(
           continue;
         }
 
-        if (!IsValidUnionValue(vtable_entry->second.field->type()->index(),
-                               realized_type.value())) {
+        if (!IsValidUnionValue(field->type()->index(), realized_type.value())) {
           // We already export an error in the union type field, so just skip
           // building the union itself and it will default to an unreference
           // Binary section.

@@ -554,5 +554,140 @@ void AnnotateUnionVectorTest(const std::string& tests_data_path) {
   }
 }
 
+// A union with no `_type` to read. A single union's absent type is its
+// default, NONE, which is valid; a vector of unions without its `_type` vector
+// has 0 types, which is not. Either way the type is never read from the
+// table's own vtable offset, which sits where an absent field's offset (0)
+// points. A `_type` field whose vtable slot points outside the binary is left
+// out of the vtable, so its union's type is unknown.
+void AnnotateUnionWithoutTypeTest(const std::string& tests_data_path) {
+  using UnionUnderlyingType::ABC;
+
+  std::string schemafile;
+  TEST_EQ(LoadFile((tests_data_path + "union_underlying_type_test.fbs").c_str(),
+                   false, &schemafile),
+          true);
+  IDLOptions opts;
+  opts.lang_to_generate |= IDLOptions::kBinary;
+  Parser parser(opts);
+  TEST_EQ(parser.Parse(schemafile.c_str()), true);
+  // The schema declares no root_type; name one, as `flatc --root-type` does.
+  TEST_EQ(parser.SetRootType("D"), true);
+  parser.Serialize();
+  const std::string bfbs(
+      reinterpret_cast<const char*>(parser.builder_.GetBufferPointer()),
+      parser.builder_.GetSize());
+  const reflection::Object* d_def =
+      reflection::GetSchema(parser.builder_.GetBufferPointer())->root_table();
+  const reflection::Field* type_field =
+      d_def->fields()->LookupByKey("test_union_type");
+  const reflection::Field* types_field =
+      d_def->fields()->LookupByKey("test_vector_of_union_type");
+  TEST_NOTNULL(type_field);
+  TEST_NOTNULL(types_field);
+
+  UnionUnderlyingType::AT a;
+  a.a = 42;
+  UnionUnderlyingType::BT b;
+  b.b = "foo";
+  UnionUnderlyingType::CT c;
+  c.c = true;
+
+  // test_union holds a B, but test_union_type is absent: its default, NONE,
+  // is the type. The generated verifier accepts this. The B is not annotated.
+  {
+    FlatBufferBuilder fbb;
+    const Offset<void> member = UnionUnderlyingType::B::Pack(fbb, &b).Union();
+    fbb.Finish(UnionUnderlyingType::CreateD(fbb, ABC::NONE, member));
+    Verifier verifier(fbb.GetBufferPointer(), fbb.GetSize());
+    TEST_EQ(verifier.VerifyBuffer<UnionUnderlyingType::D>(nullptr), true);
+    const std::vector<uint8_t> buffer(fbb.GetBufferPointer(),
+                                      fbb.GetBufferPointer() + fbb.GetSize());
+    TEST_NULL(GetAnyRoot(buffer.data())->GetAddressOf(type_field->offset()));
+
+    const Annotations annotations = Annotate(bfbs, buffer);
+    const BinaryRegion* single =
+        FindRegion(annotations, BinaryRegionCommentType::TableOffsetField,
+                   "test_union", 0);
+    TEST_NOTNULL(single);
+    if (single != nullptr) {
+      TEST_EQ(single->comment.status, BinaryRegionStatus::OK);
+      TEST_EQ_STR(single->comment.default_value.c_str(),
+                  "(union of type `NONE`)");
+    }
+    TEST_EQ(CountTables(annotations, "UnionUnderlyingType.B"), 0u);
+  }
+
+  // test_union_type's vtable slot points outside the binary. No API writes a
+  // vtable, so this sets that one slot of a packed buffer directly.
+  {
+    UnionUnderlyingType::DT d;
+    d.test_union.Set(b);
+    std::vector<uint8_t> buffer = PackD(d);
+    uint8_t* vtable =
+        const_cast<uint8_t*>(GetAnyRoot(buffer.data())->GetVTable());
+    WriteScalar<voffset_t>(vtable + type_field->offset(), 0xFFFF);
+
+    const Annotations annotations = Annotate(bfbs, buffer);
+    const BinaryRegion* single =
+        FindRegion(annotations, BinaryRegionCommentType::TableOffsetField,
+                   "test_union", 0);
+    TEST_NOTNULL(single);
+    if (single != nullptr) {
+      TEST_EQ(single->comment.status,
+              BinaryRegionStatus::ERROR_INVALID_UNION_TYPE);
+    }
+    TEST_EQ(CountTables(annotations, "UnionUnderlyingType.B"), 0u);
+  }
+
+  // test_vector_of_union holds [A, B, C], but test_vector_of_union_type is
+  // absent. The generated verifier rejects this. No union has a type.
+  {
+    FlatBufferBuilder fbb;
+    const Offset<void> members[] = {
+        UnionUnderlyingType::A::Pack(fbb, &a).Union(),
+        UnionUnderlyingType::B::Pack(fbb, &b).Union(),
+        UnionUnderlyingType::C::Pack(fbb, &c).Union()};
+    const auto members_vector = fbb.CreateVector(members, 3);
+    fbb.Finish(
+        UnionUnderlyingType::CreateD(fbb, ABC::NONE, 0, 0, members_vector));
+    Verifier verifier(fbb.GetBufferPointer(), fbb.GetSize());
+    TEST_EQ(verifier.VerifyBuffer<UnionUnderlyingType::D>(nullptr), false);
+    const std::vector<uint8_t> buffer(fbb.GetBufferPointer(),
+                                      fbb.GetBufferPointer() + fbb.GetSize());
+    TEST_NULL(GetAnyRoot(buffer.data())->GetAddressOf(types_field->offset()));
+
+    const Annotations annotations = Annotate(bfbs, buffer);
+    for (uoffset_t i = 0; i < 3; ++i) {
+      CheckUnionSlot(annotations, buffer, i,
+                     BinaryRegionStatus::ERROR_INVALID_UNION_TYPE);
+    }
+    TEST_EQ(CountTables(annotations, "UnionUnderlyingType.A"), 0u);
+    TEST_EQ(CountTables(annotations, "UnionUnderlyingType.B"), 0u);
+    TEST_EQ(CountTables(annotations, "UnionUnderlyingType.C"), 0u);
+  }
+
+  // test_vector_of_union_type's vtable slot points outside the binary.
+  {
+    UnionUnderlyingType::DT many;
+    many.test_vector_of_union.resize(3);
+    many.test_vector_of_union[0].Set(a);
+    many.test_vector_of_union[1].Set(b);
+    many.test_vector_of_union[2].Set(c);
+    std::vector<uint8_t> buffer = PackD(many);
+    uint8_t* vtable =
+        const_cast<uint8_t*>(GetAnyRoot(buffer.data())->GetVTable());
+    WriteScalar<voffset_t>(vtable + types_field->offset(), 0xFFFF);
+
+    const Annotations annotations = Annotate(bfbs, buffer);
+    for (uoffset_t i = 0; i < 3; ++i) {
+      CheckUnionSlot(annotations, buffer, i,
+                     BinaryRegionStatus::ERROR_INVALID_UNION_TYPE);
+    }
+    TEST_EQ(CountTables(annotations, "UnionUnderlyingType.A"), 0u);
+    TEST_EQ(CountTables(annotations, "UnionUnderlyingType.B"), 0u);
+    TEST_EQ(CountTables(annotations, "UnionUnderlyingType.C"), 0u);
+  }
+}
 }  // namespace tests
 }  // namespace flatbuffers
