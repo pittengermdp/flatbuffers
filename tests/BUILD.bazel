@@ -130,6 +130,7 @@ cc_test(
         ":prototest/twice-id.proto",
         ":prototest/use-reserved-id.proto",
         ":unicode_test.json",
+        ":union_underlying_type_test.fbs",
         ":union_value_gap_test.fbs",
         ":union_vector/union_vector.fbs",
         ":union_vector/union_vector.json",

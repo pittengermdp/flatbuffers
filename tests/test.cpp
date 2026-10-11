@@ -2181,6 +2181,7 @@ int FlatBufferTests(const std::string& tests_data_path) {
   ReflectionVerifyUnionTypeSlotsTest(tests_data_path);
   ForAllFieldsReverseTest(tests_data_path);
   AnnotateUnionByValueTest(tests_data_path);
+  AnnotateUnionUnderlyingTypeTest(tests_data_path);
   ParseProtoTest(tests_data_path);
   EvolutionTest(tests_data_path);
   UnionDeprecationTest(tests_data_path);
