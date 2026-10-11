@@ -20,6 +20,7 @@ void Offset64ReflectionVerifySizePrefixed();
 void Offset64ReflectionVerifyRoot();
 void Offset64ReflectionVerifyMaxSize();
 void Offset64SizePrefixedIdentifierBounds();
+void Offset64ReflectionVerifyAlignment();
 
 }  // namespace tests
 }  // namespace flatbuffers

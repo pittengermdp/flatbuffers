@@ -69,6 +69,17 @@ static bool VerifyOffset64Field(flatbuffers::Verifier& v,
                           : table.VerifyOffset64(v, field.offset());
 }
 
+// Verifies a vector of T reached through a 64-bit offset, with the same
+// Verifier::VerifyVector() call -- and so the same element alignment -- as
+// the generated verifier.
+template <typename T, typename LenT>
+static bool VerifyOffset64VectorOf(flatbuffers::Verifier& v,
+                                   const flatbuffers::Table& table,
+                                   const reflection::Field& vec_field) {
+  return v.VerifyVector(
+      table.GetPointer64<const Vector<T, LenT>*>(vec_field.offset()));
+}
+
 // Verifies a vector reached through a 64-bit offset. A `(vector64)` field also
 // has a 64-bit length (LenT = uoffset64_t); an `(offset64)` one keeps a 32-bit
 // length. The parser only allows scalar and struct elements in either.
@@ -79,16 +90,34 @@ static bool VerifyOffset64Vector(flatbuffers::Verifier& v,
                                  const reflection::Field& vec_field) {
   if (!VerifyOffset64Field(v, table, vec_field)) return false;
 
-  const auto element = vec_field.type()->element();
-  if (element == reflection::Obj) {
-    auto obj = schema.objects()->Get(vec_field.type()->index());
-    return obj->is_struct() &&
-           VerifyVectorOfStructs<uoffset64_t, LenT>(
-               v, table, vec_field.offset(), *obj, vec_field.required());
+  switch (vec_field.type()->element()) {
+    case reflection::UType:
+    case reflection::Bool:
+    case reflection::Byte:
+    case reflection::UByte:
+      return VerifyOffset64VectorOf<uint8_t, LenT>(v, table, vec_field);
+    case reflection::Short:
+    case reflection::UShort:
+      return VerifyOffset64VectorOf<int16_t, LenT>(v, table, vec_field);
+    case reflection::Int:
+    case reflection::UInt:
+      return VerifyOffset64VectorOf<int32_t, LenT>(v, table, vec_field);
+    case reflection::Long:
+    case reflection::ULong:
+      return VerifyOffset64VectorOf<int64_t, LenT>(v, table, vec_field);
+    case reflection::Float:
+      return VerifyOffset64VectorOf<float, LenT>(v, table, vec_field);
+    case reflection::Double:
+      return VerifyOffset64VectorOf<double, LenT>(v, table, vec_field);
+    case reflection::Obj: {
+      auto obj = schema.objects()->Get(vec_field.type()->index());
+      return obj->is_struct() &&
+             VerifyVectorOfStructs<uoffset64_t, LenT>(
+                 v, table, vec_field.offset(), *obj, vec_field.required());
+    }
+    default:
+      return false;
   }
-  if (!IsScalar(element)) return false;
-  auto vec = table.GetPointer64<const uint8_t*>(vec_field.offset());
-  return !vec || v.VerifyVectorOrString<LenT>(vec, GetTypeSize(element));
 }
 
 // forward declare to resolve cyclic deps between VerifyObject and VerifyVector
