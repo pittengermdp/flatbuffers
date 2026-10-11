@@ -14,6 +14,7 @@ void Offset64VectorOfStructsMisaligned();
 void Offset64SizePrefix();
 void Offset64ManyVectors();
 void Offset64ForceAlign();
+void Offset64ForceAlignEmptyVector();
 void Offset64ReflectionCopyTable();
 void Offset64ReflectionCopyTableSubTables();
 void Offset64ObjectApiRoundTrip();

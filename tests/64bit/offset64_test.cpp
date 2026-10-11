@@ -16,6 +16,7 @@
 #include "flatbuffers/buffer.h"
 #include "flatbuffers/flatbuffer_builder.h"
 #include "flatbuffers/flatbuffers.h"
+#include "tests/64bit/empty_force_align_generated.h"
 #include "flatbuffers/idl.h"
 #include "flatbuffers/reflection.h"
 #include "tests/64bit/evolution/v1_generated.h"
@@ -525,6 +526,47 @@ void Offset64ForceAlign() {
 
   // Finish the buffer.
   FinishRootTableBuffer(builder, root_table_offset);
+}
+
+void Offset64ForceAlignEmptyVector() {
+  using empty_force_align::ChildT;
+  using empty_force_align::ParentT;
+
+  // Both children leave their force-aligned 64-bit vector empty. Pack() still
+  // forces its alignment, and it packs the second child after the first one's
+  // 32-bit table, so that call comes after the 64-bit region has closed. An
+  // empty vector writes nothing, so this must not trip the region check.
+  ParentT parent;
+  for (int32_t id = 1; id <= 2; ++id) {
+    parent.children.emplace_back(new ChildT());
+    parent.children.back()->id = id;
+  }
+
+  FlatBufferBuilder64 builder;
+  empty_force_align::FinishParentBuffer(
+      builder, empty_force_align::Parent::Pack(builder, &parent));
+
+  Verifier::Options options;
+  options.max_size = FLATBUFFERS_MAX_64_BUFFER_SIZE;
+  Verifier verifier(builder.GetBufferPointer(), builder.GetSize(), options);
+  TEST_EQ(empty_force_align::VerifyParentBuffer(verifier), true);
+
+  const auto* root = empty_force_align::GetParent(builder.GetBufferPointer());
+  TEST_EQ(root->children()->size(), 2u);
+  TEST_EQ(root->children()->Get(0)->id(), 1);
+  TEST_EQ(root->children()->Get(1)->id(), 2);
+  TEST_ASSERT(root->children()->Get(1)->data() == nullptr);
+
+  std::unique_ptr<ParentT> unpacked(root->UnPack());
+  TEST_ASSERT(*unpacked == parent);
+
+  // A hand-written caller gets the same guarantee: forcing the alignment of an
+  // empty vector after 32-bit data neither asserts nor writes padding.
+  FlatBufferBuilder64 direct;
+  direct.CreateString("32-bit data");
+  const auto size = direct.GetSize();
+  direct.ForceVectorAlignment64(0, sizeof(uint8_t), 16);
+  TEST_EQ(direct.GetSize(), size);
 }
 
 static bool GeneratedVerify(const std::vector<uint8_t>& buf);

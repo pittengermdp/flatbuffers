@@ -1834,6 +1834,7 @@ static void Offset64Tests() {
   Offset64SizePrefix();
   Offset64ManyVectors();
   Offset64ForceAlign();
+  Offset64ForceAlignEmptyVector();
   Offset64ReflectionCopyTable();
   Offset64ReflectionCopyTableSubTables();
   Offset64ObjectApiRoundTrip();

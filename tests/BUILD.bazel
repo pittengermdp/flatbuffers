@@ -26,6 +26,7 @@ cc_test(
     srcs = [
         "64bit/evolution/v1_generated.h",
         "64bit/evolution/v2_generated.h",
+        "64bit/empty_force_align_generated.h",
         "64bit/offset64_test.cpp",
         "64bit/offset64_test.h",
         "64bit/test_64bit_bfbs_generated.h",
