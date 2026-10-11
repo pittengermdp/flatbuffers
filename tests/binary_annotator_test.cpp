@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <map>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "binary_annotator.h"
@@ -137,6 +138,26 @@ void CheckIntRegion(const Annotations& annotations,
   if (found != nullptr) {
     TEST_EQ(found->length, 4u);
     TEST_EQ(found->type, BinaryRegionType::Uint32);
+  }
+}
+
+// Checks that union[index] of test_vector_of_union in the D in `buffer` is
+// annotated as its own 4-byte offset, with `status`.
+void CheckUnionSlot(const Annotations& annotations,
+                    const std::vector<uint8_t>& buffer, const uoffset_t index,
+                    const BinaryRegionStatus status) {
+  const uint8_t* slot = GetRoot<UnionUnderlyingType::D>(buffer.data())
+                            ->test_vector_of_union()
+                            ->Data() +
+                        index * sizeof(uoffset_t);
+  const BinaryRegion* region = FindRegion(
+      annotations, BinaryRegionCommentType::VectorUnionValue, "", index);
+  TEST_NOTNULL(region);
+  if (region != nullptr) {
+    TEST_EQ(region->offset, static_cast<uint64_t>(slot - buffer.data()));
+    TEST_EQ(region->length, 4u);
+    TEST_EQ(region->type, BinaryRegionType::UOffset);
+    TEST_EQ(region->comment.status, status);
   }
 }
 
@@ -409,6 +430,127 @@ void AnnotateUnionUnderlyingTypeTest(const std::string& tests_data_path) {
               BinaryRegionStatus::ERROR_INCOMPLETE_BINARY);
       TEST_EQ_STR(last->comment.status_message.c_str(), "4");
     }
+  }
+}
+
+// A vector of unions finds its types through a 32-bit offset to its `_type`
+// vector, reads no type past that vector's end, and annotates each element in
+// its own slot, even one whose member offset or type is bad.
+void AnnotateUnionVectorTest(const std::string& tests_data_path) {
+  using UnionUnderlyingType::ABC;
+
+  std::string schemafile;
+  TEST_EQ(LoadFile((tests_data_path + "union_underlying_type_test.fbs").c_str(),
+                   false, &schemafile),
+          true);
+  IDLOptions opts;
+  opts.lang_to_generate |= IDLOptions::kBinary;
+  Parser parser(opts);
+  TEST_EQ(parser.Parse(schemafile.c_str()), true);
+  // The schema declares no root_type; name one, as `flatc --root-type` does.
+  TEST_EQ(parser.SetRootType("D"), true);
+  parser.Serialize();
+  const std::string bfbs(
+      reinterpret_cast<const char*>(parser.builder_.GetBufferPointer()),
+      parser.builder_.GetSize());
+  const reflection::Field* types_field =
+      reflection::GetSchema(parser.builder_.GetBufferPointer())
+          ->root_table()
+          ->fields()
+          ->LookupByKey("test_vector_of_union_type");
+  TEST_NOTNULL(types_field);
+
+  UnionUnderlyingType::AT a;
+  a.a = 42;
+  UnionUnderlyingType::BT b;
+  b.b = "foo";
+  UnionUnderlyingType::CT c;
+  c.c = true;
+
+  UnionUnderlyingType::DT many;
+  many.test_vector_of_union.resize(3);
+  many.test_vector_of_union[0].Set(a);
+  many.test_vector_of_union[1].Set(b);
+  many.test_vector_of_union[2].Set(c);
+
+  // B's 64 KiB string puts the `_type` vector more than 0xFFFF bytes past its
+  // field, so the offset to it needs more than 16 bits.
+  {
+    UnionUnderlyingType::BT big;
+    big.b = std::string(0x10000, 'x');
+    UnionUnderlyingType::DT far = many;
+    far.test_vector_of_union[1].Set(std::move(big));
+    const std::vector<uint8_t> buffer = PackD(far);
+    const uint8_t* field =
+        GetAnyRoot(buffer.data())->GetAddressOf(types_field->offset());
+    const uint8_t* types = reinterpret_cast<const uint8_t*>(
+        GetRoot<UnionUnderlyingType::D>(buffer.data())
+            ->test_vector_of_union_type());
+    TEST_EQ(types - field > 0xFFFF, true);
+
+    const Annotations annotations = Annotate(bfbs, buffer);
+    TEST_EQ_STR(ManyMember(annotations, 0).c_str(), "(`A`)");
+    TEST_EQ_STR(ManyMember(annotations, 1).c_str(), "(`B`)");
+    TEST_EQ_STR(ManyMember(annotations, 2).c_str(), "(`C`)");
+    TEST_EQ(
+        CountStatus(annotations, BinaryRegionStatus::ERROR_INVALID_UNION_TYPE),
+        0u);
+  }
+
+  // The `_type` vector ends the buffer. Cut off its last type and the last
+  // byte of the one before: union[1] and union[2] have no whole type, and each
+  // is still its own slot.
+  {
+    const std::vector<uint8_t> buffer = PackD(many);
+    const std::vector<uint8_t> cut(buffer.begin(), buffer.end() - 5);
+    const Annotations annotations = Annotate(bfbs, cut);
+    TEST_EQ_STR(ManyMember(annotations, 0).c_str(), "(`A`)");
+    CheckUnionSlot(annotations, buffer, 1,
+                   BinaryRegionStatus::ERROR_INCOMPLETE_BINARY);
+    CheckUnionSlot(annotations, buffer, 2,
+                   BinaryRegionStatus::ERROR_INCOMPLETE_BINARY);
+  }
+
+  // union[1]'s offset points past the end of the binary; union[2] is still C.
+  {
+    std::vector<uint8_t> buffer = PackD(many);
+    GetMutableRoot<UnionUnderlyingType::D>(buffer.data())
+        ->mutable_test_vector_of_union()
+        ->Mutate(1, Offset<void>(0x7FFFFFF0));
+    const Annotations annotations = Annotate(bfbs, buffer);
+    CheckUnionSlot(annotations, buffer, 1,
+                   BinaryRegionStatus::ERROR_OFFSET_OUT_OF_BINARY);
+    CheckUnionSlot(annotations, buffer, 2, BinaryRegionStatus::OK);
+    TEST_EQ_STR(ManyMember(annotations, 2).c_str(), "(`C`)");
+  }
+
+  // A `_type` vector with one type for three unions. The Object API cannot
+  // write one, so this uses the generated builder; the generated verifier
+  // rejects it. union[1] and union[2] have no type, so no member.
+  {
+    FlatBufferBuilder fbb;
+    const Offset<void> members[] = {
+        UnionUnderlyingType::A::Pack(fbb, &a).Union(),
+        UnionUnderlyingType::B::Pack(fbb, &b).Union(),
+        UnionUnderlyingType::C::Pack(fbb, &c).Union()};
+    const ABC types[] = {ABC::A};
+    const auto types_vector = fbb.CreateVector(types, 1);
+    const auto members_vector = fbb.CreateVector(members, 3);
+    fbb.Finish(UnionUnderlyingType::CreateD(fbb, ABC::NONE, 0, types_vector,
+                                            members_vector));
+    Verifier verifier(fbb.GetBufferPointer(), fbb.GetSize());
+    TEST_EQ(verifier.VerifyBuffer<UnionUnderlyingType::D>(nullptr), false);
+    const std::vector<uint8_t> buffer(fbb.GetBufferPointer(),
+                                      fbb.GetBufferPointer() + fbb.GetSize());
+
+    const Annotations annotations = Annotate(bfbs, buffer);
+    TEST_EQ_STR(ManyMember(annotations, 0).c_str(), "(`A`)");
+    CheckUnionSlot(annotations, buffer, 1,
+                   BinaryRegionStatus::ERROR_INVALID_UNION_TYPE);
+    CheckUnionSlot(annotations, buffer, 2,
+                   BinaryRegionStatus::ERROR_INVALID_UNION_TYPE);
+    TEST_EQ(CountTables(annotations, "UnionUnderlyingType.B"), 0u);
+    TEST_EQ(CountTables(annotations, "UnionUnderlyingType.C"), 0u);
   }
 }
 

@@ -1267,14 +1267,14 @@ void BinaryAnnotator::BuildVector(
           parent_table_offset + vtable_entry->second.offset_from_table;
 
       const auto union_type_vector_field_relative_offset =
-          ReadScalar<uint16_t>(union_type_vector_field_offset);
+          ReadScalar<uint32_t>(union_type_vector_field_offset);
 
       if (!union_type_vector_field_relative_offset.has_value()) {
         const uint64_t remaining = RemainingBytes(offset);
         BinaryRegionComment vector_union_comment;
         vector_union_comment.type = BinaryRegionCommentType::VectorUnionValue;
         SetError(vector_union_comment,
-                 BinaryRegionStatus::ERROR_INCOMPLETE_BINARY, "2");
+                 BinaryRegionStatus::ERROR_INCOMPLETE_BINARY, "4");
 
         regions.push_back(MakeBinaryRegion(offset, remaining,
                                            BinaryRegionType::Unknown, remaining,
@@ -1283,18 +1283,24 @@ void BinaryAnnotator::BuildVector(
         break;
       }
 
-      // Get the offset to the first type (the + sizeof(uint32_t) is to skip
-      // over the vector length which we already know). Validation happens
-      // within the loop below.
-      const uint64_t union_type_vector_data_offset =
+      // Get the vector of types, its length, and the offset to its first type
+      // (the + sizeof(uint32_t) is to skip over its length). Validation
+      // happens within the loop below.
+      const uint64_t union_type_vector_offset =
           union_type_vector_field_offset +
-          union_type_vector_field_relative_offset.value() + sizeof(uint32_t);
+          union_type_vector_field_relative_offset.value();
+      const auto union_type_vector_length =
+          ReadScalar<uint32_t>(union_type_vector_offset);
+      const uint64_t union_type_vector_data_offset =
+          union_type_vector_offset + sizeof(uint32_t);
 
       const reflection::BaseType union_type =
           GetStoredType(field, reflection::BaseType::UType);
       const uint64_t union_type_size = GetTypeSize(union_type);
 
-      for (size_t i = 0; i < vector_length.value(); ++i) {
+      // Each iteration consumes one union offset, whichever path it takes.
+      for (size_t i = 0; i < vector_length.value();
+           ++i, offset += sizeof(uint32_t)) {
         BinaryRegionComment comment;
         comment.type = BinaryRegionCommentType::VectorUnionValue;
         comment.index = i;
@@ -1324,14 +1330,26 @@ void BinaryAnnotator::BuildVector(
           continue;
         }
 
+        // A vector of types shorter than this vector has no type for the
+        // unions past its end.
+        if (union_type_vector_length.has_value() &&
+            i >= union_type_vector_length.value()) {
+          SetError(comment, BinaryRegionStatus::ERROR_INVALID_UNION_TYPE);
+          regions.push_back(MakeBinaryRegion(offset, sizeof(uint32_t),
+                                             BinaryRegionType::UOffset, 0,
+                                             union_offset, comment));
+          continue;
+        }
+
         const auto realized_type = ReadScalar(
             union_type_vector_data_offset + i * union_type_size, union_type);
 
         if (!realized_type.has_value()) {
           SetError(comment, BinaryRegionStatus::ERROR_INCOMPLETE_BINARY,
                    std::to_string(union_type_size));
-          regions.push_back(MakeBinaryRegion(
-              offset, 0, BinaryRegionType::Unknown, 0, 0, comment));
+          regions.push_back(MakeBinaryRegion(offset, sizeof(uint32_t),
+                                             BinaryRegionType::UOffset, 0,
+                                             union_offset, comment));
           continue;
         }
 
@@ -1340,7 +1358,6 @@ void BinaryAnnotator::BuildVector(
           // We already export an error in the union type field, so just skip
           // building the union itself and it will default to an unreference
           // Binary section.
-          offset += sizeof(uint32_t);
           continue;
         }
 
@@ -1351,8 +1368,6 @@ void BinaryAnnotator::BuildVector(
         regions.push_back(MakeBinaryRegion(offset, sizeof(uint32_t),
                                            BinaryRegionType::UOffset, 0,
                                            union_offset, comment));
-
-        offset += sizeof(uint32_t);
       }
     } break;
     default: {
