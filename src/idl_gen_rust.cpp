@@ -4386,8 +4386,7 @@ class RustGenerator : public BaseGenerator {
           break;
         }
         default: {
-          std::string default_value =
-              GetDefaultValue(field, kObject);
+          std::string default_value = GetDefaultValue(field, kObject);
           code_ += "        {{FIELD}}: " + default_value + ",";
           break;
         }
