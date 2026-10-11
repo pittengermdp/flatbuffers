@@ -143,7 +143,7 @@ known is provided.
 ### Offsets
 
 If the type in the 3rd column is of an absolute offset (`SOffet32` or
-`Offset32`), the fourth column also shows an `Loc: +0x025A` value which shows
+`Offset32`), the fourth column also shows an `Loc: 0x025A` value which shows
 where in the binary this region is pointing to. These values are absolute from
 the beginning of the file, their calculation from the raw value in the 4th
 column depends on the context.

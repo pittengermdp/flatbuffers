@@ -45,6 +45,35 @@ run: `cd tests && ./RustTest.sh`.
 *Note: The shell script requires [Rust](https://www.rust-lang.org) to
 be installed.*
 
+`RustTest.sh` finds every Rust crate in the repository with
+`git ls-files '*Cargo.toml'`. It runs `cargo clippy --all-targets -- -D warnings`
+and `cargo test` on each crate, then the steps that need special handling: the
+`no_std` build, the `--no-default-features` tests, the heap-allocation checks
+and the benchmarks. On Windows, `RustTest.bat` runs `cargo test` on the same
+crates and leaves clippy to `RustTest.sh`. CI pins the Rust version the Linux
+job lints with, because each Rust release adds lints. To reproduce a CI clippy failure,
+run `RUSTUP_TOOLCHAIN=<version> ./RustTest.sh` with the version pinned in the
+`build-rust-linux` job of `.github/workflows/build.yml`.
+
+A new crate is covered as soon as it is committed. A crate can opt out only
+from its own `Cargo.toml`:
+
+```toml
+[package.metadata.rust-test]
+# Neither linted nor tested by the loop. Say what covers the crate instead.
+skip = "why"
+
+# Or: linted and tested, but held to a fixed number of clippy diagnostics
+# instead of none.
+clippy-debt = "why"
+clippy-debt-limit = 276
+```
+
+Clippy debt can only shrink. A crate in debt must report exactly
+`clippy-debt-limit` diagnostics: a new warning fails the run, fixing one fails
+it until the limit is lowered to match, and a crate with none left fails until
+both keys are deleted, which puts it under `-D warnings` with every other crate.
+
 ## Using the FlatBuffers Rust library
 
 *Note: See [Tutorial](../tutorial.md) for a more in-depth

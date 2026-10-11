@@ -9,8 +9,7 @@
 // Ensure the included flatbuffers.h is the same version as when this file was
 // generated, otherwise it may not be compatible.
 static_assert(FLATBUFFERS_VERSION_MAJOR == 0 &&
-              FLATBUFFERS_VERSION_MINOR == 5 &&
-              FLATBUFFERS_VERSION_REVISION == 0,
+              FLATBUFFERS_VERSION_MINOR == 5,
              "Non-compatible flatbuffers version included");
 
 namespace flatbuffers {

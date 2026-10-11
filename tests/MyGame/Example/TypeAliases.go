@@ -445,44 +445,44 @@ func (rcv_ *TypeAliases) MutateVf64(j_ int, n_ float64) bool {
 func TypeAliasesStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(12)
 }
-func TypeAliasesAddI8(builder_ *flatbuffers.Builder, i8_ int8) {
-	builder_.PrependInt8Slot(0, i8_, 0)
+func TypeAliasesAddI8(builder_ *flatbuffers.Builder, i8Arg_ int8) {
+	builder_.PrependInt8Slot(0, i8Arg_, 0)
 }
-func TypeAliasesAddU8(builder_ *flatbuffers.Builder, u8_ byte) {
-	builder_.PrependByteSlot(1, u8_, 0)
+func TypeAliasesAddU8(builder_ *flatbuffers.Builder, u8Arg_ byte) {
+	builder_.PrependByteSlot(1, u8Arg_, 0)
 }
-func TypeAliasesAddI16(builder_ *flatbuffers.Builder, i16_ int16) {
-	builder_.PrependInt16Slot(2, i16_, 0)
+func TypeAliasesAddI16(builder_ *flatbuffers.Builder, i16Arg_ int16) {
+	builder_.PrependInt16Slot(2, i16Arg_, 0)
 }
-func TypeAliasesAddU16(builder_ *flatbuffers.Builder, u16_ uint16) {
-	builder_.PrependUint16Slot(3, u16_, 0)
+func TypeAliasesAddU16(builder_ *flatbuffers.Builder, u16Arg_ uint16) {
+	builder_.PrependUint16Slot(3, u16Arg_, 0)
 }
-func TypeAliasesAddI32(builder_ *flatbuffers.Builder, i32_ int32) {
-	builder_.PrependInt32Slot(4, i32_, 0)
+func TypeAliasesAddI32(builder_ *flatbuffers.Builder, i32Arg_ int32) {
+	builder_.PrependInt32Slot(4, i32Arg_, 0)
 }
-func TypeAliasesAddU32(builder_ *flatbuffers.Builder, u32_ uint32) {
-	builder_.PrependUint32Slot(5, u32_, 0)
+func TypeAliasesAddU32(builder_ *flatbuffers.Builder, u32Arg_ uint32) {
+	builder_.PrependUint32Slot(5, u32Arg_, 0)
 }
-func TypeAliasesAddI64(builder_ *flatbuffers.Builder, i64_ int64) {
-	builder_.PrependInt64Slot(6, i64_, 0)
+func TypeAliasesAddI64(builder_ *flatbuffers.Builder, i64Arg_ int64) {
+	builder_.PrependInt64Slot(6, i64Arg_, 0)
 }
-func TypeAliasesAddU64(builder_ *flatbuffers.Builder, u64_ uint64) {
-	builder_.PrependUint64Slot(7, u64_, 0)
+func TypeAliasesAddU64(builder_ *flatbuffers.Builder, u64Arg_ uint64) {
+	builder_.PrependUint64Slot(7, u64Arg_, 0)
 }
-func TypeAliasesAddF32(builder_ *flatbuffers.Builder, f32_ float32) {
-	builder_.PrependFloat32Slot(8, f32_, 0.0)
+func TypeAliasesAddF32(builder_ *flatbuffers.Builder, f32Arg_ float32) {
+	builder_.PrependFloat32Slot(8, f32Arg_, 0.0)
 }
-func TypeAliasesAddF64(builder_ *flatbuffers.Builder, f64_ float64) {
-	builder_.PrependFloat64Slot(9, f64_, 0.0)
+func TypeAliasesAddF64(builder_ *flatbuffers.Builder, f64Arg_ float64) {
+	builder_.PrependFloat64Slot(9, f64Arg_, 0.0)
 }
-func TypeAliasesAddV8(builder_ *flatbuffers.Builder, v8_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(10, flatbuffers.UOffsetT(v8_), 0)
+func TypeAliasesAddV8(builder_ *flatbuffers.Builder, v8Arg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(10, flatbuffers.UOffsetT(v8Arg_), 0)
 }
 func TypeAliasesStartV8Vector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(1, numElems_, 1)
 }
-func TypeAliasesAddVf64(builder_ *flatbuffers.Builder, vf64_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(11, flatbuffers.UOffsetT(vf64_), 0)
+func TypeAliasesAddVf64(builder_ *flatbuffers.Builder, vf64Arg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(11, flatbuffers.UOffsetT(vf64Arg_), 0)
 }
 func TypeAliasesStartVf64Vector(builder_ *flatbuffers.Builder, numElems_ int) flatbuffers.UOffsetT {
 	return builder_.StartVector(8, numElems_, 8)

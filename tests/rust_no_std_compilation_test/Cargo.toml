@@ -11,3 +11,7 @@ panic = "abort"
 
 [profile.release]
 panic = "abort"
+
+# Read by tests/RustTest.sh and tests/RustTest.bat; see docs/source/languages/rust.md.
+[package.metadata.rust-test]
+skip = "a thumbv7m-none-eabi binary with no tests; RustTest.sh builds it and lints it in its own step"

@@ -58,11 +58,18 @@ flatc_path = Path(root_path, flatc_exe)
 assert flatc_path.exists(), "Cannot find the flatc compiler " + str(flatc_path)
 
 
+# Output directory of every --rust invocation of flatc, so formatting covers
+# exactly the Rust that was generated.
+rust_output_dirs = set()
+
+
 # Execute the flatc compiler with the specified parameters
 def flatc(
     options, schema, prefix=None, include=None, data=None, cwd=tests_path
 ):
   cmd = [str(flatc_path)] + options
+  if "--rust" in options:
+    rust_output_dirs.add(Path(cwd, prefix) if prefix else Path(cwd))
   if prefix:
     cmd += ["-o"] + [prefix]
   if include:
@@ -70,4 +77,4 @@ def flatc(
   cmd += [schema] if isinstance(schema, str) else schema
   if data:
     cmd += [data] if isinstance(data, str) else data
-  result = subprocess.run(cmd, cwd=str(cwd), check=True)
+  subprocess.run(cmd, cwd=str(cwd), check=True)
