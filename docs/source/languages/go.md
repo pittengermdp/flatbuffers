@@ -27,7 +27,10 @@ The test code itself is located in [go_test.go](https://github.com/google/
 flatbuffers/blob/master/tests/go_test.go).
 
 To run the tests, use the [GoTest.sh](https://github.com/google/flatbuffers/
-blob/master/tests/GoTest.sh) shell script.
+blob/master/tests/GoTest.sh) shell script. It also vets and tests every Go
+module under `tests/` and `examples/`, such as the union-of-unions round trip in
+`tests/union_of_union_test` and `examples/go-echo`. Each builds against the
+runtime in this repository through a `replace` directive.
 
 *Note: The shell script requires [Go](https://golang.org/doc/install) to
 be installed.*

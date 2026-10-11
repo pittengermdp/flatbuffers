@@ -18,6 +18,7 @@ import filecmp
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import generate_grpc_examples
 from util import args, flatc, flatc_path, root_path, tests_path
 
@@ -25,6 +26,7 @@ from util import args, flatc, flatc_path, root_path, tests_path
 swift_code_gen = Path(root_path, "tests/swift/fuzzer/CodeGenerationTests")
 ts_code_gen = Path(root_path, "tests/ts")
 samples_path = Path(root_path, "samples")
+examples_path = Path(root_path, "examples")
 reflection_path = Path(root_path, "reflection")
 
 
@@ -112,9 +114,15 @@ JAVA_OPTS = ["--java"]
 KOTLIN_OPTS = ["--kotlin"]
 PHP_OPTS = ["--php"]
 DART_OPTS = ["--dart"]
+GO_OPTS = ["--go", "--gen-object-api"]
 PYTHON_OPTS = ["--python", "--python-typing", "--python-decode-obj-api-strings"]
 BINARY_OPTS = ["-b", "--schema", "--bfbs-comments", "--bfbs-builtins"]
 PROTO_OPTS = ["--proto"]
+
+namespace_test_schemas = [
+    "namespace_test/namespace_test1.fbs",
+    "namespace_test/namespace_test2.fbs",
+]
 
 # Basic Usage
 
@@ -134,6 +142,34 @@ flatc(
     schema="monster_test.fbs",
     include="include_test",
     data="monsterdata_test.json",
+)
+
+# Go outside tests/MyGame, each with the command that first produced it.
+# Reference output for schemas tests/GoTest.sh compiles from its own copies.
+flatc(GO_OPTS, schema="optional_scalars.fbs")
+flatc(GO_OPTS, schema="include_test/sub/no_namespace.fbs")
+flatc(GO_OPTS, schema="include_test/order.fbs", include="include_test/sub")
+
+# Golden only: NamespaceA and NamespaceC import each other, a cycle Go rejects.
+flatc(
+    NO_INCL_OPTS + ["--go"],
+    prefix="namespace_test",
+    schema=namespace_test_schemas,
+)
+
+# Union-of-unions: Outer names the union Inner as a member, and flatc flattens
+# Inner's members into it.
+flatc(
+    GO_OPTS,
+    prefix="union_of_union_test",
+    schema="union_of_union_test/union_of_union.fbs",
+)
+
+# The command examples/go-echo/README.md documents.
+flatc(
+    GO_OPTS + ["--go-module-name", "echo"],
+    schema=["hero.fbs", "net.fbs"],
+    cwd=Path(examples_path, "go-echo"),
 )
 
 flatc(
@@ -224,10 +260,7 @@ flatc(
 flatc(
     RUST_OPTS + CS_OPTS,
     prefix="namespace_test",
-    schema=[
-        "namespace_test/namespace_test1.fbs",
-        "namespace_test/namespace_test2.fbs",
-    ],
+    schema=namespace_test_schemas,
 )
 
 flatc(
@@ -241,10 +274,7 @@ flatc(
         "--gen-name-strings",
     ],
     prefix="namespace_test",
-    schema=[
-        "namespace_test/namespace_test1.fbs",
-        "namespace_test/namespace_test2.fbs",
-    ],
+    schema=namespace_test_schemas,
 )
 
 flatc(
@@ -507,7 +537,7 @@ flatc(
 # generator writes is reviewed; GoTest.sh compiles and tests the same code
 # (tests/go_canonical_json_test) against flatc and schema reflection.
 flatc(
-    ["--go", "--gen-object-api", "--go-json", "--json-int64-as-string"],
+    GO_OPTS + ["--go-json", "--json-int64-as-string"],
     schema=["canonical_json_test.fbs", "canonical_json_include.fbs"],
     prefix="go_json",
 )
@@ -519,7 +549,7 @@ flatc(
 # Its edge cases too: empty union, bit_flags map keys, null map values,
 # struct map values, 64-bit enums and the float ranges.
 flatc(
-    ["--go", "--gen-object-api", "--go-json", "--json-int64-as-string"],
+    GO_OPTS + ["--go-json", "--json-int64-as-string"],
     schema=["canonical_json_edge.fbs", "canonical_json_edge_value.fbs"],
     prefix="go_json",
 )
@@ -896,8 +926,10 @@ def format_generated_code():
     print("[format] rustfmt not found; skipping Rust", flush=True)
 
   # Go generated code (no _generated suffix; gofmt is idempotent and safe).
+  # examples/ is included because its generated code sits beside hand-written
+  # programs that people read and copy.
   if have("gofmt"):
-    go = sources(tests, "**/*.go")
+    go = sources(tests, "**/*.go") + sources(examples_path, "**/*.go")
     if go:
       run_chunked(["gofmt", "-w"], go)
     print(f"[format] gofmt: {len(go)} Go files", flush=True)
@@ -927,3 +959,11 @@ def format_generated_code():
 
 
 format_generated_code()
+
+# Goldens last, so a failure here leaves everything above complete and
+# formatted. Its own process: it imports scripts/util.py under another name.
+subprocess.run(
+    [sys.executable, str(Path(root_path, "goldens", "generate_goldens.py"))]
+    + sys.argv[1:],
+    check=True,
+)

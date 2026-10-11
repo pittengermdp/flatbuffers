@@ -9,98 +9,172 @@ import (
 )
 
 type FoodT struct {
-	Pizza     *Pizza.PizzaT `json:"pizza"`
-	PizzaTest *Pizza.PizzaT `json:"pizza_test"`
+	Pizza     *Pizza.PizzaT `json:"pizza,omitempty"`
+	PizzaTest *Pizza.PizzaT `json:"pizza_test,omitempty"`
 }
 
-func (t *FoodT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *FoodT) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	pizzaOffset := t.Pizza.Pack(builder)
-	pizzaTestOffset := t.PizzaTest.Pack(builder)
-	FoodStart(builder)
-	FoodAddPizza(builder, pizzaOffset)
-	FoodAddPizzaTest(builder, pizzaTestOffset)
-	return FoodEnd(builder)
+	pizzaOffset_ := t_.Pizza.Pack(builder_)
+	pizzaTestOffset_ := t_.PizzaTest.Pack(builder_)
+	FoodStart(builder_)
+	FoodAddPizza(builder_, pizzaOffset_)
+	FoodAddPizzaTest(builder_, pizzaTestOffset_)
+	return FoodEnd(builder_)
 }
 
-func (rcv *Food) UnPackTo(t *FoodT) {
-	t.Pizza = rcv.Pizza(nil).UnPack()
-	t.PizzaTest = rcv.PizzaTest(nil).UnPack()
+func (rcv_ *Food) UnPackTo(t_ *FoodT) {
+	t_.Pizza = rcv_.Pizza(nil).UnPack()
+	t_.PizzaTest = rcv_.PizzaTest(nil).UnPack()
 }
 
-func (rcv *Food) UnPack() *FoodT {
-	if rcv == nil {
+func (rcv_ *Food) UnPack() *FoodT {
+	if rcv_ == nil {
 		return nil
 	}
-	t := &FoodT{}
-	rcv.UnPackTo(t)
-	return t
+	t_ := &FoodT{}
+	rcv_.UnPackTo(t_)
+	return t_
+}
+
+const (
+	FoodFieldPizza     = "pizza"
+	FoodFieldPizzaTest = "pizza_test"
+)
+
+// UnpackFields returns a partial *FoodT with only the named fields populated.
+// Fields not in the list are left at their zero/default values.
+// This avoids materializing the entire table tree. Pass the
+// generated FoodField* constants rather than raw strings.
+func (rcv_ *Food) UnpackFields(fields_ ...string) *FoodT {
+	t_ := &FoodT{}
+	fieldSet_ := make(map[string]bool, len(fields_))
+	for _, f_ := range fields_ {
+		fieldSet_[f_] = true
+	}
+	if fieldSet_["pizza"] {
+		t_.Pizza = rcv_.Pizza(nil).UnPack()
+	}
+	if fieldSet_["pizza_test"] {
+		t_.PizzaTest = rcv_.PizzaTest(nil).UnPack()
+	}
+	return t_
 }
 
 type Food struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsFood(buf []byte, offset flatbuffers.UOffsetT) *Food {
-	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &Food{}
-	x.Init(buf, n+offset)
-	return x
+func GetRootAsFood(buf_ []byte, offset_ flatbuffers.UOffsetT) *Food {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_:])
+	x_ := &Food{}
+	x_.Init(buf_, n_+offset_)
+	return x_
 }
 
-func GetSizePrefixedRootAsFood(buf []byte, offset flatbuffers.UOffsetT) *Food {
-	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &Food{}
-	x.Init(buf, n+offset+flatbuffers.SizeUint32)
-	return x
+func FinishFoodBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.Finish(offset_)
 }
 
-func (rcv *Food) Init(buf []byte, i flatbuffers.UOffsetT) {
-	rcv._tab.Bytes = buf
-	rcv._tab.Pos = i
+func GetSizePrefixedRootAsFood(buf_ []byte, offset_ flatbuffers.UOffsetT) *Food {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_+flatbuffers.SizeUint32:])
+	x_ := &Food{}
+	x_.Init(buf_, n_+offset_+flatbuffers.SizeUint32)
+	return x_
 }
 
-func (rcv *Food) Table() flatbuffers.Table {
-	return rcv._tab
+func FinishSizePrefixedFoodBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.FinishSizePrefixed(offset_)
 }
 
-func (rcv *Food) Pizza(obj *Pizza.Pizza) *Pizza.Pizza {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
-	if o != 0 {
-		x := rcv._tab.Indirect(o + rcv._tab.Pos)
-		if obj == nil {
-			obj = new(Pizza.Pizza)
+func VerifyRootAsFood(buf_ []byte, opts_ *flatbuffers.VerifierOptions) error {
+	v_ := flatbuffers.NewVerifier(buf_, opts_)
+	tablePos_, err_ := v_.CheckUOffsetT(0)
+	if err_ != nil {
+		return err_
+	}
+	return verifyFood(v_, int(tablePos_))
+}
+
+func VerifyFood(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	return verifyFood(v_, tablePos_)
+}
+
+func verifyFood(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	if err_ := v_.CheckTable(tablePos_); err_ != nil {
+		return err_
+	}
+	if err_ := v_.CountTable(); err_ != nil {
+		return err_
+	}
+	if err_ := v_.PushDepth(); err_ != nil {
+		return err_
+	}
+	defer v_.PopDepth()
+
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 4); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := Pizza.VerifyPizza(v_, pos_); err_ != nil {
+			return err_
 		}
-		obj.Init(rcv._tab.Bytes, x)
-		return obj
+	}
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 6); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := Pizza.VerifyPizza(v_, pos_); err_ != nil {
+			return err_
+		}
 	}
 	return nil
 }
 
-func (rcv *Food) PizzaTest(obj *Pizza.Pizza) *Pizza.Pizza {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
-	if o != 0 {
-		x := rcv._tab.Indirect(o + rcv._tab.Pos)
-		if obj == nil {
-			obj = new(Pizza.Pizza)
+func (rcv_ *Food) Init(buf_ []byte, i_ flatbuffers.UOffsetT) {
+	rcv_._tab.Bytes = buf_
+	rcv_._tab.Pos = i_
+}
+
+func (rcv_ *Food) Table() flatbuffers.Table {
+	return rcv_._tab
+}
+
+func (rcv_ *Food) Pizza(obj_ *Pizza.Pizza) *Pizza.Pizza {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(4))
+	if o_ != 0 {
+		x_ := rcv_._tab.Indirect(o_ + rcv_._tab.Pos)
+		if obj_ == nil {
+			obj_ = new(Pizza.Pizza)
 		}
-		obj.Init(rcv._tab.Bytes, x)
-		return obj
+		obj_.Init(rcv_._tab.Bytes, x_)
+		return obj_
 	}
 	return nil
 }
 
-func FoodStart(builder *flatbuffers.Builder) {
-	builder.StartObject(2)
+func (rcv_ *Food) PizzaTest(obj_ *Pizza.Pizza) *Pizza.Pizza {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(6))
+	if o_ != 0 {
+		x_ := rcv_._tab.Indirect(o_ + rcv_._tab.Pos)
+		if obj_ == nil {
+			obj_ = new(Pizza.Pizza)
+		}
+		obj_.Init(rcv_._tab.Bytes, x_)
+		return obj_
+	}
+	return nil
 }
-func FoodAddPizza(builder *flatbuffers.Builder, pizza flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(pizza), 0)
+
+func FoodStart(builder_ *flatbuffers.Builder) {
+	builder_.StartObject(2)
 }
-func FoodAddPizzaTest(builder *flatbuffers.Builder, pizzaTest flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(pizzaTest), 0)
+func FoodAddPizza(builder_ *flatbuffers.Builder, pizza_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(pizza_), 0)
 }
-func FoodEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	return builder.EndObject()
+func FoodAddPizzaTest(builder_ *flatbuffers.Builder, pizzaTest_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(pizzaTest_), 0)
+}
+func FoodEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder_.EndObject()
 }
