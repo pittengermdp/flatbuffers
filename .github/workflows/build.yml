@@ -469,9 +469,8 @@ jobs:
        echo "${PWD}" >> "$GITHUB_PATH"
     - name: Build
       working-directory: kotlin
-      # we are using docker's version of gradle
-      # so no need for wrapper validation or user
-      # gradlew
+      # `gradle` is the runner image's preinstalled Gradle, not ./gradlew:
+      # setup-gradle installs none when no gradle-version is given.
       run: gradle jvmMainClasses jvmTest jsTest jsBrowserTest
 
   build-rust-linux:
