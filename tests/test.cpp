@@ -61,6 +61,7 @@
 #if INCLUDE_64_BIT_TESTS
 #include "tests/64bit/offset64_test.h"
 #endif
+#include "binary_annotator_test.h"
 #include "flexbuffers_test.h"
 #include "is_quiet_nan.h"
 #include "monster_test_bfbs_generated.h"  // Generated using --bfbs-comments --bfbs-builtins --cpp --bfbs-gen-embed
@@ -2171,6 +2172,7 @@ int FlatBufferTests(const std::string& tests_data_path) {
   FixedLengthArrayJsonTest(tests_data_path, true);
   ReflectionTest(tests_data_path, flatbuf.data(), flatbuf.size());
   ForAllFieldsReverseTest(tests_data_path);
+  AnnotateVTableSlotsOnceTest(tests_data_path);
   ParseProtoTest(tests_data_path);
   EvolutionTest(tests_data_path);
   UnionDeprecationTest(tests_data_path);
