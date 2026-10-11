@@ -359,6 +359,15 @@ schema, as well as a lot of helper functions.
 And example of usage, for the time being, can be found in
 `test.cpp/ReflectionTest()`.
 
+A union declared with an underlying type, such as `union U: int`, stores its
+`_type` field, and the elements of its `_type` vector, as that type, though
+the binary schema gives them the base type `UType`, 1 byte.
+`GetUnionUnderlyingType(schema, field)` returns the base type they are stored
+as. Pass the schema to `GetAnyFieldI`, `GetAnyFieldF`, `SetAnyFieldI`,
+`SetAnyFieldF` and `SetAnyFieldS` to read and write such a `_type` field at
+its width, and pass `GetUnionUnderlyingType(schema, field)` as the element
+type to `GetAnyVectorElemI` and the other vector element accessors.
+
 ## Mini Reflection
 
 A more limited form of reflection is available for direct inclusion in

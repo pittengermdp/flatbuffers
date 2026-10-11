@@ -14,6 +14,8 @@ void ReflectionUnionUnderlyingTypeTest(const std::string& tests_data_path);
 void ReflectionUnionUnderlyingTypeToStringTest(
     const std::string& tests_data_path);
 void ForAllFieldsReverseTest(const std::string& tests_data_path);
+void ReflectionUnionUnderlyingTypeAnyFieldTest(
+    const std::string& tests_data_path);
 void MiniReflectFixedLengthArrayTest();
 void MiniReflectFlatBuffersTest(uint8_t* flatbuf);
 void MiniReflectUnionUnderlyingTypeTest();
