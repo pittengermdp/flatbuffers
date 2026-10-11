@@ -32,6 +32,14 @@ static void CopyInline(FlatBufferBuilder& fbb,
   fbb.TrackField(fielddef.offset(), fbb.GetSize());
 }
 
+// Whether a field must be present. A deprecated field need not be, even if it
+// is marked required: the generated builder does not require it, and the
+// generated verifier skips it. One that is present is still verified, as
+// reflection can still read it.
+static bool IsRequired(const reflection::Field& field) {
+  return field.required() && !field.deprecated();
+}
+
 static bool VerifyStruct(flatbuffers::Verifier& v,
                          const flatbuffers::Table& parent_table,
                          voffset_t field_offset, const reflection::Object& obj,
@@ -60,30 +68,27 @@ static bool VerifyVectorOfStructs(flatbuffers::Verifier& v,
   return !p || v.VerifyVectorOrString<LenT>(p, obj.bytesize());
 }
 
-// Verifies the 32-bit offset in a field's slot, which must be present if the
-// field is required, as the generated VerifyOffset() and
+// Verifies the 32-bit offset in a field's slot, which must be present if
+// IsRequired(), as the generated VerifyOffset() and
 // VerifyOffsetRequired() do. Call it before reading the slot: only this bounds
 // the slot by the buffer, since a vtable can put a field anywhere in the 64KiB
 // past its table. It also rejects an offset of 0, which points the field at
 // its own slot, one that is negative read as signed, and one that leads out of
-// the buffer. A deprecated field need not be present even if it is marked
-// required: the generated builder does not require it, and the generated
-// verifier skips it.
+// the buffer.
 static bool VerifyOffset32Field(flatbuffers::Verifier& v,
                                 const flatbuffers::Table& table,
                                 const reflection::Field& field) {
-  return field.required() && !field.deprecated()
-             ? table.VerifyOffsetRequired(v, field.offset())
-             : table.VerifyOffset(v, field.offset());
+  return IsRequired(field) ? table.VerifyOffsetRequired(v, field.offset())
+                           : table.VerifyOffset(v, field.offset());
 }
 
-// Verifies the 64-bit offset in a field's slot, which must be present if the
-// field is required, as the generated VerifyOffset64Required() does.
+// Verifies the 64-bit offset in a field's slot, which must be present if
+// IsRequired(), as the generated VerifyOffset64Required() does.
 static bool VerifyOffset64Field(flatbuffers::Verifier& v,
                                 const flatbuffers::Table& table,
                                 const reflection::Field& field) {
-  return field.required() ? table.VerifyOffset64Required(v, field.offset())
-                          : table.VerifyOffset64(v, field.offset());
+  return IsRequired(field) ? table.VerifyOffset64Required(v, field.offset())
+                           : table.VerifyOffset64(v, field.offset());
 }
 
 // Verifies a vector of T reached through a 64-bit offset, with the same
@@ -130,7 +135,7 @@ static bool VerifyOffset64Vector(flatbuffers::Verifier& v,
       auto obj = schema.objects()->Get(vec_field.type()->index());
       return obj->is_struct() &&
              VerifyVectorOfStructs<uoffset64_t, LenT>(
-                 v, table, vec_field.offset(), *obj, vec_field.required());
+                 v, table, vec_field.offset(), *obj, IsRequired(vec_field));
     }
     default:
       return false;
@@ -228,7 +233,7 @@ static bool VerifyVector(flatbuffers::Verifier& v,
       auto obj = schema.objects()->Get(vec_field.type()->index());
       if (obj->is_struct()) {
         return VerifyVectorOfStructs(v, table, vec_field.offset(), *obj,
-                                     vec_field.required());
+                                     IsRequired(vec_field));
       } else {
         auto vec =
             flatbuffers::GetFieldV<flatbuffers::Offset<flatbuffers::Table>>(
@@ -329,14 +334,14 @@ static bool VerifyObject(flatbuffers::Verifier& v,
         auto child_obj = schema.objects()->Get(field_def->type()->index());
         if (child_obj->is_struct()) {
           if (!VerifyStruct(v, *table, field_def->offset(), *child_obj,
-                            field_def->required())) {
+                            IsRequired(*field_def))) {
             return false;
           }
         } else {
           if (!VerifyOffset32Field(v, *table, *field_def) ||
               !VerifyObject(v, schema, *child_obj,
                             flatbuffers::GetFieldT(*table, *field_def),
-                            field_def->required())) {
+                            IsRequired(*field_def))) {
             return false;
           }
         }

@@ -437,8 +437,10 @@ void ReflectionVerifyOffsetFieldsTest() {
 
 // A table with no fields set satisfies only a type without a required field,
 // whatever the kind of the required field, as the generated
-// VerifyOffsetRequired() has it. A deprecated field does not count: the
-// generated builder and verifier both skip it.
+// VerifyOffsetRequired() and VerifyFieldRequired() have it. A deprecated field
+// does not count: the generated builder and verifier both skip it.
+// DeprecatedRequiredStruct, -Structs and -Table hold one kind each, so a
+// failure names the path.
 void ReflectionVerifyRequiredOffsetFieldsTest() {
   Parser parser;
   TEST_EQ(parser.Parse("struct Leaf { a:int; }"
@@ -454,6 +456,7 @@ void ReflectionVerifyRequiredOffsetFieldsTest() {
                        "}"
                        "table RequiredString { s:string (required); }"
                        "table RequiredVector { v:[int] (required); }"
+                       "table RequiredStruct { st:Leaf (required); }"
                        "table RequiredStructs { v:[Leaf] (required); }"
                        "table RequiredTable { t:Child (required); }"
                        "table RequiredUnion { u:Choice (required); }"
@@ -464,6 +467,15 @@ void ReflectionVerifyRequiredOffsetFieldsTest() {
                        "  u:Choice (required, deprecated);"
                        "  uv:[Choice] (required, deprecated);"
                        "  x:int;"
+                       "}"
+                       "table DeprecatedRequiredStruct {"
+                       "  st:Leaf (required, deprecated);"
+                       "}"
+                       "table DeprecatedRequiredStructs {"
+                       "  v:[Leaf] (required, deprecated);"
+                       "}"
+                       "table DeprecatedRequiredTable {"
+                       "  t:Child (required, deprecated);"
                        "}"),
           true);
   parser.Serialize();
@@ -489,6 +501,27 @@ void ReflectionVerifyRequiredOffsetFieldsTest() {
     }
     TEST_EQ(verified, !has_required);
   }
+
+  // A deprecated field that is present is still verified, as reflection can
+  // still read it: here, a table field with its slot past the end.
+  const reflection::Object& deprecated_table =
+      *schema.objects()->LookupByKey("DeprecatedRequiredTable");
+  const voffset_t t = deprecated_table.fields()->LookupByKey("t")->offset();
+  FlatBufferBuilder present;
+  const Offset<Table> child(present.EndTable(present.StartTable()));
+  const uoffset_t start = present.StartTable();
+  present.AddOffset(t, child);
+  present.Finish(Offset<Table>(present.EndTable(start)));
+  const std::vector<uint8_t> with_t(
+      present.GetBufferPointer(),
+      present.GetBufferPointer() + present.GetSize());
+  TEST_EQ(flatbuffers::Verify(schema, deprecated_table, with_t.data(),
+                              with_t.size()),
+          true);
+  const std::vector<uint8_t> past_end = WithSlotPastEnd(with_t, t);
+  TEST_EQ(flatbuffers::Verify(schema, deprecated_table, past_end.data(),
+                              past_end.size()),
+          false);
 }
 
 // The reflection verifier visits a table's fields sorted by name, so it

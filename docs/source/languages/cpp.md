@@ -367,11 +367,12 @@ They check the buffer's framing (its minimum size, size prefix and root offset)
 the way the generated `Verify<Root>Buffer()` does, but not the file identifier
 or the contents of `nested_flatbuffer` fields. Before following the offset of a
 string, vector, table or union field, they check it as the generated verifier
-does: it must be present if the field is `required` (unless it is also
-`deprecated`), nonzero, and lead to a position inside the buffer. Unlike the
-generated verifier, they still check a `deprecated` field that is present,
-since reflection can still read it. Both have overloads that take a
-`Verifier::Options`.
+does: it must be nonzero and lead to a position inside the buffer. A field of
+any kind, struct fields included, that is marked `required` must be present
+unless it is also `deprecated`, since the generated builder and verifier both
+skip a `deprecated` field. Unlike the generated verifier, they still check a
+`deprecated` field that is present, since reflection can still read it. Both
+have overloads that take a `Verifier::Options`.
 
 A buffer finished with `FlatBufferBuilder64` needs both of these, as generated
 code does for any schema with an `offset64` or `vector64` field:
