@@ -319,6 +319,8 @@ jobs:
        java-version: 17
    - name: set up Gradle
      uses: gradle/actions/setup-gradle@v5
+     with:
+       gradle-version: 8.0.1
    - name: set up flatc
      run: |
        cmake -DFLATBUFFERS_BUILD_TESTS=OFF -DFLATBUFFERS_BUILD_FLATLIB=OFF -DFLATBUFFERS_BUILD_FLATHASH=OFF -DFLATBUFFERS_STRICT_MODE=ON .
@@ -442,6 +444,10 @@ jobs:
         java-version: 17
     - name: set up Gradle
       uses: gradle/actions/setup-gradle@v5
+      with:
+        # The version of kotlin/gradle/wrapper: the Kotlin plugin in use does
+        # not run on the runner image's newer preinstalled Gradle.
+        gradle-version: 8.0.1
     - name: Build flatc
       run: |
        cmake -DFLATBUFFERS_BUILD_TESTS=OFF -DFLATBUFFERS_BUILD_FLATLIB=OFF -DFLATBUFFERS_BUILD_FLATHASH=OFF .
@@ -471,8 +477,7 @@ jobs:
        echo "${PWD}" >> "$GITHUB_PATH"
     - name: Build
       working-directory: kotlin
-      # `gradle` is the runner image's preinstalled Gradle, not ./gradlew:
-      # setup-gradle installs none when no gradle-version is given.
+      # `gradle` is the version set up above, not ./gradlew.
       run: gradle jvmMainClasses jvmTest jsTest jsBrowserTest
 
   build-rust-linux:
