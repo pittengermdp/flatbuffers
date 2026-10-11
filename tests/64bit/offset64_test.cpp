@@ -7,6 +7,7 @@
 #include <fstream>
 #include <limits>
 #include <ostream>
+#include <type_traits>
 
 #include "flatbuffers/base.h"
 #include "flatbuffers/buffer.h"
@@ -564,6 +565,14 @@ static std::vector<uint8_t> PackRootTableWith64BitFields(
   TEST_ASSERT(*unpacked == root);
   return buf;
 }
+
+// The reflection Verify() overloads are compiled once, in the library, and take
+// Verifier::Options; tests/BUILD.bazel compiles these tests, but not the
+// library, with FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE. They link only if the
+// options type is the same for both kinds of verifier.
+static_assert(std::is_same<SizeVerifier::Options,
+                           VerifierTemplate<false>::Options>::value,
+              "Verifier::Options must not depend on TrackVerifierBufferSize");
 
 static Verifier::Options OptionsWithMaxSize(const size_t max_size) {
   Verifier::Options options;

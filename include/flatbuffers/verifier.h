@@ -22,24 +22,31 @@
 
 namespace flatbuffers {
 
+// Options for VerifierTemplate, as VerifierTemplate::Options. It is declared
+// outside the template so that it is one type for every VerifierTemplate: a
+// compiled API taking Verifier::Options, such as the reflection Verify(), then
+// has the same signature whether or not FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE
+// changes what Verifier names.
+struct VerifierOptions {
+  // The maximum nesting of tables and vectors before we call it invalid.
+  uoffset_t max_depth = 64;
+  // The maximum number of tables we will verify before we call it invalid.
+  uoffset_t max_tables = 1000000;
+  // If true, verify all data is aligned.
+  bool check_alignment = true;
+  // If true, run verifier on nested flatbuffers
+  bool check_nested_flatbuffers = true;
+  // The maximum size of a buffer.
+  size_t max_size = FLATBUFFERS_MAX_BUFFER_SIZE;
+  // Use assertions to check for errors.
+  bool assert = false;
+};
+
 // Helper class to verify the integrity of a FlatBuffer
 template <bool TrackVerifierBufferSize>
 class VerifierTemplate FLATBUFFERS_FINAL_CLASS {
  public:
-  struct Options {
-    // The maximum nesting of tables and vectors before we call it invalid.
-    uoffset_t max_depth = 64;
-    // The maximum number of tables we will verify before we call it invalid.
-    uoffset_t max_tables = 1000000;
-    // If true, verify all data is aligned.
-    bool check_alignment = true;
-    // If true, run verifier on nested flatbuffers
-    bool check_nested_flatbuffers = true;
-    // The maximum size of a buffer.
-    size_t max_size = FLATBUFFERS_MAX_BUFFER_SIZE;
-    // Use assertions to check for errors.
-    bool assert = false;
-  };
+  using Options = VerifierOptions;
 
   explicit VerifierTemplate(const uint8_t* const buf, const size_t buf_len,
                             const Options& opts)
