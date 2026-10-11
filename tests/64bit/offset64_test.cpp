@@ -607,9 +607,10 @@ void Offset64ObjectApiRoundTrip() {
   TEST_ASSERT(*unpacked == original);
 }
 
-// Packs a RootTable with every 64-bit offset field set. near_string and
-// many_vectors stay empty: Pack() serializes them ahead of the 64-bit
-// nested_root and forced_aligned_vector, which the builder does not allow.
+// Packs a RootTable with every 64-bit offset field set, alongside the 32-bit
+// near_string and many_vectors. The WrapperTables stay empty: a child table is
+// packed in the parent's 32-bit phase, after which no 64-bit object can be
+// added.
 static std::vector<uint8_t> PackRootTableWith64BitFields() {
   RootTableT nested;
   nested.a = 7;
@@ -622,10 +623,13 @@ static std::vector<uint8_t> PackRootTableWith64BitFields() {
   root.far_string = "some far string";
   root.big_bool_vector = {1, 0, 1};
   root.big_vector = {4, 5, 6, 7};
+  root.near_string = "some near string";
   root.nested_root.assign(nested_fbb.GetBufferPointer(),
                           nested_fbb.GetBufferPointer() + nested_fbb.GetSize());
   root.far_struct_vector = {LeafStruct{123, 4.567}, LeafStruct{987, 6.543}};
   root.big_struct_vector = {LeafStruct{72, 72.8}};
+  root.many_vectors.push_back(
+      std::unique_ptr<WrapperTableT>(new WrapperTableT()));
   root.forced_aligned_vector = {8, 9};
 
   FlatBufferBuilder64 fbb;
