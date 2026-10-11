@@ -328,7 +328,7 @@ flatbuffer_cc_library(
     srcs = ["vtable_slot_count_test.fbs"],
 )
 
-# binary_annotator_test.cpp builds its fixtures with
+# binary_annotator_test.cpp and reflection_test.cpp build their fixtures with
 # union_value_gap_test_generated.h, which CMake produces via
 # compile_schema_for_test, and parses the schema at run time.
 # DEFAULT_FLATC_ARGS matches the FLATC_OPT_COMP set CMake uses.

@@ -10,6 +10,7 @@ namespace tests {
 
 void ReflectionTest(const std::string& tests_data_path, uint8_t* flatbuf,
                     size_t length);
+void ReflectionVerifyUnionByValueTest(const std::string& tests_data_path);
 void SetStringTest(const std::string& tests_data_path);
 void ReflectionVerifyOffsetFieldsTest();
 void ReflectionVerifyRequiredOffsetFieldsTest();

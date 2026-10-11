@@ -154,8 +154,14 @@ static bool VerifyUnion(flatbuffers::Verifier& v,
                         const reflection::Field& union_field) {
   if (!utype) return true;  // Not present.
   auto fb_enum = schema.enums()->Get(union_field.type()->index());
-  if (utype >= fb_enum->values()->size()) return false;
-  auto elem_type = fb_enum->values()->Get(utype)->union_type();
+  // Members are keyed by value, which need not be their position in values():
+  // in `union U { A = 1, B = 3 }`, B is values()[2]. A type naming no member is
+  // rejected, unlike the generated verifiers, which accept it for forward
+  // compatibility: its value cannot be checked against this schema, and
+  // GetUnionType() would dereference the missing member.
+  auto enum_val = fb_enum->values()->LookupByKey(utype);
+  if (!enum_val) return false;
+  auto elem_type = enum_val->union_type();
   switch (elem_type->base_type()) {
     case reflection::Obj: {
       auto elem_obj = schema.objects()->Get(elem_type->index());
