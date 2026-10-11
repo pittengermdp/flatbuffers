@@ -271,11 +271,11 @@ func (rcv_ *__Map_Mode_string_Entry) Value() []byte {
 func __Map_Mode_string_EntryStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(2)
 }
-func __Map_Mode_string_EntryAddKey(builder_ *flatbuffers.Builder, key_ CanonicalJsonInc.Mode) {
-	builder_.PrependInt16Slot(0, int16(key_), 0)
+func __Map_Mode_string_EntryAddKey(builder_ *flatbuffers.Builder, keyArg_ CanonicalJsonInc.Mode) {
+	builder_.PrependInt16Slot(0, int16(keyArg_), 0)
 }
-func __Map_Mode_string_EntryAddValue(builder_ *flatbuffers.Builder, value_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(value_), 0)
+func __Map_Mode_string_EntryAddValue(builder_ *flatbuffers.Builder, valueArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(valueArg_), 0)
 }
 func __Map_Mode_string_EntryEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder_.EndObject()

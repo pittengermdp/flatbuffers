@@ -265,11 +265,11 @@ func (rcv_ *__Map_Bits_int_Entry) MutateValue(n_ int32) bool {
 func __Map_Bits_int_EntryStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(2)
 }
-func __Map_Bits_int_EntryAddKey(builder_ *flatbuffers.Builder, key_ Bits) {
-	builder_.PrependByteSlot(0, byte(key_), 0)
+func __Map_Bits_int_EntryAddKey(builder_ *flatbuffers.Builder, keyArg_ Bits) {
+	builder_.PrependByteSlot(0, byte(keyArg_), 0)
 }
-func __Map_Bits_int_EntryAddValue(builder_ *flatbuffers.Builder, value_ int32) {
-	builder_.PrependInt32Slot(1, value_, 0)
+func __Map_Bits_int_EntryAddValue(builder_ *flatbuffers.Builder, valueArg_ int32) {
+	builder_.PrependInt32Slot(1, valueArg_, 0)
 }
 func __Map_Bits_int_EntryEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder_.EndObject()

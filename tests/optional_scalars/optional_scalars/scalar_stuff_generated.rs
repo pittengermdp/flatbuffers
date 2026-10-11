@@ -182,12 +182,12 @@ impl<'a> ScalarStuff<'a> {
         let just_u64 = self.just_u64();
         let maybe_u64 = self.maybe_u64();
         let default_u64 = self.default_u64();
-        let just_f32 = self.just_f32().into();
+        let just_f32 = self.just_f32();
         let maybe_f32 = self.maybe_f32();
-        let default_f32 = self.default_f32().into();
-        let just_f64 = self.just_f64().into();
+        let default_f32 = self.default_f32();
+        let just_f64 = self.just_f64();
         let maybe_f64 = self.maybe_f64();
-        let default_f64 = self.default_f64().into();
+        let default_f64 = self.default_f64();
         let just_bool = self.just_bool();
         let maybe_bool = self.maybe_bool();
         let default_bool = self.default_bool();

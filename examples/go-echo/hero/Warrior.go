@@ -7,94 +7,164 @@ import (
 )
 
 type WarriorT struct {
-	Name string `json:"name"`
-	Hp   uint32 `json:"hp"`
+	Name string `json:"name,omitempty"`
+	Hp   uint32 `json:"hp,omitempty"`
 }
 
-func (t *WarriorT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *WarriorT) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	nameOffset := flatbuffers.UOffsetT(0)
-	if t.Name != "" {
-		nameOffset = builder.CreateString(t.Name)
+	nameOffset_ := flatbuffers.UOffsetT(0)
+	if t_.Name != "" {
+		nameOffset_ = builder_.CreateString(t_.Name)
 	}
-	WarriorStart(builder)
-	WarriorAddName(builder, nameOffset)
-	WarriorAddHp(builder, t.Hp)
-	return WarriorEnd(builder)
+	WarriorStart(builder_)
+	WarriorAddName(builder_, nameOffset_)
+	WarriorAddHp(builder_, t_.Hp)
+	return WarriorEnd(builder_)
 }
 
-func (rcv *Warrior) UnPackTo(t *WarriorT) {
-	t.Name = string(rcv.Name())
-	t.Hp = rcv.Hp()
+func (rcv_ *Warrior) UnPackTo(t_ *WarriorT) {
+	t_.Name = string(rcv_.Name())
+	t_.Hp = rcv_.Hp()
 }
 
-func (rcv *Warrior) UnPack() *WarriorT {
-	if rcv == nil {
+func (rcv_ *Warrior) UnPack() *WarriorT {
+	if rcv_ == nil {
 		return nil
 	}
-	t := &WarriorT{}
-	rcv.UnPackTo(t)
-	return t
+	t_ := &WarriorT{}
+	rcv_.UnPackTo(t_)
+	return t_
+}
+
+const (
+	WarriorFieldName = "name"
+	WarriorFieldHp   = "hp"
+)
+
+// UnpackFields returns a partial *WarriorT with only the named fields populated.
+// Fields not in the list are left at their zero/default values.
+// This avoids materializing the entire table tree. Pass the
+// generated WarriorField* constants rather than raw strings.
+func (rcv_ *Warrior) UnpackFields(fields_ ...string) *WarriorT {
+	t_ := &WarriorT{}
+	fieldSet_ := make(map[string]bool, len(fields_))
+	for _, f_ := range fields_ {
+		fieldSet_[f_] = true
+	}
+	if fieldSet_["name"] {
+		t_.Name = string(rcv_.Name())
+	}
+	if fieldSet_["hp"] {
+		t_.Hp = rcv_.Hp()
+	}
+	return t_
 }
 
 type Warrior struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsWarrior(buf []byte, offset flatbuffers.UOffsetT) *Warrior {
-	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &Warrior{}
-	x.Init(buf, n+offset)
-	return x
+func GetRootAsWarrior(buf_ []byte, offset_ flatbuffers.UOffsetT) *Warrior {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_:])
+	x_ := &Warrior{}
+	x_.Init(buf_, n_+offset_)
+	return x_
 }
 
-func GetSizePrefixedRootAsWarrior(buf []byte, offset flatbuffers.UOffsetT) *Warrior {
-	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &Warrior{}
-	x.Init(buf, n+offset+flatbuffers.SizeUint32)
-	return x
+func FinishWarriorBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.Finish(offset_)
 }
 
-func (rcv *Warrior) Init(buf []byte, i flatbuffers.UOffsetT) {
-	rcv._tab.Bytes = buf
-	rcv._tab.Pos = i
+func GetSizePrefixedRootAsWarrior(buf_ []byte, offset_ flatbuffers.UOffsetT) *Warrior {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_+flatbuffers.SizeUint32:])
+	x_ := &Warrior{}
+	x_.Init(buf_, n_+offset_+flatbuffers.SizeUint32)
+	return x_
 }
 
-func (rcv *Warrior) Table() flatbuffers.Table {
-	return rcv._tab
+func FinishSizePrefixedWarriorBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.FinishSizePrefixed(offset_)
 }
 
-func (rcv *Warrior) Name() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
-	if o != 0 {
-		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+func VerifyRootAsWarrior(buf_ []byte, opts_ *flatbuffers.VerifierOptions) error {
+	v_ := flatbuffers.NewVerifier(buf_, opts_)
+	tablePos_, err_ := v_.CheckUOffsetT(0)
+	if err_ != nil {
+		return err_
+	}
+	return verifyWarrior(v_, int(tablePos_))
+}
+
+func VerifyWarrior(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	return verifyWarrior(v_, tablePos_)
+}
+
+func verifyWarrior(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	if err_ := v_.CheckTable(tablePos_); err_ != nil {
+		return err_
+	}
+	if err_ := v_.CountTable(); err_ != nil {
+		return err_
+	}
+	if err_ := v_.PushDepth(); err_ != nil {
+		return err_
+	}
+	defer v_.PopDepth()
+
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 4); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := v_.CheckString(pos_); err_ != nil {
+			return err_
+		}
+	}
+	if err_ := v_.CheckScalarField(tablePos_, 6, 4); err_ != nil {
+		return err_
 	}
 	return nil
 }
 
-func (rcv *Warrior) Hp() uint32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
-	if o != 0 {
-		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+func (rcv_ *Warrior) Init(buf_ []byte, i_ flatbuffers.UOffsetT) {
+	rcv_._tab.Bytes = buf_
+	rcv_._tab.Pos = i_
+}
+
+func (rcv_ *Warrior) Table() flatbuffers.Table {
+	return rcv_._tab
+}
+
+func (rcv_ *Warrior) Name() []byte {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(4))
+	if o_ != 0 {
+		return rcv_._tab.ByteVector(o_ + rcv_._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv_ *Warrior) Hp() uint32 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(6))
+	if o_ != 0 {
+		return rcv_._tab.GetUint32(o_ + rcv_._tab.Pos)
 	}
 	return 0
 }
 
-func (rcv *Warrior) MutateHp(n uint32) bool {
-	return rcv._tab.MutateUint32Slot(6, n)
+func (rcv_ *Warrior) MutateHp(n_ uint32) bool {
+	return rcv_._tab.MutateUint32Slot(6, n_)
 }
 
-func WarriorStart(builder *flatbuffers.Builder) {
-	builder.StartObject(2)
+func WarriorStart(builder_ *flatbuffers.Builder) {
+	builder_.StartObject(2)
 }
-func WarriorAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(name), 0)
+func WarriorAddName(builder_ *flatbuffers.Builder, nameArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(nameArg_), 0)
 }
-func WarriorAddHp(builder *flatbuffers.Builder, hp uint32) {
-	builder.PrependUint32Slot(1, hp, 0)
+func WarriorAddHp(builder_ *flatbuffers.Builder, hpArg_ uint32) {
+	builder_.PrependUint32Slot(1, hpArg_, 0)
 }
-func WarriorEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	return builder.EndObject()
+func WarriorEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder_.EndObject()
 }

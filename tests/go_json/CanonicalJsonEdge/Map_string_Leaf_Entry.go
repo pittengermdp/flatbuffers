@@ -274,11 +274,11 @@ func (rcv_ *__Map_string_Leaf_Entry) Value(obj_ *value.Leaf) *value.Leaf {
 func __Map_string_Leaf_EntryStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(2)
 }
-func __Map_string_Leaf_EntryAddKey(builder_ *flatbuffers.Builder, key_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(key_), 0)
+func __Map_string_Leaf_EntryAddKey(builder_ *flatbuffers.Builder, keyArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(keyArg_), 0)
 }
-func __Map_string_Leaf_EntryAddValue(builder_ *flatbuffers.Builder, value_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(value_), 0)
+func __Map_string_Leaf_EntryAddValue(builder_ *flatbuffers.Builder, valueArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(valueArg_), 0)
 }
 func __Map_string_Leaf_EntryEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder_.EndObject()

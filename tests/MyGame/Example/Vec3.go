@@ -98,19 +98,19 @@ func (rcv_ *Vec3) Test3(obj_ *Test) *Test {
 	return obj_
 }
 
-func CreateVec3(builder_ *flatbuffers.Builder, x_ float32, y_ float32, z_ float32, test1_ float64, test2_ Color, test3_a_ int16, test3_b_ int8) flatbuffers.UOffsetT {
+func CreateVec3(builder_ *flatbuffers.Builder, xArg_ float32, yArg_ float32, zArg_ float32, test1Arg_ float64, test2Arg_ Color, test3_aArg_ int16, test3_bArg_ int8) flatbuffers.UOffsetT {
 	builder_.Prep(8, 32)
 	builder_.Pad(2)
 	builder_.Prep(2, 4)
 	builder_.Pad(1)
-	builder_.PrependInt8(test3_b_)
-	builder_.PrependInt16(test3_a_)
+	builder_.PrependInt8(test3_bArg_)
+	builder_.PrependInt16(test3_aArg_)
 	builder_.Pad(1)
-	builder_.PrependByte(byte(test2_))
-	builder_.PrependFloat64(test1_)
+	builder_.PrependByte(byte(test2Arg_))
+	builder_.PrependFloat64(test1Arg_)
 	builder_.Pad(4)
-	builder_.PrependFloat32(z_)
-	builder_.PrependFloat32(y_)
-	builder_.PrependFloat32(x_)
+	builder_.PrependFloat32(zArg_)
+	builder_.PrependFloat32(yArg_)
+	builder_.PrependFloat32(xArg_)
 	return builder_.Offset()
 }
