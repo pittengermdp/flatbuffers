@@ -56,6 +56,11 @@ pub unsafe trait Allocator: DerefMut<Target = [u8]> {
 
     /// Returns the size of the internal buffer in bytes.
     fn len(&self) -> usize;
+
+    /// Returns `true` if the internal buffer is empty.
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 /// Default [`FlatBufferBuilder`] allocator backed by a [`Vec<u8>`].
@@ -1018,7 +1023,7 @@ impl<'fbb, A: Allocator> FlatBufferBuilder<'fbb, A> {
     #[inline]
     fn align(&mut self, len: usize, alignment: PushAlignment) -> Result<(), A::Error> {
         self.track_min_align(alignment.value());
-        let s = self.used_space() as usize;
+        let s = self.used_space();
         self.make_space(padding_bytes(s + len, alignment.value()))?;
         Ok(())
     }
@@ -1154,13 +1159,23 @@ impl ReverseIndex {
     pub fn distance_to_end(&self) -> usize {
         self.0
     }
+
+    /// Moves the index `n` elements towards the start (the distance to the end grows).
+    fn towards_start(self, n: usize) -> Self {
+        Self(self.0 + n)
+    }
+
+    /// Moves the index `n` elements towards the end (the distance to the end shrinks).
+    fn towards_end(self, n: usize) -> Self {
+        Self(self.0 - n)
+    }
 }
 
 impl Sub<usize> for ReverseIndex {
     type Output = Self;
 
     fn sub(self, rhs: usize) -> Self::Output {
-        Self(self.0 + rhs)
+        self.towards_start(rhs)
     }
 }
 
@@ -1174,7 +1189,7 @@ impl Add<usize> for ReverseIndex {
     type Output = Self;
 
     fn add(self, rhs: usize) -> Self::Output {
-        Self(self.0 - rhs)
+        self.towards_end(rhs)
     }
 }
 

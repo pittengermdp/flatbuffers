@@ -290,9 +290,9 @@ impl<'a> Monster<'a> {
         let testhashs64_fnv1a = self.testhashs64_fnv1a();
         let testhashu64_fnv1a = self.testhashu64_fnv1a();
         let testarrayofbools = self.testarrayofbools().map(|x| x.into_iter().collect());
-        let testf = self.testf().into();
-        let testf2 = self.testf2().into();
-        let testf3 = self.testf3().into();
+        let testf = self.testf();
+        let testf2 = self.testf2();
+        let testf3 = self.testf3();
         let testarrayofstring2 = self
             .testarrayofstring2()
             .map(|x| x.iter().map(ToString::to_string).collect());
@@ -369,14 +369,14 @@ impl<'a> Monster<'a> {
         let native_inline = self.native_inline().map(|x| x.unpack());
         let long_enum_non_enum_default = self.long_enum_non_enum_default();
         let long_enum_normal_default = self.long_enum_normal_default();
-        let nan_default = self.nan_default().into();
-        let inf_default = self.inf_default().into();
-        let positive_inf_default = self.positive_inf_default().into();
-        let infinity_default = self.infinity_default().into();
-        let positive_infinity_default = self.positive_infinity_default().into();
-        let negative_inf_default = self.negative_inf_default().into();
-        let negative_infinity_default = self.negative_infinity_default().into();
-        let double_inf_default = self.double_inf_default().into();
+        let nan_default = self.nan_default();
+        let inf_default = self.inf_default();
+        let positive_inf_default = self.positive_inf_default();
+        let infinity_default = self.infinity_default();
+        let positive_infinity_default = self.positive_infinity_default();
+        let negative_inf_default = self.negative_inf_default();
+        let negative_infinity_default = self.negative_infinity_default();
+        let double_inf_default = self.double_inf_default();
         MonsterT {
             pos,
             mana,
@@ -829,7 +829,7 @@ impl<'a> Monster<'a> {
         // which contains a valid value in this slot
         unsafe {
             self.tab
-                .get::<f32>(Monster::VT_TESTF, Some(3.14159))
+                .get::<f32>(Monster::VT_TESTF, Some(f32::from_bits(0x4049_0fd0)))
                 .unwrap()
         }
     }
@@ -1756,7 +1756,7 @@ impl Default for MonsterArgs<'_> {
             testhashs64_fnv1a: 0,
             testhashu64_fnv1a: 0,
             testarrayofbools: None,
-            testf: 3.14159,
+            testf: f32::from_bits(0x4049_0fd0),
             testf2: 3.0,
             testf3: 0.0,
             testarrayofstring2: None,
@@ -1974,7 +1974,7 @@ impl<'a: 'b, 'b, A: ::flatbuffers::Allocator + 'a> MonsterBuilder<'a, 'b, A> {
     #[inline]
     pub fn add_testf(&mut self, testf: f32) {
         self.fbb_
-            .push_slot::<f32>(Monster::VT_TESTF, testf, 3.14159);
+            .push_slot::<f32>(Monster::VT_TESTF, testf, f32::from_bits(0x4049_0fd0));
     }
 
     #[inline]
@@ -2607,7 +2607,7 @@ impl Default for MonsterT {
             testhashs64_fnv1a: 0,
             testhashu64_fnv1a: 0,
             testarrayofbools: None,
-            testf: 3.14159,
+            testf: f32::from_bits(0x4049_0fd0),
             testf2: 3.0,
             testf3: 0.0,
             testarrayofstring2: None,

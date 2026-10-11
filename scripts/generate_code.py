@@ -21,7 +21,7 @@ import shutil
 import subprocess
 import sys
 import generate_grpc_examples
-from util import args, flatc, flatc_path, root_path, tests_path
+from util import args, flatc, flatc_path, root_path, rust_output_dirs, tests_path
 
 # Specify the other paths that will be referenced
 swift_code_gen = Path(root_path, "tests/swift/fuzzer/CodeGenerationTests")
@@ -648,6 +648,9 @@ flatc(
 # Generate string/vector default code for tests
 flatc(RUST_OPTS, prefix="more_defaults", schema="more_defaults.fbs")
 
+# Generate exact float default code for Rust tests
+flatc(RUST_STANDALONE_OPTS, schema="rust_float_defaults_test.fbs")
+
 # Generate the schema evolution tests
 flatc(
     CPP_OPTS + ["--scoped-enums"],
@@ -1092,9 +1095,11 @@ def format_generated_code():
   # formatted C++, so we leave it as-is. The formatters used below (gofmt,
   # rustfmt, prettier) are stable/pinnable across the toolchains CI installs.
 
-  # Rust generated modules.
+  # Rust generated modules, wherever the flatc --rust calls above wrote them.
   if have("rustfmt"):
-    rs = sources(tests, "**/*_generated.rs")
+    rs = sorted(
+        {f for d in rust_output_dirs for f in sources(d, "**/*_generated.rs")}
+    )
     if rs:
       run_chunked(["rustfmt", "--edition", "2018"], rs)
     # The edition of the crate it belongs to, so `cargo fmt` there agrees.

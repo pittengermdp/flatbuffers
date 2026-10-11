@@ -27,7 +27,7 @@ fn read_golden_flexbuffer() {
     assert_eq!(vec.idx(2).as_f32(), 4.0);
     assert_eq!(vec.idx(3).as_blob(), Blob([77].as_ref()));
     assert_eq!(vec.idx(4).flexbuffer_type(), FlexBufferType::Bool);
-    assert_eq!(vec.idx(4).as_bool(), false);
+    assert!(!vec.idx(4).as_bool());
     assert_eq!(vec.idx(5).as_f64(), 4.0);
 
     let bar = m.idx("bar").as_vector();
@@ -43,7 +43,7 @@ fn read_golden_flexbuffer() {
         assert_eq!(bools.idx(i).as_bool(), b)
     }
 
-    assert_eq!(m.idx("bool").as_bool(), true);
+    assert!(m.idx("bool").as_bool());
     assert_eq!(m.idx("foo").as_f64(), 100.0);
     let mymap = m.idx("mymap").as_map();
     assert_eq!(mymap.idx("foo").as_str(), "Fred");

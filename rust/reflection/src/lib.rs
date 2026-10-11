@@ -744,6 +744,8 @@ pub unsafe fn set_field<T: EndianScalar>(
 
 /// Sets a string field to a new value. Returns error if the field is not originally set or is not of string type in which cases `buf` stays intact. Returns error if `buf` fails to be updated.
 ///
+/// `table_loc` is the table that holds `field`, at any depth below the root.
+///
 /// # Safety
 ///
 /// `buf` must contain a valid root table and valid offset to it and conform to the `schema`.
@@ -754,10 +756,6 @@ pub unsafe fn set_string(
     v: &str,
     schema: &Schema,
 ) -> FlatbufferResult<()> {
-    if v.is_empty() {
-        return Ok(());
-    }
-
     let field_type = field.type_().base_type();
     if field_type != BaseType::String {
         return Err(FlatbufferError::FieldTypeMismatch(
@@ -825,20 +823,27 @@ pub unsafe fn set_string(
     let mut bytes_to_insert = v.as_bytes().to_vec();
 
     if delta != 0 {
-        // Rounds the delta up to the nearest multiple of the maximum int size to keep the types after the insersion point aligned.
-        // stdint crate defines intmax_t as an alias for c_long; use it directly to avoid extra
-        // dependency.
-        let mask = (size_of::<core::ffi::c_long>() - 1) as isize;
+        // Rounds the delta up to a multiple of the largest scalar size, 8 bytes, so
+        // the 8-byte scalars after the insertion point stay aligned. This matches
+        // C++'s sizeof(largest_scalar_t) (uintmax_t); c_long would be only 4 bytes
+        // on Windows.
+        let mask = (size_of::<u64>() - 1) as isize;
         let offset = (delta + mask) & !mask;
-        let mut visited_vec = vec![false; buf.len()];
+        // Converts before anything is written, so a failure leaves `buf` intact.
+        let len_new_value: SOffsetT = len_new.try_into()?;
 
         if offset != 0 {
-            // SAFETY: the caller guarantees `buf` conforms to `schema` and holds
-            // its root table at `table_loc`, which is the object passed here.
+            let mut visited_vec = vec![false; buf.len()];
+            // Everything after the string moves, so an offset anywhere in the
+            // buffer may span it: walk from the root, not from `table_loc`.
+            // SAFETY: the caller guarantees `buf` holds a valid root table.
+            let root_loc = unsafe { get_any_root(buf) }.loc();
+            // SAFETY: the caller guarantees `buf` conforms to `schema`, so the
+            // table at `root_loc` is the schema's root table passed here.
             unsafe {
                 update_offset(
                     buf,
-                    table_loc,
+                    root_loc,
                     &mut visited_vec,
                     &schema.root_table().unwrap(),
                     schema,
@@ -846,16 +851,17 @@ pub unsafe fn set_string(
                     offset,
                 )?;
             }
+        }
 
-            // Sets the new length.
-            // SAFETY: the slice is exactly `SIZE_UOFFSET` bytes, the size of
-            // `SOffsetT`.
-            unsafe {
-                emplace_scalar::<SOffsetT>(
-                    &mut buf[string_loc..string_loc + SIZE_UOFFSET],
-                    len_new.try_into()?,
-                );
-            }
+        // Sets the new length, even when `offset` rounds to 0 and the buffer
+        // keeps its size.
+        // SAFETY: the slice is exactly `SIZE_UOFFSET` bytes, the size of
+        // `SOffsetT`.
+        unsafe {
+            emplace_scalar::<SOffsetT>(
+                &mut buf[string_loc..string_loc + SIZE_UOFFSET],
+                len_new_value,
+            );
         }
 
         // Pads the bytes vector with 0 if `offset` doesn't equal `delta`.
@@ -1372,7 +1378,7 @@ unsafe fn update_offset(
             }
             BaseType::Vector => {
                 let elem_type = field.type_().element();
-                if elem_type != BaseType::Obj || elem_type != BaseType::String {
+                if elem_type != BaseType::Obj && elem_type != BaseType::String {
                     continue;
                 }
                 if elem_type == BaseType::Obj
@@ -1433,25 +1439,24 @@ unsafe fn update_offset(
                         field.key_compare_with_value(key)
                     })
                     .unwrap();
+                // An absent `_type` reads as its default, NONE, as in C++.
                 // SAFETY: the caller guarantees `buf` holds a valid table at
-                // `table_loc`; `VTable::get` bounds the slot by the vtable.
-                let union_type_offset = unsafe { Table::new(buf, table_loc) }
-                    .vtable()
-                    .get(union_type.offset());
-                // SAFETY: `table_loc + union_type_offset` lies inside the valid
-                // table at `table_loc`: its `_type` field, or its soffset when
-                // that field is absent.
+                // `table_loc`; `Table::get` bounds the slot by the vtable.
                 let union_type_value =
-                    unsafe { u8::follow(buf, table_loc.saturating_add(union_type_offset.into())) };
+                    unsafe { Table::new(buf, table_loc).get::<u8>(union_type.offset(), Some(0)) }
+                        .unwrap_or_default();
                 let union_enum_value = union_enum
                     .values()
                     .lookup_by_key(union_type_value.into(), |value, key| {
                         value.key_compare_with_value(*key)
                     })
                     .unwrap();
-                let union_object = schema
-                    .objects()
-                    .get(union_enum_value.union_type().unwrap().index().try_into()?);
+                let union_value_type = union_enum_value.union_type().unwrap();
+                // NONE names no table to walk.
+                if union_value_type.base_type() == BaseType::None {
+                    continue;
+                }
+                let union_object = schema.objects().get(union_value_type.index().try_into()?);
                 // SAFETY: `field_value_loc` is the table the union value points
                 // to, read before any update, and `union_object` is the schema
                 // object its `_type` names.
