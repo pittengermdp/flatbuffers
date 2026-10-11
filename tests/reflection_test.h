@@ -23,6 +23,7 @@ void ReflectionVerifyUnionValueSlotTest(const std::string& tests_data_path);
 void ReflectionVerifyUnionTypesSlotTest(const std::string& tests_data_path);
 void ReflectionUnionUnderlyingTypeAnyFieldTest(
     const std::string& tests_data_path);
+void CopyTableUnionTest(const std::string& tests_data_path);
 void MiniReflectFixedLengthArrayTest();
 void MiniReflectFlatBuffersTest(uint8_t* flatbuf);
 void ReflectionVerifyUnionVectorWithoutTypesTest(

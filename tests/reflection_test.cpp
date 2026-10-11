@@ -1,8 +1,8 @@
 #include "reflection_test.h"
 
-#include <vector>
 #include <cstring>
 #include <memory>
+#include <utility>
 #include <vector>
 
 #if defined(__unix__) || defined(__APPLE__)
@@ -21,7 +21,6 @@
 #include "tests/arrays_test_generated.h"
 #include "tests/union_underlying_type_test_generated.h"
 #include "tests/union_value_gap_test_generated.h"
-#include "tests/union_underlying_type_test_generated.h"
 #include "tests/union_vector/union_vector_generated.h"
 
 namespace flatbuffers {
@@ -1229,6 +1228,160 @@ void ReflectionUnionUnderlyingTypeAnyFieldTest(
           false);
   TEST_EQ(flatbuffers::SetAnyFieldS(&none_root, *type_field, "555", schema),
           false);
+}
+
+// A Character that owns `value`, as UnPack() leaves one.
+static CharacterUnion MakeCharacter(const Character type, void* const value) {
+  CharacterUnion character;
+  character.type = type;
+  character.value = value;
+  return character;
+}
+
+// One Character for each member of the union: a table, two structs (one of
+// them under two names) and a string (also under two names).
+static std::vector<CharacterUnion> EveryCharacter() {
+  AttackerT* const mulan = new AttackerT();
+  mulan->sword_attack_damage = 5;
+  std::vector<CharacterUnion> characters;
+  characters.push_back(MakeCharacter(Character_MuLan, mulan));
+  characters.push_back(
+      MakeCharacter(Character_Rapunzel, new Rapunzel(/*hair_length=*/6)));
+  characters.push_back(
+      MakeCharacter(Character_Belle, new BookReader(/*books_read=*/7)));
+  characters.push_back(
+      MakeCharacter(Character_BookFan, new BookReader(/*books_read=*/2)));
+  characters.push_back(
+      MakeCharacter(Character_Other, new std::string("Other")));
+  characters.push_back(
+      MakeCharacter(Character_Unused, new std::string("Unused")));
+  return characters;
+}
+
+static std::vector<uint8_t> FinishedMovie(FlatBufferBuilder& fbb,
+                                          const Offset<Movie> movie) {
+  FinishMovieBuffer(fbb, movie);
+  return std::vector<uint8_t>(fbb.GetBufferPointer(),
+                              fbb.GetBufferPointer() + fbb.GetSize());
+}
+
+static std::vector<uint8_t> PackMovie(const MovieT& movie) {
+  FlatBufferBuilder fbb;
+  return FinishedMovie(fbb, Movie::Pack(fbb, &movie));
+}
+
+static Offset<const Table*> CopyMovie(FlatBufferBuilder& fbb,
+                                      const reflection::Schema& schema,
+                                      const std::vector<uint8_t>& movie,
+                                      const bool use_string_pooling = false) {
+  return CopyTable(fbb, schema, *schema.root_table(), *GetAnyRoot(movie.data()),
+                   use_string_pooling);
+}
+
+// Copies `movie` into `fbb`, after whatever fbb already holds, and checks the
+// copy verifies and unpacks to `movie` again.
+static void CheckMovieCopy(FlatBufferBuilder& fbb,
+                           const reflection::Schema& schema,
+                           const MovieT& movie, const bool use_string_pooling) {
+  const Offset<const Table*> copy =
+      CopyMovie(fbb, schema, PackMovie(movie), use_string_pooling);
+  TEST_EQ(copy.IsNull(), false);
+  if (copy.IsNull()) return;
+  FinishMovieBuffer(fbb, Offset<Movie>(copy.o));
+  Verifier verifier(fbb.GetBufferPointer(), fbb.GetSize());
+  const bool verified = VerifyMovieBuffer(verifier);
+  TEST_EQ(verified, true);
+  TEST_EQ(Verify(schema, *schema.root_table(), fbb.GetBufferPointer(),
+                 fbb.GetSize()),
+          true);
+  // A copy that does not verify could send UnPack anywhere.
+  if (!verified) return;
+  TEST_ASSERT(*UnPackMovie(fbb.GetBufferPointer()) == movie);
+}
+
+// CopyTable on union_vector.fbs, whose Character union has a table, structs
+// and strings for members, as a single union (main_character) and as a vector
+// of unions (characters).
+void CopyTableUnionTest(const std::string& tests_data_path) {
+  std::string source;
+  TEST_EQ(LoadFile((tests_data_path + "union_vector/union_vector.fbs").c_str(),
+                   false, &source),
+          true);
+  // A union may have structs for members only in some generated languages.
+  IDLOptions opts;
+  opts.lang_to_generate |= IDLOptions::kBinary;
+  Parser parser(opts);
+  TEST_EQ(parser.Parse(source.c_str()), true);
+  parser.Serialize();
+  const reflection::Schema& schema =
+      *reflection::GetSchema(parser.builder_.GetBufferPointer());
+
+  for (const bool use_string_pooling : {false, true}) {
+    // Each element of a vector of unions is copied, and referred to, in the
+    // new buffer. Each member twice over, so a pooled string is shared.
+    {
+      MovieT movie;
+      movie.characters = EveryCharacter();
+      for (CharacterUnion& character : EveryCharacter()) {
+        movie.characters.push_back(std::move(character));
+      }
+      FlatBufferBuilder fbb;
+      fbb.CreateString("ahead of the copy");
+      CheckMovieCopy(fbb, schema, movie, use_string_pooling);
+    }
+    // Each member as a single union.
+    for (CharacterUnion& character : EveryCharacter()) {
+      MovieT movie;
+      movie.main_character = std::move(character);
+      FlatBufferBuilder fbb;
+      CheckMovieCopy(fbb, schema, movie, use_string_pooling);
+    }
+  }
+
+  // A union value CopyTable cannot copy is rejected with a null offset, and
+  // fbb stays usable: the copy that follows checks out. The Object API writes
+  // none of these values, but the generated builder takes each as given.
+  const auto check_rejected = [&](const std::vector<uint8_t>& buf) {
+    FlatBufferBuilder fbb;
+    TEST_EQ(CopyMovie(fbb, schema, buf).IsNull(), true);
+    MovieT movie;
+    movie.characters = EveryCharacter();
+    CheckMovieCopy(fbb, schema, movie, false);
+  };
+
+  // A value under NONE, which has none to copy, and under a type the schema
+  // does not have, as in a buffer written with a newer schema, whose value has
+  // a shape this schema cannot tell.
+  const uint8_t unknown = static_cast<uint8_t>(Character_MAX + 1);
+  for (const uint8_t type : {static_cast<uint8_t>(Character_NONE), unknown}) {
+    FlatBufferBuilder fbb;
+    const Offset<void> value = fbb.CreateString("Other").Union();
+    check_rejected(FinishedMovie(
+        fbb, CreateMovie(fbb, static_cast<Character>(type), value)));
+  }
+  // The same in a vector of unions, and types that do not pair up with values.
+  const auto pack_characters = [](const std::vector<uint8_t>* const types,
+                                  const size_t count) {
+    FlatBufferBuilder fbb;
+    std::vector<Offset<void>> characters;
+    for (size_t i = 0; i < count; i++) {
+      characters.push_back(fbb.CreateString("Other").Union());
+    }
+    const Offset<Vector<uint8_t>> characters_type =
+        types ? fbb.CreateVector(*types) : Offset<Vector<uint8_t>>();
+    const auto characters_vector = fbb.CreateVector(characters);
+    return FinishedMovie(fbb, CreateMovie(fbb, Character_NONE, 0,
+                                          characters_type, characters_vector));
+  };
+  const std::vector<uint8_t> none = {Character_NONE};
+  const std::vector<uint8_t> unknowns = {unknown};
+  const std::vector<uint8_t> one = {Character_Other};
+  const std::vector<uint8_t> two = {Character_Other, Character_Other};
+  check_rejected(pack_characters(&none, 1));
+  check_rejected(pack_characters(&unknowns, 1));
+  check_rejected(pack_characters(nullptr, 1));
+  check_rejected(pack_characters(&one, 2));
+  check_rejected(pack_characters(&two, 1));
 }
 
 void MiniReflectFlatBuffersTest(uint8_t* flatbuf) {
