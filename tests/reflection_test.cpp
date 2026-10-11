@@ -325,6 +325,8 @@ void SetStringTest(const std::string& tests_data_path) {
             expected.testarrayofstring.size());
     TEST_ASSERT(*actual == expected);
   }
+}
+
 // Calls `verify` on a copy of `buf` that ends where a page that faults on any
 // access begins, so a verifier that reads past the end of the buffer crashes
 // in every build type. Past an ordinary allocation it reads whatever is there,
