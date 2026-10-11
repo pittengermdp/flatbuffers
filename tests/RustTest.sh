@@ -75,8 +75,9 @@ function check_clippy() {
 
     # Without -D warnings, and with --keep-going, cargo checks every target
     # instead of stopping at the first one that fails, so the count covers the
-    # whole crate.
-    log=$("${clippy[@]}" --keep-going --message-format=short 2>&1) || status=$?
+    # whole crate. --color never keeps CARGO_TERM_COLOR=always (which CI's
+    # toolchain action sets) from hiding every line from the grep below.
+    log=$("${clippy[@]}" --keep-going --color never --message-format=short 2>&1) || status=$?
     diagnostics=$(grep -E '^[^ ]+:[0-9]+:[0-9]+: (warning|error)' <<< "$log" | sort -u)
     count=$(grep -c . <<< "$diagnostics" || true)
     if [[ $count == 0 && $status != 0 ]]; then
