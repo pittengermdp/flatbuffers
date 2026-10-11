@@ -4813,8 +4813,18 @@ bool EnumVal::Deserialize(Parser& parser, const reflection::EnumVal* val) {
   return true;
 }
 
+// The size a value of base type `t`, of a type whose enum is `enum_def`, is
+// stored at. A union's types are UTYPE to the schema, but are stored as the
+// union's underlying type: UTYPE, 1 byte, by default, but 4 bytes for
+// `union U: int`.
+static size_t SizeOfStored(BaseType t, const EnumDef* enum_def) {
+  return t == BASE_TYPE_UTYPE && enum_def
+             ? SizeOf(enum_def->underlying_type.base_type)
+             : SizeOf(t);
+}
+
 Offset<reflection::Type> Type::Serialize(FlatBufferBuilder* builder) const {
-  size_t element_size = SizeOf(element);
+  size_t element_size = SizeOfStored(element, enum_def);
   if (base_type == BASE_TYPE_VECTOR && element == BASE_TYPE_STRUCT &&
       struct_def->bytesize != 0) {
     // struct_def->bytesize==0 means struct is table
@@ -4824,7 +4834,7 @@ Offset<reflection::Type> Type::Serialize(FlatBufferBuilder* builder) const {
       *builder, static_cast<reflection::BaseType>(base_type),
       static_cast<reflection::BaseType>(element),
       struct_def ? struct_def->index : (enum_def ? enum_def->index : -1),
-      fixed_length, static_cast<uint32_t>(SizeOf(base_type)),
+      fixed_length, static_cast<uint32_t>(SizeOfStored(base_type, enum_def)),
       static_cast<uint32_t>(element_size));
 }
 
