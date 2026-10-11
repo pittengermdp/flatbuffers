@@ -253,6 +253,21 @@ const static FlatCOption flatc_options[] = {
     {"", "cs-gen-json-serializer", "",
      "Allows (de)serialization of JSON text in the Object API. (requires "
      "--gen-object-api)."},
+    {"", "json-int64-as-string", "",
+     "Write 64-bit integers in JSON as quoted decimal strings (both forms are "
+     "read), and let JSON Schema accept either, a number only up to 2^53-1, "
+     "so a reader that holds numbers as doubles cannot round them."},
+    {"", "jsonschema-2020-12", "",
+     "Generate JSON Schema draft 2020-12 ($defs) instead of 2019-09."},
+    {"", "jsonschema-cross-file-refs", "",
+     "Give each JSON Schema file only the types its .fbs declares, referring "
+     "to an included file's types in that file's schema."},
+    {"", "jsonschema-defaults", "",
+     "Add a \"default\" keyword to every defaulted table scalar in JSON "
+     "Schema, unless the default is outside the field's json_* bounds."},
+    {"", "go-json", "",
+     "Generate canonical JSON methods (MarshalFlatJSON, UnmarshalFlatJSON) on "
+     "every Go Object API type. (requires --gen-object-api)."},
     {"", "json-nested-bytes", "",
      "Allow a nested_flatbuffer field to be parsed as a vector of bytes "
      "in JSON, which is unsafe unless checked by a verifier afterwards."},
@@ -695,6 +710,16 @@ FlatCOptions FlatCompiler::ParseFromCommandLineArguments(int argc,
         opts.cpp_static_reflection = true;
       } else if (arg == "--cs-global-alias") {
         opts.cs_global_alias = true;
+      } else if (arg == "--json-int64-as-string") {
+        opts.json_int64_as_string = true;
+      } else if (arg == "--jsonschema-2020-12") {
+        opts.jsonschema_2020_12 = true;
+      } else if (arg == "--jsonschema-cross-file-refs") {
+        opts.jsonschema_cross_file_refs = true;
+      } else if (arg == "--jsonschema-defaults") {
+        opts.jsonschema_defaults = true;
+      } else if (arg == "--go-json") {
+        opts.go_gen_json = true;
       } else if (arg == "--json-nested-bytes") {
         opts.json_nested_legacy_flatbuffers = true;
       } else if (arg == "--ts-flat-files") {
@@ -830,6 +855,10 @@ void FlatCompiler::ValidateOptions(const FlatCOptions& options) {
     Error(
         "--cs-gen-json-serializer requires --gen-object-api to be set as "
         "well.");
+  }
+
+  if (opts.go_gen_json && !opts.generate_object_based_api) {
+    Error("--go-json requires --gen-object-api to be set as well.");
   }
 }
 

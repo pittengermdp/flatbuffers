@@ -61,6 +61,7 @@
 #if INCLUDE_64_BIT_TESTS
 #include "tests/64bit/offset64_test.h"
 #endif
+#include "binary_annotator_test.h"
 #include "flexbuffers_test.h"
 #include "is_quiet_nan.h"
 #include "monster_test_bfbs_generated.h"  // Generated using --bfbs-comments --bfbs-builtins --cpp --bfbs-gen-embed
@@ -445,12 +446,6 @@ void UninitializedVectorTest() {
 void EqualOperatorTest() {
   MonsterT a;
   MonsterT b;
-  // We have to reset the fields that are NaN to zero to allow the equality
-  // to evaluate to true.
-  TEST_EQ(std::isnan(a.nan_default), true);
-  TEST_EQ(std::isnan(b.nan_default), true);
-  a.nan_default = 0;
-  b.nan_default = 0;
   TEST_EQ(b == a, true);
   TEST_EQ(b != a, false);
 
@@ -469,14 +464,12 @@ void EqualOperatorTest() {
   TEST_EQ(b != a, false);
 
   a.enemy.reset(new MonsterT());
-  a.enemy->nan_default = 0;
   TEST_EQ(b != a, true);
   a.enemy->mana = 33;
   TEST_EQ(b == a, false);
   TEST_EQ(b != a, true);
 
   b.enemy.reset(new MonsterT());
-  b.enemy->nan_default = 0;
   TEST_EQ(b == a, false);
   TEST_EQ(b != a, true);
   b.enemy->mana = 33;
@@ -490,7 +483,6 @@ void EqualOperatorTest() {
   TEST_EQ(b == a, false);
   TEST_EQ(b != a, true);
   a.enemy.reset(new MonsterT());
-  a.enemy->nan_default = 0;
   TEST_EQ(b == a, true);
   TEST_EQ(b != a, false);
 
@@ -504,29 +496,23 @@ void EqualOperatorTest() {
   {
     // Two tables are equal by default.
     MonsterT a, b;
-    a.nan_default = 0;
-    b.nan_default = 0;
     TEST_EQ(a == b, true);
 
     // Adding only a table to one of the monster vectors should make it not
     // equal (due to size mistmatch).
     a.testarrayoftables.push_back(
         flatbuffers::unique_ptr<MonsterT>(new MonsterT));
-    a.testarrayoftables.back()->nan_default = 0;
     TEST_EQ(a == b, false);
 
     // Adding an equalivant table to the other monster vector should make it
     // equal again.
     b.testarrayoftables.push_back(
         flatbuffers::unique_ptr<MonsterT>(new MonsterT));
-    b.testarrayoftables.back()->nan_default = 0;
     TEST_EQ(a == b, true);
 
     // Create two new monsters that are different.
     auto c = flatbuffers::unique_ptr<MonsterT>(new MonsterT);
     auto d = flatbuffers::unique_ptr<MonsterT>(new MonsterT);
-    c->nan_default = 0;
-    d->nan_default = 0;
     c->hp = 1;
     d->hp = 2;
     TEST_EQ(c == d, false);
@@ -546,6 +532,84 @@ void EqualOperatorTest() {
     b.testarrayoftables.push_back(
         flatbuffers::unique_ptr<MonsterT>(new MonsterT));
     TEST_EQ(a == b, false);
+  }
+}
+
+// Generated operator== compares floats and doubles so that NaN equals NaN, so
+// an object holding a NaN, such as MonsterT's `nan_default:float = nan`,
+// equals itself.
+void EqualOperatorNanTest() {
+  const float nan_f = std::numeric_limits<float>::quiet_NaN();
+  const double nan_d = std::numeric_limits<double>::quiet_NaN();
+
+  // A default MonsterT equals itself.
+  {
+    const MonsterT a;
+    TEST_ASSERT(std::isnan(a.nan_default));
+    TEST_ASSERT(a == a);
+  }
+
+  // So does a default Monster after a Pack/UnPack round trip.
+  {
+    const MonsterT original;
+    flatbuffers::FlatBufferBuilder fbb;
+    FinishMonsterBuffer(fbb, Monster::Pack(fbb, &original));
+    MonsterT unpacked;
+    GetMonster(fbb.GetBufferPointer())->UnPackTo(&unpacked);
+    TEST_ASSERT(std::isnan(unpacked.nan_default));
+    TEST_ASSERT(unpacked == original);
+  }
+
+  // As with ==, -0.0 equals +0.0, and NaN does not equal a number.
+  {
+    MonsterT a;
+    MonsterT b;
+    a.testf = 0.0f;
+    b.testf = -0.0f;
+    TEST_ASSERT(a == b);
+    a.nan_default = 0.0f;
+    TEST_ASSERT(a != b);
+    TEST_ASSERT(b != a);
+  }
+
+  // Vectors of floats and doubles compare element by element.
+  {
+    MonsterT a;
+    MonsterT b;
+    a.vector_of_doubles = {1.0, nan_d, 0.0};
+    b.vector_of_doubles = {1.0, nan_d, -0.0};
+    TEST_ASSERT(a == b);
+    b.vector_of_doubles.back() = nan_d;
+    TEST_ASSERT(a != b);
+    b.vector_of_doubles.pop_back();
+    TEST_ASSERT(a != b);
+  }
+
+  // Struct members compare the same way, through their accessors.
+  {
+    const Vec3 v(nan_f, 1.0f, -0.0f, nan_d, Color_Red, Test(1, 2));
+    TEST_ASSERT(v == v);
+    TEST_ASSERT(v == Vec3(nan_f, 1.0f, 0.0f, nan_d, Color_Red, Test(1, 2)));
+    TEST_ASSERT(v != Vec3(nan_f, 1.0f, 0.0f, 0.0, Color_Red, Test(1, 2)));
+  }
+
+  // Map values are looked up by key and compared the same way.
+  {
+    MapSetTest::ConfigT a;
+    MapSetTest::ConfigT b;
+    a.color_scores[MapSetTest::Color_Red] = nan_f;
+    a.color_scores[MapSetTest::Color_Blue] = 0.0f;
+    b.color_scores[MapSetTest::Color_Blue] = -0.0f;
+    b.color_scores[MapSetTest::Color_Red] = nan_f;
+    TEST_ASSERT(a == a);
+    TEST_ASSERT(a == b);
+    b.color_scores[MapSetTest::Color_Red] = 0.5f;
+    TEST_ASSERT(a != b);
+    b.color_scores.erase(MapSetTest::Color_Red);
+    b.color_scores[MapSetTest::Color_Green] = nan_f;
+    TEST_ASSERT(a != b);
+    b.color_scores.erase(MapSetTest::Color_Green);
+    TEST_ASSERT(a != b);
   }
 }
 
@@ -1676,6 +1740,54 @@ void UnionUnderlyingTypeTest() {
   TEST_ASSERT(unpacked.test_vector_of_union == buffer.test_vector_of_union);
 }
 
+// A union's type is stored as the union's underlying type, so the generated
+// verifier must check that it is aligned for that type: for `union ABC: int`,
+// that test_union_type is 4-byte aligned, not 1-byte aligned as a UType is.
+void UnionUnderlyingTypeVerifierAlignmentTest() {
+  using namespace UnionUnderlyingType;
+  const auto verifies = [](const flatbuffers::FlatBufferBuilder& fbb,
+                           const bool check_alignment) {
+    flatbuffers::Verifier::Options options;
+    options.check_alignment = check_alignment;
+    flatbuffers::Verifier verifier(fbb.GetBufferPointer(), fbb.GetSize(),
+                                   options);
+    return verifier.VerifyBuffer<D>(nullptr);
+  };
+
+  BT b;
+  b.b = "foo";
+  DT d;
+  d.test_union.Set(b);
+
+  flatbuffers::FlatBufferBuilder aligned;
+  aligned.Finish(D::Pack(aligned, &d));
+  TEST_EQ(verifies(aligned, true), true);
+
+  // The same table with its type 1 byte past a 4-byte boundary, where only a
+  // 1-byte type may be. The builder aligns every scalar it adds to its size,
+  // so the type is pushed as bytes and tracked, as CopyTable() copies a field.
+  flatbuffers::FlatBufferBuilder misaligned;
+  const auto member = B::Pack(misaligned, &b);
+  const auto start = misaligned.StartTable();
+  misaligned.AddOffset(D::VT_TEST_UNION, member.Union());
+  misaligned.Align(sizeof(int32_t));
+  misaligned.PushElement<uint8_t>(0);
+  const auto type = flatbuffers::EndianScalar(static_cast<int32_t>(ABC::B));
+  misaligned.PushBytes(reinterpret_cast<const uint8_t*>(&type), sizeof(type));
+  misaligned.TrackField(D::VT_TEST_UNION_TYPE, misaligned.GetSize());
+  misaligned.Finish(flatbuffers::Offset<D>(misaligned.EndTable(start)));
+  const uint8_t* buf = misaligned.GetBufferPointer();
+  const uint8_t* type_ptr =
+      flatbuffers::GetRoot<flatbuffers::Table>(buf)->GetAddressOf(
+          D::VT_TEST_UNION_TYPE);
+  TEST_NOTNULL(type_ptr);
+  TEST_EQ(static_cast<size_t>(type_ptr - buf) % sizeof(int32_t), size_t{3});
+
+  TEST_EQ(verifies(misaligned, true), false);
+  // Misalignment is the only thing wrong with it.
+  TEST_EQ(verifies(misaligned, false), true);
+}
+
 void StructsInHashTableTest() {
 #if defined(HAS_ABSL_CONTAINERS) && (!defined(_MSC_VER) || _MSC_VER >= 1700)
   absl::flat_hash_set<ArrayStruct> hash_set;
@@ -1722,6 +1834,18 @@ static void Offset64Tests() {
   Offset64SizePrefix();
   Offset64ManyVectors();
   Offset64ForceAlign();
+  Offset64ForceAlignEmptyVector();
+  Offset64ReflectionCopyTable();
+  Offset64ReflectionCopyTableSubTables();
+  Offset64ObjectApiRoundTrip();
+  Offset64ReflectionVerify();
+  Offset64ReflectionVerifyRequired();
+  Offset64ReflectionVerifyZeroOffset();
+  Offset64ReflectionVerifySizePrefixed();
+  Offset64ReflectionVerifyRoot();
+  Offset64ReflectionVerifyMaxSize();
+  Offset64SizePrefixedIdentifierBounds();
+  Offset64ReflectionVerifyAlignment();
 #endif
 }
 
@@ -1818,8 +1942,8 @@ void MapSetRoundTripTest() {
   TEST_EQ(ids_vec->Get(0)->key(), 10u);
   TEST_EQ(ids_vec->Get(1)->key(), 20u);
 
-  // Write the binary for cross-language round-trip testing.
-  // Go and TypeScript tests read this file to verify interop.
+  // Write the binary out for cross-language round-trip testing. Nothing in
+  // the tree reads it yet; .gitignore keeps it out of commits.
   flatbuffers::SaveFile("tests/map_set_test_data.bin",
                         reinterpret_cast<const char*>(buf),
                         fbb.GetSize(), /*binary=*/true);
@@ -1920,6 +2044,195 @@ void MapSetJsonRoundTripTest() {
   TEST_EQ(unpacked->tags.count("world"), 1u);
 }
 
+// Every key and value kind a map/set can hold, through JSON text and back.
+// Map keys travel as JSON property names, so non-string keys are spelled
+// inside strings: an enum by name, an integer by its digits. A parser that
+// read every such key (and every scalar value) through an int64 zeroed enum
+// keys and float values and overflowed uint keys past INT32_MAX; a printer
+// that did the same printed narrower keys as garbage.
+void MapSetJsonAllKindsTest() {
+  using namespace MapSetTest;
+  const char* schema =
+      "namespace MapSetTest;"
+      "enum Color : byte { Red = 0, Green, Blue }"
+      "table Stats { hp:int; strength:float; }"
+      "table Config {"
+      "  settings:map<string, int>;"
+      "  id_to_name:map<uint, string>;"
+      "  color_scores:map<Color, float>;"
+      "  profiles:map<string, Stats>;"
+      "  tags:set<string>;"
+      "  active_ids:set<int>;"
+      "}"
+      "root_type Config;";
+  const char* json =
+      "{"
+      "  settings: { \"q\\\"uote\": 3 },"
+      "  id_to_name: { \"7\": \"seven\", \"4000000000\": \"big\" },"
+      "  color_scores: { \"Blue\": 1.5, \"Red\": 0.5 },"
+      "  profiles: { \"x\": { hp: 3, strength: 2.5 } },"
+      "  active_ids: [ 5, -2 ]"
+      "}";
+
+  flatbuffers::Parser parser;
+  TEST_EQ(parser.Parse(schema), true);
+  if (!parser.Parse(json)) {
+    TEST_OUTPUT_LINE("JSON parse error: %s", parser.error_.c_str());
+  }
+  TEST_EQ(parser.Parse(json), true);
+
+  auto check = [](const ConfigT& c) {
+    TEST_EQ(c.settings.size(), 1u);
+    TEST_EQ(c.settings.at("q\"uote"), 3);
+    TEST_EQ(c.id_to_name.size(), 2u);
+    TEST_EQ_STR(c.id_to_name.at(7u).c_str(), "seven");
+    TEST_EQ_STR(c.id_to_name.at(4000000000u).c_str(), "big");
+    TEST_EQ(c.color_scores.size(), 2u);
+    TEST_EQ(c.color_scores.at(MapSetTest::Color_Blue), 1.5f);
+    TEST_EQ(c.color_scores.at(MapSetTest::Color_Red), 0.5f);
+    TEST_EQ(c.profiles.at("x")->hp, 3);
+    TEST_EQ(c.profiles.at("x")->strength, 2.5f);
+    TEST_EQ(c.active_ids.size(), 2u);
+    TEST_EQ(c.active_ids.count(-2), 1u);
+    TEST_EQ(c.active_ids.count(5), 1u);
+  };
+  auto parsed = GetConfig(parser.builder_.GetBufferPointer())->UnPack();
+  check(*parsed);
+
+  // Printed text must spell every key the way the parser reads it back.
+  std::string text;
+  TEST_NULL(flatbuffers::GenText(parser, parser.builder_.GetBufferPointer(),
+                                 &text));
+  TEST_ASSERT(text.find("\"4000000000\": \"big\"") != std::string::npos);
+  TEST_ASSERT(text.find("\"Blue\": 1.5") != std::string::npos);
+  TEST_ASSERT(text.find("\"q\\\"uote\": 3") != std::string::npos);
+
+  flatbuffers::Parser reparser;
+  TEST_EQ(reparser.Parse(schema), true);
+  TEST_EQ(reparser.Parse(text.c_str()), true);
+  auto reparsed = GetConfig(reparser.builder_.GetBufferPointer())->UnPack();
+  check(*reparsed);
+
+  // An enum key that names no variant is an error, not a silent zero.
+  flatbuffers::Parser bad;
+  TEST_EQ(bad.Parse(schema), true);
+  TEST_EQ(bad.Parse("{ color_scores: { \"Purple\": 1.0 } }"), false);
+}
+
+// A struct map value is stored inline in its entry table. Its parsed constant
+// is the struct's bytes, which were once read as an offset: an all-zero struct
+// failed to parse and any other came back as different numbers.
+void MapStructValueJsonTest() {
+  flatbuffers::IDLOptions opts;
+  opts.strict_json = true;
+  opts.indent_step = -1;
+  flatbuffers::Parser parser(opts);
+  TEST_EQ(parser.Parse("struct P { x:ubyte; y:int; }"
+                       "table T { m:map<string, P>; }"
+                       "root_type T;"),
+          true);
+  const char* json =
+      "{\"m\":{\"a\":{\"x\":0,\"y\":0},\"b\":{\"x\":49,\"y\":-7}}}";
+  if (!parser.Parse(json)) {
+    TEST_OUTPUT_LINE("JSON parse error: %s", parser.error_.c_str());
+  }
+  TEST_EQ(parser.Parse(json), true);
+
+  std::string text;
+  TEST_NULL(flatbuffers::GenText(parser, parser.builder_.GetBufferPointer(),
+                                 &text));
+  TEST_EQ_STR(text.c_str(),
+              "{\"m\": {\"a\": {\"x\": 0,\"y\": 0},"
+              "\"b\": {\"x\": 49,\"y\": -7}}}");
+
+  // A missing string or table map value prints as null; it reads back as a
+  // value-less entry, so flatc reads what it writes.
+  flatbuffers::Parser nulls(opts);
+  TEST_EQ(nulls.Parse("table V { n:int; }"
+                      "table T { s:map<string, string>; t:map<string, V>; }"
+                      "root_type T;"),
+          true);
+  TEST_EQ(nulls.Parse("{\"s\":{\"a\":null},\"t\":{\"b\":null,\"c\":{}}}"),
+          true);
+  std::string printed;
+  TEST_NULL(flatbuffers::GenText(nulls, nulls.builder_.GetBufferPointer(),
+                                 &printed));
+  TEST_EQ_STR(printed.c_str(),
+              "{\"s\": {\"a\": null},\"t\": {\"b\": null,\"c\": {}}}");
+  TEST_EQ(nulls.Parse(printed.c_str()), true);
+}
+
+// JSON has no NaN or infinity. Strict JSON quotes them, as the parser reads
+// a quoted float; printed bare they made the document invalid JSON.
+void JsonNonFiniteFloatsTest() {
+  flatbuffers::IDLOptions opts;
+  opts.strict_json = true;
+  opts.indent_step = -1;
+  flatbuffers::Parser parser(opts);
+  const char* schema =
+      "table T { f:float; d:double; v:[double]; } root_type T;";
+  TEST_EQ(parser.Parse(schema), true);
+  TEST_EQ(parser.Parse("{\"f\": \"nan\", \"d\": \"-inf\", "
+                       "\"v\": [1.5, \"inf\"]}"),
+          true);
+  std::string text;
+  TEST_NULL(flatbuffers::GenText(parser, parser.builder_.GetBufferPointer(),
+                                 &text));
+  TEST_EQ_STR(text.c_str(),
+              "{\"f\": \"nan\",\"d\": \"-inf\",\"v\": [1.5,\"inf\"]}");
+
+  flatbuffers::Parser reparser(opts);
+  TEST_EQ(reparser.Parse(schema), true);
+  TEST_EQ(reparser.Parse(text.c_str()), true);
+  std::string again;
+  TEST_NULL(flatbuffers::GenText(
+      reparser, reparser.builder_.GetBufferPointer(), &again));
+  TEST_EQ_STR(again.c_str(), text.c_str());
+}
+
+// --json-int64-as-string: 64-bit integers print as quoted decimal strings (a
+// double cannot hold every one exactly) and parse back to the same value, as
+// does a 64-bit enum value no variant names; named enum values and narrower
+// integers keep their usual spelling.
+void JsonInt64AsStringTest() {
+  flatbuffers::IDLOptions opts;
+  opts.json_int64_as_string = true;
+  opts.strict_json = true;
+  opts.indent_step = -1;
+  flatbuffers::Parser parser(opts);
+  TEST_EQ(parser.Parse("enum E : ulong { Z, A }"
+                       "table T { u:ulong; i:long; v:[long]; n:int; e:E; k:E; }"
+                       "root_type T;"),
+          true);
+  TEST_EQ(parser.Parse("{ \"u\": 18446744073709551615, "
+                       "\"i\": \"-9223372036854775808\", "
+                       "\"v\": [1, \"-2\"], \"n\": 7, "
+                       "\"e\": 9223372036854775810, \"k\": \"A\" }"),
+          true);
+  std::string text;
+  TEST_NULL(flatbuffers::GenText(parser, parser.builder_.GetBufferPointer(),
+                                 &text));
+  TEST_EQ_STR(text.c_str(),
+              "{\"u\": \"18446744073709551615\","
+              "\"i\": \"-9223372036854775808\","
+              "\"v\": [\"1\",\"-2\"],"
+              "\"n\": 7,"
+              "\"e\": \"9223372036854775810\","
+              "\"k\": \"A\"}");
+
+  flatbuffers::Parser reparser(opts);
+  TEST_EQ(reparser.Parse(
+              "enum E : ulong { Z, A }"
+              "table T { u:ulong; i:long; v:[long]; n:int; e:E; k:E; }"
+              "root_type T;"),
+          true);
+  TEST_EQ(reparser.Parse(text.c_str()), true);
+  std::string again;
+  TEST_NULL(flatbuffers::GenText(
+      reparser, reparser.builder_.GetBufferPointer(), &again));
+  TEST_EQ_STR(again.c_str(), text.c_str());
+}
+
 void FbsReEmitTest() {
   using flatbuffers::Parser;
   // Parse a schema with map/set syntax, then re-emit it as FBS.
@@ -1967,6 +2280,10 @@ int FlatBufferTests(const std::string& tests_data_path) {
 
   MiniReflectFlatBuffersTest(flatbuf.data());
   MiniReflectFixedLengthArrayTest();
+  MiniReflectUnionUnderlyingTypeTest();
+  ReflectionVerifyOffsetFieldsTest();
+  ReflectionVerifyRequiredOffsetFieldsTest();
+  CopyTableStructVectorAlignmentTest();
 
   SizePrefixedTest();
 
@@ -1977,13 +2294,30 @@ int FlatBufferTests(const std::string& tests_data_path) {
   ParseAndGenerateTextTest(tests_data_path, true);
   FixedLengthArrayJsonTest(tests_data_path, false);
   FixedLengthArrayJsonTest(tests_data_path, true);
+  SetStringTest(tests_data_path);
   ReflectionTest(tests_data_path, flatbuf.data(), flatbuf.size());
+  ReflectionUnionUnderlyingTypeTest(tests_data_path);
+  ReflectionVerifyUnionByValueTest(tests_data_path);
+  ReflectionVerifyUnionTypeSlotsTest(tests_data_path);
+  ReflectionUnionUnderlyingTypeToStringTest(tests_data_path);
   LargeStructsAlignmentTest(tests_data_path);
   ForAllFieldsReverseTest(tests_data_path);
+  AnnotateDeprecatedRequiredFieldTest(tests_data_path);
+  ReflectionVerifyUnionValueSlotTest(tests_data_path);
+  ReflectionVerifyUnionTypesSlotTest(tests_data_path);
+  AnnotateVTableSlotsOnceTest(tests_data_path);
+  AnnotateUnionByValueTest(tests_data_path);
+  AnnotateUnionUnderlyingTypeTest(tests_data_path);
+  AnnotateUnionVectorTest(tests_data_path);
+  AnnotateUnionWithoutTypeTest(tests_data_path);
+  ReflectionUnionUnderlyingTypeAnyFieldTest(tests_data_path);
+  CopyTableUnionTest(tests_data_path);
+  ResizeContextUnionTest(tests_data_path);
   ParseProtoTest(tests_data_path);
   EvolutionTest(tests_data_path);
   UnionDeprecationTest(tests_data_path);
   UnionVectorTest(tests_data_path);
+  ReflectionVerifyUnionVectorWithoutTypesTest(tests_data_path);
   GenerateTableTextTest(tests_data_path);
   TestEmbeddedBinarySchema(tests_data_path);
   JsonOptionalTest(tests_data_path, false);
@@ -1994,9 +2328,11 @@ int FlatBufferTests(const std::string& tests_data_path) {
   JsonEnumsTest(tests_data_path);
   TestMonsterExtraFloats(tests_data_path);
   ParseIncorrectMonsterJsonTest(tests_data_path);
+  JsonUnionUnderlyingTypeParseTest(tests_data_path);
   FixedLengthArraySpanTest(tests_data_path);
   DoNotRequireEofTest(tests_data_path);
   JsonUnionStructTest();
+  JsonUnionUnderlyingTypeGenTextTest(tests_data_path);
   VectorTableNakedPtrTest();
 #else
   // Guard against -Wunused-parameter.
@@ -2026,6 +2362,7 @@ int FlatBufferTests(const std::string& tests_data_path) {
   InvalidUTF8Test();
   UnknownFieldsTest();
   ParseUnionTest();
+  UnionUnderlyingTypeSizeTest();
   ValidSameNameDifferentNamespaceTest();
   ConformTest();
   ParseProtoBufAsciiTest();
@@ -2037,6 +2374,7 @@ int FlatBufferTests(const std::string& tests_data_path) {
   FlexBuffersDeprecatedTest();
   UninitializedVectorTest();
   EqualOperatorTest();
+  EqualOperatorNanTest();
   NumericUtilsTest();
   IsAsciiUtilsTest();
   ValidFloatTest();
@@ -2052,6 +2390,10 @@ int FlatBufferTests(const std::string& tests_data_path) {
   MapSetSyntaxTest();
   MapSetRoundTripTest();
   MapSetJsonRoundTripTest();
+  MapSetJsonAllKindsTest();
+  MapStructValueJsonTest();
+  JsonNonFiniteFloatsTest();
+  JsonInt64AsStringTest();
   FbsReEmitTest();
   StringVectorDefaultsTest();
   FlexBuffersFloatingPointTest();
@@ -2070,6 +2412,7 @@ int FlatBufferTests(const std::string& tests_data_path) {
   EmbeddedSchemaAccess();
   Offset64Tests();
   UnionUnderlyingTypeTest();
+  UnionUnderlyingTypeVerifierAlignmentTest();
   StructsInHashTableTest();
   DefaultVectorsStringsTest();
   CrossNamespacePackTest();

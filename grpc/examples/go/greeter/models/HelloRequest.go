@@ -10,86 +10,86 @@ type HelloRequest struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsHelloRequest(buf []byte, offset flatbuffers.UOffsetT) *HelloRequest {
-	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &HelloRequest{}
-	x.Init(buf, n+offset)
-	return x
+func GetRootAsHelloRequest(buf_ []byte, offset_ flatbuffers.UOffsetT) *HelloRequest {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_:])
+	x_ := &HelloRequest{}
+	x_.Init(buf_, n_+offset_)
+	return x_
 }
 
-func FinishHelloRequestBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.Finish(offset)
+func FinishHelloRequestBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.Finish(offset_)
 }
 
-func GetSizePrefixedRootAsHelloRequest(buf []byte, offset flatbuffers.UOffsetT) *HelloRequest {
-	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &HelloRequest{}
-	x.Init(buf, n+offset+flatbuffers.SizeUint32)
-	return x
+func GetSizePrefixedRootAsHelloRequest(buf_ []byte, offset_ flatbuffers.UOffsetT) *HelloRequest {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_+flatbuffers.SizeUint32:])
+	x_ := &HelloRequest{}
+	x_.Init(buf_, n_+offset_+flatbuffers.SizeUint32)
+	return x_
 }
 
-func FinishSizePrefixedHelloRequestBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.FinishSizePrefixed(offset)
+func FinishSizePrefixedHelloRequestBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.FinishSizePrefixed(offset_)
 }
 
-func VerifyRootAsHelloRequest(buf []byte, opts *flatbuffers.VerifierOptions) error {
-	v := flatbuffers.NewVerifier(buf, opts)
-	tablePos, err := v.CheckUOffsetT(0)
-	if err != nil {
-		return err
+func VerifyRootAsHelloRequest(buf_ []byte, opts_ *flatbuffers.VerifierOptions) error {
+	v_ := flatbuffers.NewVerifier(buf_, opts_)
+	tablePos_, err_ := v_.CheckUOffsetT(0)
+	if err_ != nil {
+		return err_
 	}
-	return verifyHelloRequest(v, int(tablePos))
+	return verifyHelloRequest(v_, int(tablePos_))
 }
 
-func VerifyHelloRequest(v *flatbuffers.Verifier, tablePos int) error {
-	return verifyHelloRequest(v, tablePos)
+func VerifyHelloRequest(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	return verifyHelloRequest(v_, tablePos_)
 }
 
-func verifyHelloRequest(v *flatbuffers.Verifier, tablePos int) error {
-	if err := v.CheckTable(tablePos); err != nil {
-		return err
+func verifyHelloRequest(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	if err_ := v_.CheckTable(tablePos_); err_ != nil {
+		return err_
 	}
-	if err := v.CountTable(); err != nil {
-		return err
+	if err_ := v_.CountTable(); err_ != nil {
+		return err_
 	}
-	if err := v.PushDepth(); err != nil {
-		return err
+	if err_ := v_.PushDepth(); err_ != nil {
+		return err_
 	}
-	defer v.PopDepth()
+	defer v_.PopDepth()
 
-	if pos, err := v.CheckOffsetField(tablePos, 4); err != nil {
-		return err
-	} else if pos != 0 {
-		if err := v.CheckString(pos); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 4); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := v_.CheckString(pos_); err_ != nil {
+			return err_
 		}
 	}
 	return nil
 }
 
-func (rcv *HelloRequest) Init(buf []byte, i flatbuffers.UOffsetT) {
-	rcv._tab.Bytes = buf
-	rcv._tab.Pos = i
+func (rcv_ *HelloRequest) Init(buf_ []byte, i_ flatbuffers.UOffsetT) {
+	rcv_._tab.Bytes = buf_
+	rcv_._tab.Pos = i_
 }
 
-func (rcv *HelloRequest) Table() flatbuffers.Table {
-	return rcv._tab
+func (rcv_ *HelloRequest) Table() flatbuffers.Table {
+	return rcv_._tab
 }
 
-func (rcv *HelloRequest) Name() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
-	if o != 0 {
-		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+func (rcv_ *HelloRequest) Name() []byte {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(4))
+	if o_ != 0 {
+		return rcv_._tab.ByteVector(o_ + rcv_._tab.Pos)
 	}
 	return nil
 }
 
-func HelloRequestStart(builder *flatbuffers.Builder) {
-	builder.StartObject(1)
+func HelloRequestStart(builder_ *flatbuffers.Builder) {
+	builder_.StartObject(1)
 }
-func HelloRequestAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(name), 0)
+func HelloRequestAddName(builder_ *flatbuffers.Builder, nameArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(nameArg_), 0)
 }
-func HelloRequestEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	return builder.EndObject()
+func HelloRequestEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder_.EndObject()
 }

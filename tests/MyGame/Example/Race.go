@@ -27,9 +27,9 @@ var EnumValuesRace = map[string]Race{
 	"Elf":   RaceElf,
 }
 
-func (v Race) String() string {
-	if s, ok := EnumNamesRace[v]; ok {
-		return s
+func (v_ Race) String() string {
+	if s_, ok_ := EnumNamesRace[v_]; ok_ {
+		return s_
 	}
-	return "Race(" + strconv.FormatInt(int64(v), 10) + ")"
+	return "Race(" + strconv.FormatInt(int64(v_), 10) + ")"
 }

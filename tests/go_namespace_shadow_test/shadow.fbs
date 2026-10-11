@@ -1,0 +1,40 @@
+// Every field kind the Go generator emits code for, each typed from namespace
+// `x` (x.fbs), so the generated code names the `x` package wherever a local of
+// that name could shadow it. The fields named flatbuffers and math would
+// shadow those imports in the builder functions if their parameters were not
+// suffixed (math is imported for the NaN default), and the fields named
+// builder, in Root and in Pair, would redeclare the builder_ parameter if a
+// field's parameter were only suffixed. See go_namespace_shadow_test.
+
+include "x.fbs";
+
+namespace ShadowTest;
+
+struct Pair {
+  point:x.Point;
+  color:x.Color;
+  builder:int;
+}
+
+union Local { Leaf:x.Leaf }
+
+table Root {
+  color:x.Color = Green;
+  maybe:x.Color = null;
+  point:x.Point;
+  pair:Pair;
+  leaf:x.Leaf;
+  colors:[x.Color];
+  points:[x.Point];
+  leaves:[x.Leaf];
+  kind:x.Kind;
+  local:Local;
+  by_name:map<string, x.Leaf>;
+  by_color:map<x.Color, int>;
+  color_set:set<x.Color>;
+  flatbuffers:string;
+  math:float = nan;
+  builder:int;
+}
+
+root_type Root;

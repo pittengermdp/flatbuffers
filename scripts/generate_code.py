@@ -15,17 +15,31 @@
 # limitations under the License.
 
 import filecmp
+import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
+import sys
 import generate_grpc_examples
-from util import args, flatc, flatc_path, root_path, tests_path
+from util import args, flatc, flatc_path, root_path, rust_output_dirs, tests_path
 
 # Specify the other paths that will be referenced
 swift_code_gen = Path(root_path, "tests/swift/fuzzer/CodeGenerationTests")
 ts_code_gen = Path(root_path, "tests/ts")
 samples_path = Path(root_path, "samples")
+examples_path = Path(root_path, "examples")
 reflection_path = Path(root_path, "reflection")
+
+
+# scripts/check_generate_code.py reports a tracked generated file that this
+# script leaves untouched as an orphan. Record each output this script stands
+# behind without writing it this run, under the path the gate passes in.
+def note_unwritten(path):
+  log = os.environ.get("FLATBUFFERS_REGEN_UNWRITTEN")
+  if log:
+    with open(log, "a", encoding="utf-8") as f:
+      f.write(path + "\n")
 
 
 # Generate the code for flatbuffers reflection schema
@@ -43,6 +57,9 @@ def flatc_reflection(options, location, target):
   if not filecmp.cmp(str(new_reflection_path), str(original_reflection_path)):
     shutil.rmtree(str(original_reflection_path), ignore_errors=True)
     shutil.move(str(new_reflection_path), str(original_reflection_path))
+  else:
+    # Left as is, so its mtime does not rebuild everything that includes it.
+    note_unwritten(f"{location}/{target}")
   shutil.rmtree(str(Path(reflection_path, temp_dir)))
 
 
@@ -51,7 +68,7 @@ def flatc_annotate(schema, file, include=None, cwd=tests_path):
   if include:
     cmd += ["-I"] + [include]
   cmd += ["--annotate", schema, file]
-  result = subprocess.run(cmd, cwd=str(cwd), check=True)
+  subprocess.run(cmd, cwd=str(cwd), check=True)
 
 
 # Glob a pattern relative to file path
@@ -70,6 +87,9 @@ CPP_OPTS = [
     "--gen-compare",
     "--gen-absl-hash",
 ] + (["--cpp-std", "c++0x"] if args.cpp_0x else [])
+
+# What CMakeLists.txt's compile_schema_for_test passes (FLATC_OPT_COMP).
+CPP_TEST_OPTS = BASE_OPTS + ["--cpp", "--gen-compare"]
 
 CPP_17_OPTS = NO_INCL_OPTS + [
     "--cpp",
@@ -112,9 +132,16 @@ JAVA_OPTS = ["--java"]
 KOTLIN_OPTS = ["--kotlin"]
 PHP_OPTS = ["--php"]
 DART_OPTS = ["--dart"]
+DART_OBJECT_API_OPTS = DART_OPTS + ["--gen-object-api"]
+GO_OPTS = ["--go", "--gen-object-api"]
 PYTHON_OPTS = ["--python", "--python-typing", "--python-decode-obj-api-strings"]
 BINARY_OPTS = ["-b", "--schema", "--bfbs-comments", "--bfbs-builtins"]
 PROTO_OPTS = ["--proto"]
+
+namespace_test_schemas = [
+    "namespace_test/namespace_test1.fbs",
+    "namespace_test/namespace_test2.fbs",
+]
 
 # Basic Usage
 
@@ -134,6 +161,34 @@ flatc(
     schema="monster_test.fbs",
     include="include_test",
     data="monsterdata_test.json",
+)
+
+# Go outside tests/MyGame, each with the command that first produced it.
+# Reference output for schemas tests/GoTest.sh compiles from its own copies.
+flatc(GO_OPTS, schema="optional_scalars.fbs")
+flatc(GO_OPTS, schema="include_test/sub/no_namespace.fbs")
+flatc(GO_OPTS, schema="include_test/order.fbs", include="include_test/sub")
+
+# Golden only: NamespaceA and NamespaceC import each other, a cycle Go rejects.
+flatc(
+    NO_INCL_OPTS + ["--go"],
+    prefix="namespace_test",
+    schema=namespace_test_schemas,
+)
+
+# Union-of-unions: Outer names the union Inner as a member, and flatc flattens
+# Inner's members into it.
+flatc(
+    GO_OPTS,
+    prefix="union_of_union_test",
+    schema="union_of_union_test/union_of_union.fbs",
+)
+
+# The command examples/go-echo/README.md documents.
+flatc(
+    GO_OPTS + ["--go-module-name", "echo"],
+    schema=["hero.fbs", "net.fbs"],
+    cwd=Path(examples_path, "go-echo"),
 )
 
 flatc(
@@ -184,6 +239,14 @@ flatc(
     include="include_test",
 )
 
+# The MonsterStorage service stubs grpc/tests builds against. The Python one
+# comes from the --python call below.
+flatc(
+    NO_INCL_OPTS + ["--go"] + JAVA_OPTS + ["--grpc"],
+    schema="monster_test.fbs",
+    include="include_test",
+)
+
 flatc(
     RUST_OPTS,
     schema="monster_test.fbs",
@@ -201,7 +264,7 @@ flatc(
 )
 
 flatc(
-    options=BASE_OPTS + ["--python"],
+    options=BASE_OPTS + ["--python", "--grpc"],
     schema="monster_test.fbs",
     include="include_test",
     data="monsterdata_test.json",
@@ -219,15 +282,48 @@ flatc(
     schema="prototest/test.proto",
 )
 
+# The --proto goldens tests/proto_test.cpp compares against, with the commands
+# tests/prototest/GenerateProtoGoldens.sh runs. flatc names its output after
+# the .proto file, so each is generated on its own and renamed.
+prototest_path = Path(tests_path, "prototest")
+SUFFIX_OPTS = ["--proto-namespace-suffix", "test_namespace_suffix"]
+for golden, options in [
+    ("test_include", []),
+    ("test", ["--gen-all"]),
+    ("test_union_include", ["--oneof-union"]),
+    ("test_union", ["--gen-all", "--oneof-union"]),
+    ("test_suffix", ["--gen-all"] + SUFFIX_OPTS),
+    ("test_union_suffix", ["--gen-all"] + SUFFIX_OPTS + ["--oneof-union"]),
+]:
+  for keep_id, suffix in [([], ""), (["--keep-proto-id"], "_id")]:
+    flatc(
+        PROTO_OPTS + keep_id + options, schema="test.proto", cwd=prototest_path
+    )
+    os.replace(
+        Path(prototest_path, "test.fbs"),
+        Path(prototest_path, f"{golden}{suffix}.golden.fbs"),
+    )
+
 # For Rust we currently generate two independent schemas, with namespace_test2
 # duplicating the types in namespace_test1
 flatc(
     RUST_OPTS + CS_OPTS,
     prefix="namespace_test",
-    schema=[
-        "namespace_test/namespace_test1.fbs",
-        "namespace_test/namespace_test2.fbs",
-    ],
+    schema=namespace_test_schemas,
+)
+
+# The other languages the removed tests/generate_code.sh generated these in.
+# JavaTest.java and KotlinTest.sh compile the Java and Kotlin.
+flatc(
+    NO_INCL_OPTS
+    + JAVA_OPTS
+    + KOTLIN_OPTS
+    + PHP_OPTS
+    + DART_OPTS
+    + LOBSTER_OPTS
+    + ["--python"],
+    prefix="namespace_test",
+    schema=namespace_test_schemas,
 )
 
 flatc(
@@ -241,10 +337,7 @@ flatc(
         "--gen-name-strings",
     ],
     prefix="namespace_test",
-    schema=[
-        "namespace_test/namespace_test1.fbs",
-        "namespace_test/namespace_test2.fbs",
-    ],
+    schema=namespace_test_schemas,
 )
 
 flatc(
@@ -367,7 +460,7 @@ if not args.skip_monster_extra:
   )
 
   flatc(
-      DART_OPTS + ["--gen-object-api"],
+      DART_OBJECT_API_OPTS,
       schema="monster_extra.fbs",
   )
 
@@ -381,7 +474,13 @@ flatc(
 )
 
 flatc(
-    ["--cpp", "--gen-compare", "--gen-mutable", "--gen-object-api", "--reflect-names"],
+    [
+        "--cpp",
+        "--gen-compare",
+        "--gen-mutable",
+        "--gen-object-api",
+        "--reflect-names",
+    ],
     schema="native_type_test.fbs",
 )
 
@@ -397,7 +496,13 @@ flatc(
 )
 
 flatc(
-    ["--cpp", "--gen-compare", "--gen-mutable", "--gen-object-api", "--reflect-names"],
+    [
+        "--cpp",
+        "--gen-compare",
+        "--gen-mutable",
+        "--gen-object-api",
+        "--reflect-names",
+    ],
     schema="cross_namespace_pack_test.fbs",
 )
 
@@ -458,6 +563,77 @@ flatc(
 
 flatc(NO_INCL_OPTS + CPP_OPTS, schema=optional_scalars_schema)
 
+# JSON Schema for the same schema. Each `= null` field must admit JSON null as
+# well as its own type -- the JSON parser reads null as "not present" for
+# exactly those fields -- while every other scalar keeps rejecting null.
+flatc(["--jsonschema"], schema=optional_scalars_schema)
+
+# A schema with no root_type still gets its definitions, just no top-level
+# $ref. This one also has a union, so it pins the `type`/`type_type` pairing.
+flatc(["--jsonschema"], schema="keyword_test.fbs")
+
+# map<K, V> is a JSON object keyed by the map keys, set<K> an array of the
+# keys; neither exposes the generated entry tables.
+flatc(["--jsonschema"], schema="map_set_test.fbs")
+
+# json_* validation attributes on every kind of field, one keyword each.
+flatc(["--jsonschema"], schema="jsonschema_validation_test.fbs")
+
+# Every opt-in JSON Schema option at once: draft 2020-12, cross-file refs
+# (monster_test's include_test types are referred to in their own files'
+# schemas, not copied), defaults, and 64-bit integers as number or string.
+JSONSCHEMA_ALL_OPTS = [
+    "--jsonschema",
+    "--jsonschema-2020-12",
+    "--jsonschema-cross-file-refs",
+    "--jsonschema-defaults",
+    "--json-int64-as-string",
+]
+flatc(
+    JSONSCHEMA_ALL_OPTS,
+    include="include_test",
+    schema="monster_test.fbs",
+    prefix="jsonschema_options",
+)
+flatc(
+    JSONSCHEMA_ALL_OPTS,
+    include="include_test",
+    schema="include_test/include_test1.fbs",
+    prefix="jsonschema_options",
+)
+flatc(
+    JSONSCHEMA_ALL_OPTS,
+    include="include_test",
+    schema="include_test/sub/include_test2.fbs",
+    prefix="jsonschema_options",
+)
+
+# Go canonical JSON methods (--go-json), committed so a change to what the
+# generator writes is reviewed; GoTest.sh compiles and tests the same code
+# (tests/go_canonical_json_test) against flatc and schema reflection.
+flatc(
+    GO_OPTS + ["--go-json", "--json-int64-as-string"],
+    schema=["canonical_json_test.fbs", "canonical_json_include.fbs"],
+    prefix="go_json",
+)
+flatc(
+    JSONSCHEMA_ALL_OPTS,
+    schema=["canonical_json_test.fbs", "canonical_json_include.fbs"],
+    prefix="jsonschema_options",
+)
+# Its edge cases too: empty union, bit_flags map keys, null map values,
+# struct map values, 64-bit enums and the float ranges.
+flatc(
+    GO_OPTS + ["--go-json", "--json-int64-as-string"],
+    schema=["canonical_json_edge.fbs", "canonical_json_edge_value.fbs"],
+    prefix="go_json",
+)
+flatc(
+    JSONSCHEMA_ALL_OPTS,
+    schema=["canonical_json_edge.fbs", "canonical_json_edge_value.fbs"],
+    prefix="jsonschema_options",
+)
+
 # Type / field collsion
 type_field_collsion_schema = "type_field_collsion.fbs"
 
@@ -472,6 +648,9 @@ flatc(
 
 # Generate string/vector default code for tests
 flatc(RUST_OPTS, prefix="more_defaults", schema="more_defaults.fbs")
+
+# Generate exact float default code for Rust tests
+flatc(RUST_STANDALONE_OPTS, schema="rust_float_defaults_test.fbs")
 
 # Generate the schema evolution tests
 flatc(
@@ -493,6 +672,13 @@ flatc(BASE_OPTS + DART_OPTS, prefix="../dart/test/", schema="keyword_test.fbs")
 # Field key lookup with default value test
 dictionary_lookup_schema = "dictionary_lookup.fbs"
 flatc(["--java", "--kotlin"], schema=dictionary_lookup_schema)
+
+# --cpp-minify-enums
+flatc(
+    ["--cpp", "--cpp-minify-enums"],
+    prefix="minified_enums",
+    schema="minified_enums/enums.fbs",
+)
 
 # Swift Tests
 swift_prefix = "swift/Tests/Flatbuffers"
@@ -526,6 +712,13 @@ flatc(
     SWIFT_OPTS + BASE_OPTS,
     schema="MutatingBool.fbs",
     prefix=swift_prefix,
+)
+
+# The schema tests/swift/fuzzer/Sources/fuzzer/main.swift fuzzes.
+flatc(
+    ["--swift", "--gen-json-emit"],
+    schema="fuzzer.fbs",
+    cwd=Path(tests_path, "swift/fuzzer/Sources/fuzzer"),
 )
 
 flatc(
@@ -628,6 +821,93 @@ flatc(
     schema=samples_schema,
     cwd=samples_path,
 )
+# samples/sample_binary.lua requires these.
+flatc(
+    ["--lua", "--bfbs-filenames", str(samples_path)],
+    schema=samples_schema,
+    prefix="lua",
+    cwd=samples_path,
+)
+# The command samples/dart_sample.sh runs.
+flatc(
+    DART_OPTS, schema=samples_schema, prefix="../dart/example", cwd=samples_path
+)
+
+# Code that another build regenerates before it compiles it, with that build's
+# command, so the committed copy is what the build produces.
+
+# tests/DartTest.sh
+flatc(
+    DART_OBJECT_API_OPTS,
+    schema="monster_test.fbs",
+    include="include_test",
+    prefix="../dart/test",
+)
+flatc(
+    DART_OBJECT_API_OPTS,
+    schema="include_test/include_test1.fbs",
+    include="include_test/sub",
+    prefix="../dart/test",
+)
+flatc(
+    DART_OBJECT_API_OPTS,
+    schema="include_test/sub/include_test2.fbs",
+    include="include_test",
+    prefix="../dart/test",
+)
+flatc(
+    DART_OBJECT_API_OPTS,
+    schema=["./test/enums.fbs", "./test/bool_structs.fbs"],
+    prefix="./test",
+    cwd=Path(root_path, "dart"),
+)
+
+# The Gradle preBuild tasks in android/app/build.gradle.
+android_main_path = Path(root_path, "android/app/src/main")
+flatc(
+    ["--cpp"],
+    schema="fbs/animal.fbs",
+    prefix="cpp/generated",
+    cwd=android_main_path,
+)
+flatc(
+    ["--kotlin"],
+    schema="fbs/animal.fbs",
+    prefix="java/generated",
+    cwd=android_main_path,
+)
+
+# compile_schema_for_test in CMakeLists.txt, which writes into tests/ only
+# in an in-source build. Bazel compiles the committed copies.
+flatc(
+    CPP_TEST_OPTS + ["--bfbs-gen-embed"],
+    prefix="64bit",
+    schema="64bit/test_64bit.fbs",
+)
+flatc(
+    CPP_TEST_OPTS,
+    prefix="64bit",
+    schema="64bit/empty_force_align.fbs",
+)
+flatc(
+    CPP_TEST_OPTS,
+    prefix="64bit/evolution",
+    schema=["64bit/evolution/v1.fbs", "64bit/evolution/v2.fbs"],
+)
+flatc(
+    CPP_TEST_OPTS, prefix="key_field", schema="key_field/key_field_sample.fbs"
+)
+flatc(
+    CPP_TEST_OPTS + ["--scoped-enums"], schema="union_underlying_type_test.fbs"
+)
+
+# benchmarks/CMakeLists.txt, with FLATBUFFERS_BUILD_BENCHMARKS.
+flatc(
+    ["--cpp"],
+    schema="cpp/flatbuffers/bench.fbs",
+    prefix="cpp/flatbuffers",
+    cwd=Path(root_path, "benchmarks"),
+)
 
 # Reflection
 
@@ -640,6 +920,8 @@ if not args.skip_gen_reflection:
       "include/flatbuffers",
       "reflection_generated.h",
   )
+else:
+  note_unwritten("include/flatbuffers/reflection_generated.h")
 
 # Python Reflection
 flatc_reflection(["-p"], "python/flatbuffers", "reflection")
@@ -650,6 +932,10 @@ flatc_reflection(
     "java/src/main/java",
     "com/google/flatbuffers/reflection",
 )
+
+# Rust Reflection, compiled by the flatbuffers-reflection crate. Formatted below
+# with that crate's edition.
+flatc_reflection(["--rust"], "rust/reflection/src", "reflection_generated.rs")
 
 # Annotation
 
@@ -787,7 +1073,8 @@ def format_generated_code():
 
   def sources(path, pattern):
     files = [
-        f for f in glob(path, pattern)
+        f
+        for f in glob(path, pattern)
         if not skip_dirs.intersection(Path(f).parts)
     ]
     # Hand the formatters LF no matter how the tree was checked out.
@@ -815,18 +1102,48 @@ def format_generated_code():
   # formatted C++, so we leave it as-is. The formatters used below (gofmt,
   # rustfmt, prettier) are stable/pinnable across the toolchains CI installs.
 
-  # Rust generated modules.
+  # Rust generated modules, under every root this script writes Rust into.
+  # Each file is formatted with the edition of the nearest enclosing crate, so
+  # `cargo fmt` in that crate agrees with what is committed; editions differ
+  # in style (2024 is not 2018). Files outside any crate, like the shared test
+  # corpus, use 2018.
+  def rust_edition(path):
+    for parent in Path(path).parents:
+      manifest = Path(parent, "Cargo.toml")
+      if manifest.is_file():
+        found = re.search(
+            r'^edition\s*=\s*"(\d+)"', manifest.read_text(), re.MULTILINE
+        )
+        if found:
+          return found.group(1)
+      if parent == root_path:
+        break
+    return "2018"
+
   if have("rustfmt"):
-    rs = sources(tests, "**/*_generated.rs")
-    if rs:
-      run_chunked(["rustfmt", "--edition", "2018"], rs)
-    print(f"[format] rustfmt: {len(rs)} Rust files", flush=True)
+    by_edition = {}
+    # The reflection module is generated into a scratch directory, then moved
+    # into the crate, so its final location is listed here.
+    for f in sorted({
+        f
+        for d in (*rust_output_dirs, Path(root_path, "rust/reflection/src"))
+        for f in sources(d, "**/*_generated.rs")
+    }):
+      by_edition.setdefault(rust_edition(f), []).append(f)
+    for edition, rs in sorted(by_edition.items()):
+      run_chunked(["rustfmt", "--edition", edition], rs)
+      print(
+          f"[format] rustfmt --edition {edition}: {len(rs)} Rust files",
+          flush=True,
+      )
   else:
     print("[format] rustfmt not found; skipping Rust", flush=True)
 
   # Go generated code (no _generated suffix; gofmt is idempotent and safe).
+  # examples/ is included because its generated code sits beside hand-written
+  # programs that people read and copy.
   if have("gofmt"):
-    go = sources(tests, "**/*.go")
+    go = sources(tests, "**/*.go") + sources(examples_path, "**/*.go")
     if go:
       run_chunked(["gofmt", "-w"], go)
     print(f"[format] gofmt: {len(go)} Go files", flush=True)
@@ -856,3 +1173,11 @@ def format_generated_code():
 
 
 format_generated_code()
+
+# Goldens last, so a failure here leaves everything above complete and
+# formatted. Its own process: it imports scripts/util.py under another name.
+subprocess.run(
+    [sys.executable, str(Path(root_path, "goldens", "generate_goldens.py"))]
+    + sys.argv[1:],
+    check=True,
+)

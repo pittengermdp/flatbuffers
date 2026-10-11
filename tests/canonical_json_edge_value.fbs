@@ -1,0 +1,6 @@
+// A namespace whose Go package alias, value, is a word generated JSON code
+// once used as a local name: code reading a value.Leaf shadowed the package
+// and failed to compile. canonical_json_edge.fbs refers to it.
+namespace value;
+
+table Leaf { id: int; }

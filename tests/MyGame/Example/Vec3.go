@@ -15,102 +15,102 @@ type Vec3T struct {
 	Test3 *TestT  `json:"test3,omitempty"`
 }
 
-func (t *Vec3T) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *Vec3T) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	if t.Test3 == nil {
-		t.Test3 = &TestT{}
+	if t_.Test3 == nil {
+		t_.Test3 = &TestT{}
 	}
-	return CreateVec3(builder, t.X, t.Y, t.Z, t.Test1, t.Test2, t.Test3.A, t.Test3.B)
+	return CreateVec3(builder_, t_.X, t_.Y, t_.Z, t_.Test1, t_.Test2, t_.Test3.A, t_.Test3.B)
 }
-func (rcv *Vec3) UnPackTo(t *Vec3T) {
-	t.X = rcv.X()
-	t.Y = rcv.Y()
-	t.Z = rcv.Z()
-	t.Test1 = rcv.Test1()
-	t.Test2 = rcv.Test2()
-	t.Test3 = rcv.Test3(nil).UnPack()
+func (rcv_ *Vec3) UnPackTo(t_ *Vec3T) {
+	t_.X = rcv_.X()
+	t_.Y = rcv_.Y()
+	t_.Z = rcv_.Z()
+	t_.Test1 = rcv_.Test1()
+	t_.Test2 = rcv_.Test2()
+	t_.Test3 = rcv_.Test3(nil).UnPack()
 }
 
-func (rcv *Vec3) UnPack() *Vec3T {
-	if rcv == nil {
+func (rcv_ *Vec3) UnPack() *Vec3T {
+	if rcv_ == nil {
 		return nil
 	}
-	t := &Vec3T{}
-	rcv.UnPackTo(t)
-	return t
+	t_ := &Vec3T{}
+	rcv_.UnPackTo(t_)
+	return t_
 }
 
 type Vec3 struct {
 	_tab flatbuffers.Struct
 }
 
-func (rcv *Vec3) Init(buf []byte, i flatbuffers.UOffsetT) {
-	rcv._tab.Bytes = buf
-	rcv._tab.Pos = i
+func (rcv_ *Vec3) Init(buf_ []byte, i_ flatbuffers.UOffsetT) {
+	rcv_._tab.Bytes = buf_
+	rcv_._tab.Pos = i_
 }
 
-func (rcv *Vec3) Table() flatbuffers.Table {
-	return rcv._tab.Table
+func (rcv_ *Vec3) Table() flatbuffers.Table {
+	return rcv_._tab.Table
 }
 
-func (rcv *Vec3) X() float32 {
-	return rcv._tab.GetFloat32(rcv._tab.Pos + flatbuffers.UOffsetT(0))
+func (rcv_ *Vec3) X() float32 {
+	return rcv_._tab.GetFloat32(rcv_._tab.Pos + flatbuffers.UOffsetT(0))
 }
-func (rcv *Vec3) MutateX(n float32) bool {
-	return rcv._tab.MutateFloat32(rcv._tab.Pos+flatbuffers.UOffsetT(0), n)
-}
-
-func (rcv *Vec3) Y() float32 {
-	return rcv._tab.GetFloat32(rcv._tab.Pos + flatbuffers.UOffsetT(4))
-}
-func (rcv *Vec3) MutateY(n float32) bool {
-	return rcv._tab.MutateFloat32(rcv._tab.Pos+flatbuffers.UOffsetT(4), n)
+func (rcv_ *Vec3) MutateX(n_ float32) bool {
+	return rcv_._tab.MutateFloat32(rcv_._tab.Pos+flatbuffers.UOffsetT(0), n_)
 }
 
-func (rcv *Vec3) Z() float32 {
-	return rcv._tab.GetFloat32(rcv._tab.Pos + flatbuffers.UOffsetT(8))
+func (rcv_ *Vec3) Y() float32 {
+	return rcv_._tab.GetFloat32(rcv_._tab.Pos + flatbuffers.UOffsetT(4))
 }
-func (rcv *Vec3) MutateZ(n float32) bool {
-	return rcv._tab.MutateFloat32(rcv._tab.Pos+flatbuffers.UOffsetT(8), n)
-}
-
-func (rcv *Vec3) Test1() float64 {
-	return rcv._tab.GetFloat64(rcv._tab.Pos + flatbuffers.UOffsetT(16))
-}
-func (rcv *Vec3) MutateTest1(n float64) bool {
-	return rcv._tab.MutateFloat64(rcv._tab.Pos+flatbuffers.UOffsetT(16), n)
+func (rcv_ *Vec3) MutateY(n_ float32) bool {
+	return rcv_._tab.MutateFloat32(rcv_._tab.Pos+flatbuffers.UOffsetT(4), n_)
 }
 
-func (rcv *Vec3) Test2() Color {
-	return Color(rcv._tab.GetByte(rcv._tab.Pos + flatbuffers.UOffsetT(24)))
+func (rcv_ *Vec3) Z() float32 {
+	return rcv_._tab.GetFloat32(rcv_._tab.Pos + flatbuffers.UOffsetT(8))
 }
-func (rcv *Vec3) MutateTest2(n Color) bool {
-	return rcv._tab.MutateByte(rcv._tab.Pos+flatbuffers.UOffsetT(24), byte(n))
+func (rcv_ *Vec3) MutateZ(n_ float32) bool {
+	return rcv_._tab.MutateFloat32(rcv_._tab.Pos+flatbuffers.UOffsetT(8), n_)
 }
 
-func (rcv *Vec3) Test3(obj *Test) *Test {
-	if obj == nil {
-		obj = new(Test)
+func (rcv_ *Vec3) Test1() float64 {
+	return rcv_._tab.GetFloat64(rcv_._tab.Pos + flatbuffers.UOffsetT(16))
+}
+func (rcv_ *Vec3) MutateTest1(n_ float64) bool {
+	return rcv_._tab.MutateFloat64(rcv_._tab.Pos+flatbuffers.UOffsetT(16), n_)
+}
+
+func (rcv_ *Vec3) Test2() Color {
+	return Color(rcv_._tab.GetByte(rcv_._tab.Pos + flatbuffers.UOffsetT(24)))
+}
+func (rcv_ *Vec3) MutateTest2(n_ Color) bool {
+	return rcv_._tab.MutateByte(rcv_._tab.Pos+flatbuffers.UOffsetT(24), byte(n_))
+}
+
+func (rcv_ *Vec3) Test3(obj_ *Test) *Test {
+	if obj_ == nil {
+		obj_ = new(Test)
 	}
-	obj.Init(rcv._tab.Bytes, rcv._tab.Pos+26)
-	return obj
+	obj_.Init(rcv_._tab.Bytes, rcv_._tab.Pos+26)
+	return obj_
 }
 
-func CreateVec3(builder *flatbuffers.Builder, x float32, y float32, z float32, test1 float64, test2 Color, test3_a int16, test3_b int8) flatbuffers.UOffsetT {
-	builder.Prep(8, 32)
-	builder.Pad(2)
-	builder.Prep(2, 4)
-	builder.Pad(1)
-	builder.PrependInt8(test3_b)
-	builder.PrependInt16(test3_a)
-	builder.Pad(1)
-	builder.PrependByte(byte(test2))
-	builder.PrependFloat64(test1)
-	builder.Pad(4)
-	builder.PrependFloat32(z)
-	builder.PrependFloat32(y)
-	builder.PrependFloat32(x)
-	return builder.Offset()
+func CreateVec3(builder_ *flatbuffers.Builder, xArg_ float32, yArg_ float32, zArg_ float32, test1Arg_ float64, test2Arg_ Color, test3_aArg_ int16, test3_bArg_ int8) flatbuffers.UOffsetT {
+	builder_.Prep(8, 32)
+	builder_.Pad(2)
+	builder_.Prep(2, 4)
+	builder_.Pad(1)
+	builder_.PrependInt8(test3_bArg_)
+	builder_.PrependInt16(test3_aArg_)
+	builder_.Pad(1)
+	builder_.PrependByte(byte(test2Arg_))
+	builder_.PrependFloat64(test1Arg_)
+	builder_.Pad(4)
+	builder_.PrependFloat32(zArg_)
+	builder_.PrependFloat32(yArg_)
+	builder_.PrependFloat32(xArg_)
+	return builder_.Offset()
 }

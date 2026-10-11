@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "include_test1.schema.json",
+  "$defs": {
+    "TableA" : {
+      "type" : "object",
+      "properties" : {
+        "b" : {
+                "$ref" : "include_test2.schema.json#/$defs/MyGame_OtherNameSpace_TableB"
+              }
+      },
+      "additionalProperties" : false
+    }
+  }
+}

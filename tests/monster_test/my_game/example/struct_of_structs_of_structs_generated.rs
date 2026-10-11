@@ -14,14 +14,8 @@ use alloc::vec::Vec;
 
 // struct StructOfStructsOfStructs, aligned to 4
 #[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Default)]
 pub struct StructOfStructsOfStructs(pub [u8; 20]);
-
-impl Default for StructOfStructsOfStructs {
-    fn default() -> Self {
-        Self([0; 20])
-    }
-}
 
 impl ::core::fmt::Debug for StructOfStructsOfStructs {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
@@ -51,14 +45,14 @@ impl<'a> ::flatbuffers::Follow<'a> for &'a StructOfStructsOfStructs {
     }
 }
 
-impl<'b> ::flatbuffers::Push for StructOfStructsOfStructs {
+impl ::flatbuffers::Push for StructOfStructsOfStructs {
     type Output = Self;
 
     #[inline]
     unsafe fn push(&self, dst: &mut [u8], _written_len: usize) {
         let src = unsafe {
             ::core::slice::from_raw_parts(
-                self as *const StructOfStructsOfStructs as *const u8,
+                ::core::ptr::addr_of!(*self).cast::<u8>(),
                 <Self as ::flatbuffers::Push>::size(),
             )
         };
@@ -81,7 +75,7 @@ impl ::flatbuffers::Verifiable for StructOfStructsOfStructs {
     }
 }
 
-impl<'a> StructOfStructsOfStructs {
+impl StructOfStructsOfStructs {
     #[allow(clippy::too_many_arguments)]
     #[must_use]
     pub fn new(a: &StructOfStructs) -> Self {
@@ -100,7 +94,7 @@ impl<'a> StructOfStructsOfStructs {
         // Safety:
         // Created from a valid Table for this object
         // Which contains a valid struct in this slot
-        unsafe { &*(self.0[0..].as_ptr() as *const StructOfStructs) }
+        unsafe { &*self.0[0..].as_ptr().cast::<StructOfStructs>() }
     }
 
     #[allow(clippy::identity_op)]
@@ -116,16 +110,9 @@ impl<'a> StructOfStructsOfStructs {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Default, Eq, Hash)]
 pub struct StructOfStructsOfStructsT {
     pub a: StructOfStructsT,
-}
-impl Default for StructOfStructsOfStructsT {
-    fn default() -> Self {
-        Self {
-            a: Default::default(),
-        }
-    }
 }
 
 impl StructOfStructsOfStructsT {

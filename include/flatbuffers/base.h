@@ -141,7 +141,7 @@
 
 #define FLATBUFFERS_VERSION_MAJOR 0
 #define FLATBUFFERS_VERSION_MINOR 5
-#define FLATBUFFERS_VERSION_REVISION 7
+#define FLATBUFFERS_VERSION_REVISION 8
 #define FLATBUFFERS_STRING_EXPAND(X) #X
 #define FLATBUFFERS_STRING(X) FLATBUFFERS_STRING_EXPAND(X)
 namespace flatbuffers {
@@ -467,16 +467,19 @@ inline size_t PaddingBytes(size_t buf_size, size_t scalar_size) {
 // T e - new value of a scalar field.
 // T def - default of scalar (is known at compile-time).
 template<typename T> inline bool IsTheSameAs(T e, T def) { return e == def; }
+
+// Like `operator==(e, def)` with weak NaN if T=(float|double): any NaN equals
+// any NaN, and -0.0 equals +0.0. Generated `operator==` (--gen-compare) uses it
+// for every float and double, so that an object always equals itself.
+template<typename T> inline bool IsFloatTheSameAs(T e, T def) {
+  return (e == def) || ((def != def) && (e != e));
+}
 #if !defined(_MSC_VER)
   #pragma GCC diagnostic pop
 #endif
 
 #if defined(FLATBUFFERS_NAN_DEFAULTS) && \
     defined(FLATBUFFERS_HAS_NEW_STRTOD) && (FLATBUFFERS_HAS_NEW_STRTOD > 0)
-// Like `operator==(e, def)` with weak NaN if T=(float|double).
-template<typename T> inline bool IsFloatTheSameAs(T e, T def) {
-  return (e == def) || ((def != def) && (e != e));
-}
 template<> inline bool IsTheSameAs<float>(float e, float def) {
   return IsFloatTheSameAs(e, def);
 }

@@ -10,26 +10,26 @@ type ReferrableT struct {
 	Id uint64 `json:"id,omitempty"`
 }
 
-func (t *ReferrableT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *ReferrableT) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	ReferrableStart(builder)
-	ReferrableAddId(builder, t.Id)
-	return ReferrableEnd(builder)
+	ReferrableStart(builder_)
+	ReferrableAddId(builder_, t_.Id)
+	return ReferrableEnd(builder_)
 }
 
-func (rcv *Referrable) UnPackTo(t *ReferrableT) {
-	t.Id = rcv.Id()
+func (rcv_ *Referrable) UnPackTo(t_ *ReferrableT) {
+	t_.Id = rcv_.Id()
 }
 
-func (rcv *Referrable) UnPack() *ReferrableT {
-	if rcv == nil {
+func (rcv_ *Referrable) UnPack() *ReferrableT {
+	if rcv_ == nil {
 		return nil
 	}
-	t := &ReferrableT{}
-	rcv.UnPackTo(t)
-	return t
+	t_ := &ReferrableT{}
+	rcv_.UnPackTo(t_)
+	return t_
 }
 
 const (
@@ -40,138 +40,138 @@ const (
 // Fields not in the list are left at their zero/default values.
 // This avoids materializing the entire table tree. Pass the
 // generated ReferrableField* constants rather than raw strings.
-func (rcv *Referrable) UnpackFields(fields ...string) *ReferrableT {
-	t := &ReferrableT{}
-	fieldSet := make(map[string]bool, len(fields))
-	for _, f := range fields {
-		fieldSet[f] = true
+func (rcv_ *Referrable) UnpackFields(fields_ ...string) *ReferrableT {
+	t_ := &ReferrableT{}
+	fieldSet_ := make(map[string]bool, len(fields_))
+	for _, f_ := range fields_ {
+		fieldSet_[f_] = true
 	}
-	if fieldSet["id"] {
-		t.Id = rcv.Id()
+	if fieldSet_["id"] {
+		t_.Id = rcv_.Id()
 	}
-	return t
+	return t_
 }
 
 type Referrable struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsReferrable(buf []byte, offset flatbuffers.UOffsetT) *Referrable {
-	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &Referrable{}
-	x.Init(buf, n+offset)
-	return x
+func GetRootAsReferrable(buf_ []byte, offset_ flatbuffers.UOffsetT) *Referrable {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_:])
+	x_ := &Referrable{}
+	x_.Init(buf_, n_+offset_)
+	return x_
 }
 
-func FinishReferrableBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.Finish(offset)
+func FinishReferrableBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.Finish(offset_)
 }
 
-func GetSizePrefixedRootAsReferrable(buf []byte, offset flatbuffers.UOffsetT) *Referrable {
-	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &Referrable{}
-	x.Init(buf, n+offset+flatbuffers.SizeUint32)
-	return x
+func GetSizePrefixedRootAsReferrable(buf_ []byte, offset_ flatbuffers.UOffsetT) *Referrable {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_+flatbuffers.SizeUint32:])
+	x_ := &Referrable{}
+	x_.Init(buf_, n_+offset_+flatbuffers.SizeUint32)
+	return x_
 }
 
-func FinishSizePrefixedReferrableBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.FinishSizePrefixed(offset)
+func FinishSizePrefixedReferrableBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.FinishSizePrefixed(offset_)
 }
 
-func VerifyRootAsReferrable(buf []byte, opts *flatbuffers.VerifierOptions) error {
-	v := flatbuffers.NewVerifier(buf, opts)
-	tablePos, err := v.CheckUOffsetT(0)
-	if err != nil {
-		return err
+func VerifyRootAsReferrable(buf_ []byte, opts_ *flatbuffers.VerifierOptions) error {
+	v_ := flatbuffers.NewVerifier(buf_, opts_)
+	tablePos_, err_ := v_.CheckUOffsetT(0)
+	if err_ != nil {
+		return err_
 	}
-	return verifyReferrable(v, int(tablePos))
+	return verifyReferrable(v_, int(tablePos_))
 }
 
-func VerifyReferrable(v *flatbuffers.Verifier, tablePos int) error {
-	return verifyReferrable(v, tablePos)
+func VerifyReferrable(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	return verifyReferrable(v_, tablePos_)
 }
 
-func verifyReferrable(v *flatbuffers.Verifier, tablePos int) error {
-	if err := v.CheckTable(tablePos); err != nil {
-		return err
+func verifyReferrable(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	if err_ := v_.CheckTable(tablePos_); err_ != nil {
+		return err_
 	}
-	if err := v.CountTable(); err != nil {
-		return err
+	if err_ := v_.CountTable(); err_ != nil {
+		return err_
 	}
-	if err := v.PushDepth(); err != nil {
-		return err
+	if err_ := v_.PushDepth(); err_ != nil {
+		return err_
 	}
-	defer v.PopDepth()
+	defer v_.PopDepth()
 
-	if err := v.CheckScalarField(tablePos, 4, 8); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 4, 8); err_ != nil {
+		return err_
 	}
 	return nil
 }
 
-func (rcv *Referrable) Init(buf []byte, i flatbuffers.UOffsetT) {
-	rcv._tab.Bytes = buf
-	rcv._tab.Pos = i
+func (rcv_ *Referrable) Init(buf_ []byte, i_ flatbuffers.UOffsetT) {
+	rcv_._tab.Bytes = buf_
+	rcv_._tab.Pos = i_
 }
 
-func (rcv *Referrable) Table() flatbuffers.Table {
-	return rcv._tab
+func (rcv_ *Referrable) Table() flatbuffers.Table {
+	return rcv_._tab
 }
 
-func (rcv *Referrable) Id() uint64 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
-	if o != 0 {
-		return rcv._tab.GetUint64(o + rcv._tab.Pos)
+func (rcv_ *Referrable) Id() uint64 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(4))
+	if o_ != 0 {
+		return rcv_._tab.GetUint64(o_ + rcv_._tab.Pos)
 	}
 	return 0
 }
 
-func (rcv *Referrable) MutateId(n uint64) bool {
-	return rcv._tab.MutateUint64Slot(4, n)
+func (rcv_ *Referrable) MutateId(n_ uint64) bool {
+	return rcv_._tab.MutateUint64Slot(4, n_)
 }
 
-func ReferrableKeyCompare(o1, o2 flatbuffers.UOffsetT, buf []byte) bool {
-	var obj1, obj2 Referrable
-	obj1.Init(buf, flatbuffers.UOffsetT(len(buf))-o1)
-	obj2.Init(buf, flatbuffers.UOffsetT(len(buf))-o2)
-	return obj1.Id() < obj2.Id()
+func ReferrableKeyCompare(o1_, o2_ flatbuffers.UOffsetT, buf_ []byte) bool {
+	var obj1_, obj2_ Referrable
+	obj1_.Init(buf_, flatbuffers.UOffsetT(len(buf_))-o1_)
+	obj2_.Init(buf_, flatbuffers.UOffsetT(len(buf_))-o2_)
+	return obj1_.Id() < obj2_.Id()
 }
 
-func (rcv *Referrable) LookupByKey(key uint64, vectorLocation flatbuffers.UOffsetT, buf []byte) bool {
-	span := flatbuffers.GetUOffsetT(buf[vectorLocation-4:])
-	start := flatbuffers.UOffsetT(0)
-	for span != 0 {
-		middle := span / 2
-		tableOffset := flatbuffers.GetIndirectOffset(buf, vectorLocation+4*(start+middle))
-		var obj Referrable
-		obj.Init(buf, tableOffset)
-		val := obj.Id()
-		comp := 0
-		if val > key {
-			comp = 1
-		} else if val < key {
-			comp = -1
+func (rcv_ *Referrable) LookupByKey(key_ uint64, vectorLocation_ flatbuffers.UOffsetT, buf_ []byte) bool {
+	span_ := flatbuffers.GetUOffsetT(buf_[vectorLocation_-4:])
+	start_ := flatbuffers.UOffsetT(0)
+	for span_ != 0 {
+		middle_ := span_ / 2
+		tableOffset_ := flatbuffers.GetIndirectOffset(buf_, vectorLocation_+4*(start_+middle_))
+		var obj_ Referrable
+		obj_.Init(buf_, tableOffset_)
+		val_ := obj_.Id()
+		comp_ := 0
+		if val_ > key_ {
+			comp_ = 1
+		} else if val_ < key_ {
+			comp_ = -1
 		}
-		if comp > 0 {
-			span = middle
-		} else if comp < 0 {
-			middle += 1
-			start += middle
-			span -= middle
+		if comp_ > 0 {
+			span_ = middle_
+		} else if comp_ < 0 {
+			middle_ += 1
+			start_ += middle_
+			span_ -= middle_
 		} else {
-			rcv.Init(buf, tableOffset)
+			rcv_.Init(buf_, tableOffset_)
 			return true
 		}
 	}
 	return false
 }
 
-func ReferrableStart(builder *flatbuffers.Builder) {
-	builder.StartObject(1)
+func ReferrableStart(builder_ *flatbuffers.Builder) {
+	builder_.StartObject(1)
 }
-func ReferrableAddId(builder *flatbuffers.Builder, id uint64) {
-	builder.PrependUint64Slot(0, id, 0)
+func ReferrableAddId(builder_ *flatbuffers.Builder, idArg_ uint64) {
+	builder_.PrependUint64Slot(0, idArg_, 0)
 }
-func ReferrableEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	return builder.EndObject()
+func ReferrableEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder_.EndObject()
 }

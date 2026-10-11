@@ -447,7 +447,7 @@ struct D FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyField<int32_t>(verifier, VT_TEST_UNION_TYPE, 1) &&
+           VerifyField<int32_t>(verifier, VT_TEST_UNION_TYPE, 4) &&
            VerifyOffset(verifier, VT_TEST_UNION) &&
            VerifyABC(verifier, test_union(), test_union_type()) &&
            VerifyOffset(verifier, VT_TEST_VECTOR_OF_UNION_TYPE) &&
@@ -884,9 +884,9 @@ inline const ::flatbuffers::TypeTable *CTypeTable() {
 
 inline const ::flatbuffers::TypeTable *DTypeTable() {
   static const ::flatbuffers::TypeCode type_codes[] = {
-    { ::flatbuffers::ET_UTYPE, 0, 0 },
+    { ::flatbuffers::ET_INT, 0, 0 },
     { ::flatbuffers::ET_SEQUENCE, 0, 0 },
-    { ::flatbuffers::ET_UTYPE, 1, 0 },
+    { ::flatbuffers::ET_INT, 1, 0 },
     { ::flatbuffers::ET_SEQUENCE, 1, 0 }
   };
   static const ::flatbuffers::TypeFunction type_refs[] = {

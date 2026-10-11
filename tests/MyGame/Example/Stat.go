@@ -12,34 +12,34 @@ type StatT struct {
 	Count uint16 `json:"count,omitempty"`
 }
 
-func (t *StatT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *StatT) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	idOffset := flatbuffers.UOffsetT(0)
-	if t.Id != "" {
-		idOffset = builder.CreateString(t.Id)
+	idOffset_ := flatbuffers.UOffsetT(0)
+	if t_.Id != "" {
+		idOffset_ = builder_.CreateString(t_.Id)
 	}
-	StatStart(builder)
-	StatAddId(builder, idOffset)
-	StatAddVal(builder, t.Val)
-	StatAddCount(builder, t.Count)
-	return StatEnd(builder)
+	StatStart(builder_)
+	StatAddId(builder_, idOffset_)
+	StatAddVal(builder_, t_.Val)
+	StatAddCount(builder_, t_.Count)
+	return StatEnd(builder_)
 }
 
-func (rcv *Stat) UnPackTo(t *StatT) {
-	t.Id = string(rcv.Id())
-	t.Val = rcv.Val()
-	t.Count = rcv.Count()
+func (rcv_ *Stat) UnPackTo(t_ *StatT) {
+	t_.Id = string(rcv_.Id())
+	t_.Val = rcv_.Val()
+	t_.Count = rcv_.Count()
 }
 
-func (rcv *Stat) UnPack() *StatT {
-	if rcv == nil {
+func (rcv_ *Stat) UnPack() *StatT {
+	if rcv_ == nil {
 		return nil
 	}
-	t := &StatT{}
-	rcv.UnPackTo(t)
-	return t
+	t_ := &StatT{}
+	rcv_.UnPackTo(t_)
+	return t_
 }
 
 const (
@@ -52,180 +52,180 @@ const (
 // Fields not in the list are left at their zero/default values.
 // This avoids materializing the entire table tree. Pass the
 // generated StatField* constants rather than raw strings.
-func (rcv *Stat) UnpackFields(fields ...string) *StatT {
-	t := &StatT{}
-	fieldSet := make(map[string]bool, len(fields))
-	for _, f := range fields {
-		fieldSet[f] = true
+func (rcv_ *Stat) UnpackFields(fields_ ...string) *StatT {
+	t_ := &StatT{}
+	fieldSet_ := make(map[string]bool, len(fields_))
+	for _, f_ := range fields_ {
+		fieldSet_[f_] = true
 	}
-	if fieldSet["id"] {
-		t.Id = string(rcv.Id())
+	if fieldSet_["id"] {
+		t_.Id = string(rcv_.Id())
 	}
-	if fieldSet["val"] {
-		t.Val = rcv.Val()
+	if fieldSet_["val"] {
+		t_.Val = rcv_.Val()
 	}
-	if fieldSet["count"] {
-		t.Count = rcv.Count()
+	if fieldSet_["count"] {
+		t_.Count = rcv_.Count()
 	}
-	return t
+	return t_
 }
 
 type Stat struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsStat(buf []byte, offset flatbuffers.UOffsetT) *Stat {
-	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &Stat{}
-	x.Init(buf, n+offset)
-	return x
+func GetRootAsStat(buf_ []byte, offset_ flatbuffers.UOffsetT) *Stat {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_:])
+	x_ := &Stat{}
+	x_.Init(buf_, n_+offset_)
+	return x_
 }
 
-func FinishStatBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.Finish(offset)
+func FinishStatBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.Finish(offset_)
 }
 
-func GetSizePrefixedRootAsStat(buf []byte, offset flatbuffers.UOffsetT) *Stat {
-	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &Stat{}
-	x.Init(buf, n+offset+flatbuffers.SizeUint32)
-	return x
+func GetSizePrefixedRootAsStat(buf_ []byte, offset_ flatbuffers.UOffsetT) *Stat {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_+flatbuffers.SizeUint32:])
+	x_ := &Stat{}
+	x_.Init(buf_, n_+offset_+flatbuffers.SizeUint32)
+	return x_
 }
 
-func FinishSizePrefixedStatBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.FinishSizePrefixed(offset)
+func FinishSizePrefixedStatBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.FinishSizePrefixed(offset_)
 }
 
-func VerifyRootAsStat(buf []byte, opts *flatbuffers.VerifierOptions) error {
-	v := flatbuffers.NewVerifier(buf, opts)
-	tablePos, err := v.CheckUOffsetT(0)
-	if err != nil {
-		return err
+func VerifyRootAsStat(buf_ []byte, opts_ *flatbuffers.VerifierOptions) error {
+	v_ := flatbuffers.NewVerifier(buf_, opts_)
+	tablePos_, err_ := v_.CheckUOffsetT(0)
+	if err_ != nil {
+		return err_
 	}
-	return verifyStat(v, int(tablePos))
+	return verifyStat(v_, int(tablePos_))
 }
 
-func VerifyStat(v *flatbuffers.Verifier, tablePos int) error {
-	return verifyStat(v, tablePos)
+func VerifyStat(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	return verifyStat(v_, tablePos_)
 }
 
-func verifyStat(v *flatbuffers.Verifier, tablePos int) error {
-	if err := v.CheckTable(tablePos); err != nil {
-		return err
+func verifyStat(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	if err_ := v_.CheckTable(tablePos_); err_ != nil {
+		return err_
 	}
-	if err := v.CountTable(); err != nil {
-		return err
+	if err_ := v_.CountTable(); err_ != nil {
+		return err_
 	}
-	if err := v.PushDepth(); err != nil {
-		return err
+	if err_ := v_.PushDepth(); err_ != nil {
+		return err_
 	}
-	defer v.PopDepth()
+	defer v_.PopDepth()
 
-	if pos, err := v.CheckOffsetField(tablePos, 4); err != nil {
-		return err
-	} else if pos != 0 {
-		if err := v.CheckString(pos); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 4); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := v_.CheckString(pos_); err_ != nil {
+			return err_
 		}
 	}
-	if err := v.CheckScalarField(tablePos, 6, 8); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 6, 8); err_ != nil {
+		return err_
 	}
-	if err := v.CheckScalarField(tablePos, 8, 2); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 8, 2); err_ != nil {
+		return err_
 	}
 	return nil
 }
 
-func (rcv *Stat) Init(buf []byte, i flatbuffers.UOffsetT) {
-	rcv._tab.Bytes = buf
-	rcv._tab.Pos = i
+func (rcv_ *Stat) Init(buf_ []byte, i_ flatbuffers.UOffsetT) {
+	rcv_._tab.Bytes = buf_
+	rcv_._tab.Pos = i_
 }
 
-func (rcv *Stat) Table() flatbuffers.Table {
-	return rcv._tab
+func (rcv_ *Stat) Table() flatbuffers.Table {
+	return rcv_._tab
 }
 
-func (rcv *Stat) Id() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
-	if o != 0 {
-		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+func (rcv_ *Stat) Id() []byte {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(4))
+	if o_ != 0 {
+		return rcv_._tab.ByteVector(o_ + rcv_._tab.Pos)
 	}
 	return nil
 }
 
-func (rcv *Stat) Val() int64 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
-	if o != 0 {
-		return rcv._tab.GetInt64(o + rcv._tab.Pos)
+func (rcv_ *Stat) Val() int64 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(6))
+	if o_ != 0 {
+		return rcv_._tab.GetInt64(o_ + rcv_._tab.Pos)
 	}
 	return 0
 }
 
-func (rcv *Stat) MutateVal(n int64) bool {
-	return rcv._tab.MutateInt64Slot(6, n)
+func (rcv_ *Stat) MutateVal(n_ int64) bool {
+	return rcv_._tab.MutateInt64Slot(6, n_)
 }
 
-func (rcv *Stat) Count() uint16 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
-	if o != 0 {
-		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+func (rcv_ *Stat) Count() uint16 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(8))
+	if o_ != 0 {
+		return rcv_._tab.GetUint16(o_ + rcv_._tab.Pos)
 	}
 	return 0
 }
 
-func (rcv *Stat) MutateCount(n uint16) bool {
-	return rcv._tab.MutateUint16Slot(8, n)
+func (rcv_ *Stat) MutateCount(n_ uint16) bool {
+	return rcv_._tab.MutateUint16Slot(8, n_)
 }
 
-func StatKeyCompare(o1, o2 flatbuffers.UOffsetT, buf []byte) bool {
-	var obj1, obj2 Stat
-	obj1.Init(buf, flatbuffers.UOffsetT(len(buf))-o1)
-	obj2.Init(buf, flatbuffers.UOffsetT(len(buf))-o2)
-	return obj1.Count() < obj2.Count()
+func StatKeyCompare(o1_, o2_ flatbuffers.UOffsetT, buf_ []byte) bool {
+	var obj1_, obj2_ Stat
+	obj1_.Init(buf_, flatbuffers.UOffsetT(len(buf_))-o1_)
+	obj2_.Init(buf_, flatbuffers.UOffsetT(len(buf_))-o2_)
+	return obj1_.Count() < obj2_.Count()
 }
 
-func (rcv *Stat) LookupByKey(key uint16, vectorLocation flatbuffers.UOffsetT, buf []byte) bool {
-	span := flatbuffers.GetUOffsetT(buf[vectorLocation-4:])
-	start := flatbuffers.UOffsetT(0)
-	for span != 0 {
-		middle := span / 2
-		tableOffset := flatbuffers.GetIndirectOffset(buf, vectorLocation+4*(start+middle))
-		var obj Stat
-		obj.Init(buf, tableOffset)
-		val := obj.Count()
-		comp := 0
-		if val > key {
-			comp = 1
-		} else if val < key {
-			comp = -1
+func (rcv_ *Stat) LookupByKey(key_ uint16, vectorLocation_ flatbuffers.UOffsetT, buf_ []byte) bool {
+	span_ := flatbuffers.GetUOffsetT(buf_[vectorLocation_-4:])
+	start_ := flatbuffers.UOffsetT(0)
+	for span_ != 0 {
+		middle_ := span_ / 2
+		tableOffset_ := flatbuffers.GetIndirectOffset(buf_, vectorLocation_+4*(start_+middle_))
+		var obj_ Stat
+		obj_.Init(buf_, tableOffset_)
+		val_ := obj_.Count()
+		comp_ := 0
+		if val_ > key_ {
+			comp_ = 1
+		} else if val_ < key_ {
+			comp_ = -1
 		}
-		if comp > 0 {
-			span = middle
-		} else if comp < 0 {
-			middle += 1
-			start += middle
-			span -= middle
+		if comp_ > 0 {
+			span_ = middle_
+		} else if comp_ < 0 {
+			middle_ += 1
+			start_ += middle_
+			span_ -= middle_
 		} else {
-			rcv.Init(buf, tableOffset)
+			rcv_.Init(buf_, tableOffset_)
 			return true
 		}
 	}
 	return false
 }
 
-func StatStart(builder *flatbuffers.Builder) {
-	builder.StartObject(3)
+func StatStart(builder_ *flatbuffers.Builder) {
+	builder_.StartObject(3)
 }
-func StatAddId(builder *flatbuffers.Builder, id flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(id), 0)
+func StatAddId(builder_ *flatbuffers.Builder, idArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(idArg_), 0)
 }
-func StatAddVal(builder *flatbuffers.Builder, val int64) {
-	builder.PrependInt64Slot(1, val, 0)
+func StatAddVal(builder_ *flatbuffers.Builder, valArg_ int64) {
+	builder_.PrependInt64Slot(1, valArg_, 0)
 }
-func StatAddCount(builder *flatbuffers.Builder, count uint16) {
-	builder.PrependUint16Slot(2, count, 0)
+func StatAddCount(builder_ *flatbuffers.Builder, countArg_ uint16) {
+	builder_.PrependUint16Slot(2, countArg_, 0)
 }
-func StatEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	return builder.EndObject()
+func StatEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder_.EndObject()
 }

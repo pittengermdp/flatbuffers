@@ -10,26 +10,26 @@ type TestSimpleTableWithEnumT struct {
 	Color Color `json:"color,omitempty"`
 }
 
-func (t *TestSimpleTableWithEnumT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *TestSimpleTableWithEnumT) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	TestSimpleTableWithEnumStart(builder)
-	TestSimpleTableWithEnumAddColor(builder, t.Color)
-	return TestSimpleTableWithEnumEnd(builder)
+	TestSimpleTableWithEnumStart(builder_)
+	TestSimpleTableWithEnumAddColor(builder_, t_.Color)
+	return TestSimpleTableWithEnumEnd(builder_)
 }
 
-func (rcv *TestSimpleTableWithEnum) UnPackTo(t *TestSimpleTableWithEnumT) {
-	t.Color = rcv.Color()
+func (rcv_ *TestSimpleTableWithEnum) UnPackTo(t_ *TestSimpleTableWithEnumT) {
+	t_.Color = rcv_.Color()
 }
 
-func (rcv *TestSimpleTableWithEnum) UnPack() *TestSimpleTableWithEnumT {
-	if rcv == nil {
+func (rcv_ *TestSimpleTableWithEnum) UnPack() *TestSimpleTableWithEnumT {
+	if rcv_ == nil {
 		return nil
 	}
-	t := &TestSimpleTableWithEnumT{}
-	rcv.UnPackTo(t)
-	return t
+	t_ := &TestSimpleTableWithEnumT{}
+	rcv_.UnPackTo(t_)
+	return t_
 }
 
 const (
@@ -40,102 +40,102 @@ const (
 // Fields not in the list are left at their zero/default values.
 // This avoids materializing the entire table tree. Pass the
 // generated TestSimpleTableWithEnumField* constants rather than raw strings.
-func (rcv *TestSimpleTableWithEnum) UnpackFields(fields ...string) *TestSimpleTableWithEnumT {
-	t := &TestSimpleTableWithEnumT{}
-	fieldSet := make(map[string]bool, len(fields))
-	for _, f := range fields {
-		fieldSet[f] = true
+func (rcv_ *TestSimpleTableWithEnum) UnpackFields(fields_ ...string) *TestSimpleTableWithEnumT {
+	t_ := &TestSimpleTableWithEnumT{}
+	fieldSet_ := make(map[string]bool, len(fields_))
+	for _, f_ := range fields_ {
+		fieldSet_[f_] = true
 	}
-	if fieldSet["color"] {
-		t.Color = rcv.Color()
+	if fieldSet_["color"] {
+		t_.Color = rcv_.Color()
 	}
-	return t
+	return t_
 }
 
 type TestSimpleTableWithEnum struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsTestSimpleTableWithEnum(buf []byte, offset flatbuffers.UOffsetT) *TestSimpleTableWithEnum {
-	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &TestSimpleTableWithEnum{}
-	x.Init(buf, n+offset)
-	return x
+func GetRootAsTestSimpleTableWithEnum(buf_ []byte, offset_ flatbuffers.UOffsetT) *TestSimpleTableWithEnum {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_:])
+	x_ := &TestSimpleTableWithEnum{}
+	x_.Init(buf_, n_+offset_)
+	return x_
 }
 
-func FinishTestSimpleTableWithEnumBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.Finish(offset)
+func FinishTestSimpleTableWithEnumBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.Finish(offset_)
 }
 
-func GetSizePrefixedRootAsTestSimpleTableWithEnum(buf []byte, offset flatbuffers.UOffsetT) *TestSimpleTableWithEnum {
-	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &TestSimpleTableWithEnum{}
-	x.Init(buf, n+offset+flatbuffers.SizeUint32)
-	return x
+func GetSizePrefixedRootAsTestSimpleTableWithEnum(buf_ []byte, offset_ flatbuffers.UOffsetT) *TestSimpleTableWithEnum {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_+flatbuffers.SizeUint32:])
+	x_ := &TestSimpleTableWithEnum{}
+	x_.Init(buf_, n_+offset_+flatbuffers.SizeUint32)
+	return x_
 }
 
-func FinishSizePrefixedTestSimpleTableWithEnumBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.FinishSizePrefixed(offset)
+func FinishSizePrefixedTestSimpleTableWithEnumBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.FinishSizePrefixed(offset_)
 }
 
-func VerifyRootAsTestSimpleTableWithEnum(buf []byte, opts *flatbuffers.VerifierOptions) error {
-	v := flatbuffers.NewVerifier(buf, opts)
-	tablePos, err := v.CheckUOffsetT(0)
-	if err != nil {
-		return err
+func VerifyRootAsTestSimpleTableWithEnum(buf_ []byte, opts_ *flatbuffers.VerifierOptions) error {
+	v_ := flatbuffers.NewVerifier(buf_, opts_)
+	tablePos_, err_ := v_.CheckUOffsetT(0)
+	if err_ != nil {
+		return err_
 	}
-	return verifyTestSimpleTableWithEnum(v, int(tablePos))
+	return verifyTestSimpleTableWithEnum(v_, int(tablePos_))
 }
 
-func VerifyTestSimpleTableWithEnum(v *flatbuffers.Verifier, tablePos int) error {
-	return verifyTestSimpleTableWithEnum(v, tablePos)
+func VerifyTestSimpleTableWithEnum(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	return verifyTestSimpleTableWithEnum(v_, tablePos_)
 }
 
-func verifyTestSimpleTableWithEnum(v *flatbuffers.Verifier, tablePos int) error {
-	if err := v.CheckTable(tablePos); err != nil {
-		return err
+func verifyTestSimpleTableWithEnum(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	if err_ := v_.CheckTable(tablePos_); err_ != nil {
+		return err_
 	}
-	if err := v.CountTable(); err != nil {
-		return err
+	if err_ := v_.CountTable(); err_ != nil {
+		return err_
 	}
-	if err := v.PushDepth(); err != nil {
-		return err
+	if err_ := v_.PushDepth(); err_ != nil {
+		return err_
 	}
-	defer v.PopDepth()
+	defer v_.PopDepth()
 
-	if err := v.CheckScalarField(tablePos, 4, 1); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 4, 1); err_ != nil {
+		return err_
 	}
 	return nil
 }
 
-func (rcv *TestSimpleTableWithEnum) Init(buf []byte, i flatbuffers.UOffsetT) {
-	rcv._tab.Bytes = buf
-	rcv._tab.Pos = i
+func (rcv_ *TestSimpleTableWithEnum) Init(buf_ []byte, i_ flatbuffers.UOffsetT) {
+	rcv_._tab.Bytes = buf_
+	rcv_._tab.Pos = i_
 }
 
-func (rcv *TestSimpleTableWithEnum) Table() flatbuffers.Table {
-	return rcv._tab
+func (rcv_ *TestSimpleTableWithEnum) Table() flatbuffers.Table {
+	return rcv_._tab
 }
 
-func (rcv *TestSimpleTableWithEnum) Color() Color {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
-	if o != 0 {
-		return Color(rcv._tab.GetByte(o + rcv._tab.Pos))
+func (rcv_ *TestSimpleTableWithEnum) Color() Color {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(4))
+	if o_ != 0 {
+		return Color(rcv_._tab.GetByte(o_ + rcv_._tab.Pos))
 	}
 	return 2
 }
 
-func (rcv *TestSimpleTableWithEnum) MutateColor(n Color) bool {
-	return rcv._tab.MutateByteSlot(4, byte(n))
+func (rcv_ *TestSimpleTableWithEnum) MutateColor(n_ Color) bool {
+	return rcv_._tab.MutateByteSlot(4, byte(n_))
 }
 
-func TestSimpleTableWithEnumStart(builder *flatbuffers.Builder) {
-	builder.StartObject(1)
+func TestSimpleTableWithEnumStart(builder_ *flatbuffers.Builder) {
+	builder_.StartObject(1)
 }
-func TestSimpleTableWithEnumAddColor(builder *flatbuffers.Builder, color Color) {
-	builder.PrependByteSlot(0, byte(color), 2)
+func TestSimpleTableWithEnumAddColor(builder_ *flatbuffers.Builder, colorArg_ Color) {
+	builder_.PrependByteSlot(0, byte(colorArg_), 2)
 }
-func TestSimpleTableWithEnumEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	return builder.EndObject()
+func TestSimpleTableWithEnumEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder_.EndObject()
 }

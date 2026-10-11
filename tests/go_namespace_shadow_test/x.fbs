@@ -1,0 +1,20 @@
+// A namespace whose Go package alias is `x`, a name the Go generator also
+// gives its locals. go_namespace_shadow_test refers to every kind of
+// definition in it from another namespace, so each generated method body that
+// names the `x` package is compiled with that alias in scope.
+
+namespace x;
+
+enum Color : byte { Red, Green, Blue }
+
+struct Point {
+  px:int;
+  color:Color;
+}
+
+table Leaf {
+  id:int (key);
+  name:string;
+}
+
+union Kind { Leaf }

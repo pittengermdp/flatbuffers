@@ -18,6 +18,7 @@
 #include "idl_gen_text.h"
 
 #include <algorithm>
+#include <cmath>
 
 #include "flatbuffers/base.h"
 #include "flatbuffers/code_generator.h"
@@ -38,6 +39,37 @@ template <>
 struct PrintTag<const void*> {
   typedef PrintPointerTag type;
 };
+
+// A union's types are UTYPE to the schema, but are stored as the union's
+// underlying type: UTYPE, 1 byte, by default, but INT for `union U: int`.
+// Returns the base type a value of base type `t`, of type `type`, is stored as.
+static BaseType StoredBaseType(BaseType t, const Type& type) {
+  return t == BASE_TYPE_UTYPE && type.enum_def
+             ? type.enum_def->underlying_type.base_type
+             : t;
+}
+
+// Reads a union's type, stored at `p` as the union's underlying type, `type`.
+static int64_t ReadUnionType(BaseType type, const uint8_t* p) {
+  switch (type) {
+    case BASE_TYPE_CHAR:
+      return ReadScalar<int8_t>(p);
+    case BASE_TYPE_SHORT:
+      return ReadScalar<int16_t>(p);
+    case BASE_TYPE_USHORT:
+      return ReadScalar<uint16_t>(p);
+    case BASE_TYPE_INT:
+      return ReadScalar<int32_t>(p);
+    case BASE_TYPE_UINT:
+      return ReadScalar<uint32_t>(p);
+    case BASE_TYPE_LONG:
+      return ReadScalar<int64_t>(p);
+    case BASE_TYPE_ULONG:  // As an EnumVal holds it.
+      return static_cast<int64_t>(ReadScalar<uint64_t>(p));
+    default:  // UTYPE, UCHAR.
+      return ReadScalar<uint8_t>(p);
+  }
+}
 
 struct JsonPrinter {
   // If indentation is less than 0, that indicates we don't want any newlines
@@ -96,6 +128,30 @@ struct JsonPrinter {
         text.resize(entry_len);  // restore
       }
       // print as numeric value
+    }
+
+    // A 64-bit integer can exceed what a double holds exactly, so a reader
+    // that keeps JSON numbers as doubles would round it. Quoted, it survives;
+    // the parser reads the quoted form back as the same integer. That holds
+    // for a 64-bit enum value no variant names, which prints as its number.
+    if (opts.json_int64_as_string &&
+        (type.base_type == BASE_TYPE_LONG ||
+         type.base_type == BASE_TYPE_ULONG)) {
+      text += '\"';
+      text += NumToString(val);
+      text += '\"';
+      return;
+    }
+
+    // JSON has no NaN or infinity: printed bare, either makes the whole
+    // document invalid JSON. Strict JSON quotes them ("nan", "inf", "-inf"),
+    // which the parser reads back as the same float.
+    if (opts.strict_json && IsFloat(type.base_type) &&
+        !std::isfinite(static_cast<double>(val))) {
+      text += '\"';
+      text += NumToString(val);
+      text += '\"';
+      return;
     }
 
     text += NumToString(val);
@@ -185,13 +241,20 @@ struct JsonPrinter {
         // If this assert hits, you have an corrupt buffer, a union type field
         // was not present or was out of range.
         FLATBUFFERS_ASSERT(prev_val);
-        auto union_type_byte = *prev_val;  // Always a uint8_t.
+        // The type is stored as the union's underlying type.
+        const auto underlying = type.enum_def->underlying_type.base_type;
+        auto type_ptr = prev_val;
         if (vector_index >= 0) {
           auto type_vec = reinterpret_cast<const Vector<uint8_t>*>(
               prev_val + ReadScalar<uoffset_t>(prev_val));
-          union_type_byte = type_vec->Get(static_cast<uoffset_t>(vector_index));
+          // As Vector::Get() checks, for a vector of any width.
+          FLATBUFFERS_ASSERT(static_cast<uoffset_t>(vector_index) <
+                             type_vec->size());
+          type_ptr = type_vec->Data() +
+                     SizeOf(underlying) * static_cast<size_t>(vector_index);
         }
-        auto enum_val = type.enum_def->ReverseLookup(union_type_byte, true);
+        auto enum_val = type.enum_def->ReverseLookup(
+            ReadUnionType(underlying, type_ptr), true);
         if (enum_val) {
           return PrintOffset(val, enum_val->union_type, indent, nullptr, -1);
         } else {
@@ -211,7 +274,7 @@ struct JsonPrinter {
         const auto vec_type = type.VectorType();
         // Call PrintVector above specifically for each element type:
         // clang-format off
-        switch (vec_type.base_type) {
+        switch (StoredBaseType(vec_type.base_type, vec_type)) {
         #define FLATBUFFERS_TD(ENUM, IDLTYPE, CTYPE, ...) \
           case BASE_TYPE_ ## ENUM: { \
             auto err = PrintVector<CTYPE>(val, vec_type, indent, prev_val); \
@@ -278,6 +341,47 @@ struct JsonPrinter {
     }
   }
 
+  // Print one key or value of a map/set entry table exactly as the same value
+  // prints anywhere else: read at its own width, enums by name, strings
+  // escaped, 64-bit integers quoted under --json-int64-as-string. (Reading
+  // every non-string key as an int64 printed narrower keys as garbage and
+  // collapsed enum keys onto one name.)
+  const char* PrintEntryMember(const FieldDef& fd, const Table* entry,
+                               int indent) {
+    switch (fd.value.type.base_type) {
+      case BASE_TYPE_STRING: {
+        auto s = entry->GetPointer<const String*>(fd.value.offset);
+        if (!s) {
+          text += "null";
+          return nullptr;
+        }
+        return PrintOffset(s, fd.value.type, indent, nullptr, -1);
+      }
+      case BASE_TYPE_STRUCT: {
+        if (IsStruct(fd.value.type)) {
+          return PrintOffset(entry->GetStruct<const void*>(fd.value.offset),
+                             fd.value.type, indent, nullptr, -1);
+        }
+        auto tbl = entry->GetPointer<const Table*>(fd.value.offset);
+        if (!tbl) {
+          text += "null";
+          return nullptr;
+        }
+        return GenStruct(*fd.value.type.struct_def, tbl, indent);
+      }
+      // clang-format off
+      #define FLATBUFFERS_TD(ENUM, IDLTYPE, CTYPE, ...) \
+        case BASE_TYPE_ ## ENUM: \
+          GenField<CTYPE>(fd, entry, false, indent); \
+          return nullptr;
+        FLATBUFFERS_GEN_TYPES_SCALAR(FLATBUFFERS_TD)
+      #undef FLATBUFFERS_TD
+      // clang-format on
+      default:
+        return "unsupported map/set member type";
+    }
+  }
+
   // Generate text for non-scalar field.
   // Emit a map field as a JSON object: {"key1": val1, "key2": val2, ...}
   const char* PrintMapAsObject(const FieldDef& fd, const Table* table,
@@ -303,73 +407,21 @@ struct JsonPrinter {
       if (i) { AddComma(); AddNewLine(); }
       AddIndent(elem_indent);
       auto entry = vec->Get(i);
-      // Emit the key as the JSON property name (always quoted).
-      if (IsString(kf->value.type)) {
-        auto k = entry->GetPointer<const String*>(kf->value.offset);
-        text += '\"';
-        if (k) text += k->c_str();
-        text += '\"';
-      } else {
-        // Numeric/bool/enum key — always quoted as a JSON property name.
-        text += '\"';
-        auto ival = entry->GetField<int64_t>(kf->value.offset, 0);
-        if (kf->value.type.enum_def && opts.output_enum_identifiers) {
-          if (auto ev = kf->value.type.enum_def->ReverseLookup(ival)) {
-            text += ev->name;
-          } else {
-            text += NumToString(ival);
-          }
-        } else if (kf->value.type.base_type == BASE_TYPE_BOOL) {
-          text += ival ? "true" : "false";
-        } else {
-          text += NumToString(ival);
-        }
+      // A JSON property name is a string: a key that printed as a bare number
+      // or boolean is quoted; enum names, strings and quoted 64-bit integers
+      // already are.
+      const auto key_start = text.length();
+      auto err = PrintEntryMember(*kf, entry, elem_indent);
+      if (err) return err;
+      if (text[key_start] != '\"') {
+        text.insert(key_start, 1, '\"');
         text += '\"';
       }
       text += ':';
       text += ' ';
-      // Emit the value.
       if (vf) {
-        switch (vf->value.type.base_type) {
-          case BASE_TYPE_STRING: {
-            auto s = entry->GetPointer<const String*>(vf->value.offset);
-            if (s) {
-              text += '\"';
-              text += s->c_str();
-              text += '\"';
-            } else {
-              text += "null";
-            }
-            break;
-          }
-          case BASE_TYPE_STRUCT: {
-            if (IsStruct(vf->value.type)) {
-              auto sval = entry->GetStruct<const void*>(vf->value.offset);
-              auto err = PrintOffset(sval, vf->value.type, elem_indent,
-                                     nullptr, -1);
-              if (err) return err;
-            } else {
-              auto tbl = entry->GetPointer<const Table*>(vf->value.offset);
-              if (tbl) {
-                auto err = GenStruct(*vf->value.type.struct_def, tbl,
-                                     elem_indent);
-                if (err) return err;
-              } else {
-                text += "null";
-              }
-            }
-            break;
-          }
-          // clang-format off
-          #define FLATBUFFERS_TD(ENUM, IDLTYPE, CTYPE, ...) \
-            case BASE_TYPE_ ## ENUM: \
-              GenField<CTYPE>(*vf, entry, false, elem_indent); \
-              break;
-            FLATBUFFERS_GEN_TYPES_SCALAR(FLATBUFFERS_TD)
-          #undef FLATBUFFERS_TD
-          // clang-format on
-          default: break;
-        }
+        err = PrintEntryMember(*vf, entry, elem_indent);
+        if (err) return err;
       }
     }
     AddNewLine();
@@ -399,15 +451,8 @@ struct JsonPrinter {
     for (uoffset_t i = 0; i < vec->size(); i++) {
       if (i) { AddComma(); AddNewLine(); }
       AddIndent(elem_indent);
-      auto entry = vec->Get(i);
-      if (IsString(kf->value.type)) {
-        auto s = entry->GetPointer<const String*>(kf->value.offset);
-        text += '\"';
-        if (s) text += s->c_str();
-        text += '\"';
-      } else {
-        GenField<int64_t>(*kf, entry, false, elem_indent);
-      }
+      auto err = PrintEntryMember(*kf, vec->Get(i), elem_indent);
+      if (err) return err;
     }
     AddNewLine();
     AddIndent(indent);
@@ -480,7 +525,7 @@ struct JsonPrinter {
           text += ':';
         text += ' ';
         // clang-format off
-        switch (fd.value.type.base_type) {
+        switch (StoredBaseType(fd.value.type.base_type, fd.value.type)) {
         #define FLATBUFFERS_TD(ENUM, IDLTYPE, CTYPE, ...) \
           case BASE_TYPE_ ## ENUM: { \
             GenField<CTYPE>(fd, table, struct_def.fixed, elem_indent); \

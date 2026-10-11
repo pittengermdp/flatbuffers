@@ -20,6 +20,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iostream>
+#include <set>
 #include <sstream>
 #include <string>
 
@@ -106,6 +108,10 @@ class GoGenerator : public BaseGenerator {
 
     if (!generateEnums(&one_file_code)) return false;
     if (!generateStructs(&one_file_code)) return false;
+    if (!json_error_.empty()) {
+      std::cerr << "error: " << json_error_ << "\n";
+      return false;
+    }
 
     if (parser_.opts.one_file) {
       std::string code = "";
@@ -204,6 +210,7 @@ class GoGenerator : public BaseGenerator {
     GenNativeUnionPack(enum_def, code_ptr);
     GenNativeUnionUnPack(enum_def, code_ptr);
     GenUnionMatch(enum_def, code_ptr);
+    if (parser_.opts.go_gen_json) GenNativeUnionJSON(enum_def, code_ptr);
   }
 
   bool generateStructs(std::string* one_file_code) {
@@ -238,11 +245,31 @@ class GoGenerator : public BaseGenerator {
   bool needs_bytes_import_ = false;
   bool needs_sort_import_ = false;
 
+  // Every receiver, parameter and local the generated Go declares ends in an
+  // underscore: rcv_, t_, builder_, o_, x_, <field>Offset_ and so on. Generated
+  // bodies name imported packages -- flatbuffers, math, and each referenced
+  // namespace, imported under its own name -- and the schema's own types, any
+  // of which may be a single word such as x, o or t. A plain local, or a
+  // parameter named after a field, would shadow one and break the build. Only
+  // a schema name that itself ends in an underscore can still collide.
+  //
+  // A name derived from a field also puts a role between the field and the
+  // underscore: <field>Arg_ for a builder function's parameter (FieldArg),
+  // <field>Offset_, <field>Length_ and so on for a local. No field can then
+  // produce builder_, the parameter declared beside every <field>Arg_, as a
+  // field named builder would if its parameter were just <field>_.
+
+  // The parameter a builder function -- <Table>Add<Field>, Create<Struct> --
+  // takes for a field. See the naming rule above.
+  std::string FieldArg(const FieldDef& field) {
+    return namer_.Variable(field) + "Arg_";
+  }
+
   // Most field accessors need to retrieve and test the field offset first,
   // this is the prefix code for that.
   std::string OffsetPrefix(const FieldDef& field) {
-    return "{\n\to := flatbuffers.UOffsetT(rcv._tab.Offset(" +
-           NumToString(field.value.offset) + "))\n\tif o != 0 {\n";
+    return "{\n\to_ := flatbuffers.UOffsetT(rcv_._tab.Offset(" +
+           NumToString(field.value.offset) + "))\n\tif o_ != 0 {\n";
   }
 
   // Begin a class declaration.
@@ -326,12 +353,12 @@ class GoGenerator : public BaseGenerator {
   void EnumStringer(const EnumDef& enum_def, std::string* code_ptr) {
     std::string& code = *code_ptr;
     const std::string enum_type = namer_.Type(enum_def);
-    code += "func (v " + enum_type + ") String() string {\n";
-    code += "\tif s, ok := EnumNames" + enum_type + "[v]; ok {\n";
-    code += "\t\treturn s\n";
+    code += "func (v_ " + enum_type + ") String() string {\n";
+    code += "\tif s_, ok_ := EnumNames" + enum_type + "[v_]; ok_ {\n";
+    code += "\t\treturn s_\n";
     code += "\t}\n";
     code += "\treturn \"" + enum_def.name;
-    code += "(\" + strconv.FormatInt(int64(v), 10) + \")\"\n";
+    code += "(\" + strconv.FormatInt(int64(v_), 10) + \")\"\n";
     code += "}\n\n";
   }
 
@@ -378,42 +405,42 @@ class GoGenerator : public BaseGenerator {
 
     for (int i = 0; i < 2; i++) {
       code += "func Get" + size_prefix[i] + "RootAs" + struct_type;
-      code += "(buf []byte, offset flatbuffers.UOffsetT) ";
+      code += "(buf_ []byte, offset_ flatbuffers.UOffsetT) ";
       code += "*" + struct_type + "";
       code += " {\n";
       if (i == 0) {
-        code += "\tn := flatbuffers.GetUOffsetT(buf[offset:])\n";
+        code += "\tn_ := flatbuffers.GetUOffsetT(buf_[offset_:])\n";
       } else {
         code +=
-            "\tn := "
-            "flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])\n";
+            "\tn_ := "
+            "flatbuffers.GetUOffsetT(buf_[offset_+flatbuffers.SizeUint32:])\n";
       }
-      code += "\tx := &" + struct_type + "{}\n";
+      code += "\tx_ := &" + struct_type + "{}\n";
       if (i == 0) {
-        code += "\tx.Init(buf, n+offset)\n";
+        code += "\tx_.Init(buf_, n_+offset_)\n";
       } else {
-        code += "\tx.Init(buf, n+offset+flatbuffers.SizeUint32)\n";
+        code += "\tx_.Init(buf_, n_+offset_+flatbuffers.SizeUint32)\n";
       }
-      code += "\treturn x\n";
+      code += "\treturn x_\n";
       code += "}\n\n";
 
       code += "func Finish" + size_prefix[i] + struct_type +
-              "Buffer(builder *flatbuffers.Builder, offset "
+              "Buffer(builder_ *flatbuffers.Builder, offset_ "
               "flatbuffers.UOffsetT) {\n";
       if (has_file_identifier) {
-        code += "\tidentifierBytes := []byte(" + struct_type + "Identifier)\n";
-        code += "\tbuilder.Finish" + size_prefix[i] +
-                "WithFileIdentifier(offset, identifierBytes)\n";
+        code += "\tidentifierBytes_ := []byte(" + struct_type + "Identifier)\n";
+        code += "\tbuilder_.Finish" + size_prefix[i] +
+                "WithFileIdentifier(offset_, identifierBytes_)\n";
       } else {
-        code += "\tbuilder.Finish" + size_prefix[i] + "(offset)\n";
+        code += "\tbuilder_.Finish" + size_prefix[i] + "(offset_)\n";
       }
       code += "}\n\n";
 
       if (has_file_identifier) {
         code += "func " + size_prefix[i] + struct_type +
-                "BufferHasIdentifier(buf []byte) bool {\n";
+                "BufferHasIdentifier(buf_ []byte) bool {\n";
         code += "\treturn flatbuffers." + size_prefix[i] +
-                "BufferHasIdentifier(buf, " + struct_type + "Identifier)\n";
+                "BufferHasIdentifier(buf_, " + struct_type + "Identifier)\n";
         code += "}\n\n";
       }
     }
@@ -424,10 +451,10 @@ class GoGenerator : public BaseGenerator {
     std::string& code = *code_ptr;
 
     GenReceiver(struct_def, code_ptr);
-    code += " Init(buf []byte, i flatbuffers.UOffsetT) ";
+    code += " Init(buf_ []byte, i_ flatbuffers.UOffsetT) ";
     code += "{\n";
-    code += "\trcv._tab.Bytes = buf\n";
-    code += "\trcv._tab.Pos = i\n";
+    code += "\trcv_._tab.Bytes = buf_\n";
+    code += "\trcv_._tab.Pos = i_\n";
     code += "}\n\n";
   }
 
@@ -440,9 +467,9 @@ class GoGenerator : public BaseGenerator {
     code += "{\n";
 
     if (struct_def.fixed) {
-      code += "\treturn rcv._tab.Table\n";
+      code += "\treturn rcv_._tab.Table\n";
     } else {
-      code += "\treturn rcv._tab\n";
+      code += "\treturn rcv_._tab\n";
     }
     code += "}\n\n";
   }
@@ -455,7 +482,7 @@ class GoGenerator : public BaseGenerator {
     GenReceiver(struct_def, code_ptr);
     code += " " + namer_.Function(field) + "Length(";
     code += ") int " + OffsetPrefix(field);
-    code += "\t\treturn rcv._tab.VectorLen(o)\n\t}\n";
+    code += "\t\treturn rcv_._tab.VectorLen(o_)\n\t}\n";
     code += "\treturn 0\n}\n\n";
   }
 
@@ -467,7 +494,7 @@ class GoGenerator : public BaseGenerator {
     GenReceiver(struct_def, code_ptr);
     code += " " + namer_.Function(field) + "Bytes(";
     code += ") []byte " + OffsetPrefix(field);
-    code += "\t\treturn rcv._tab.ByteVector(o + rcv._tab.Pos)\n\t}\n";
+    code += "\t\treturn rcv_._tab.ByteVector(o_ + rcv_._tab.Pos)\n\t}\n";
     code += "\treturn nil\n}\n\n";
   }
 
@@ -481,7 +508,7 @@ class GoGenerator : public BaseGenerator {
     code += "() " + TypeName(field) + " {\n";
     code += "\treturn " +
             CastToEnum(field.value.type,
-                       getter + "(rcv._tab.Pos + flatbuffers.UOffsetT(" +
+                       getter + "(rcv_._tab.Pos + flatbuffers.UOffsetT(" +
                            NumToString(field.value.offset) + "))");
     code += "\n}\n";
   }
@@ -496,13 +523,13 @@ class GoGenerator : public BaseGenerator {
     code += "() " + TypeName(field) + " ";
     code += OffsetPrefix(field);
     if (field.IsScalarOptional()) {
-      code += "\t\tv := ";
+      code += "\t\tv_ := ";
     } else {
       code += "\t\treturn ";
     }
-    code += CastToEnum(field.value.type, getter + "(o + rcv._tab.Pos)");
+    code += CastToEnum(field.value.type, getter + "(o_ + rcv_._tab.Pos)");
     if (field.IsScalarOptional()) {
-      code += "\n\t\treturn &v";
+      code += "\n\t\treturn &v_";
     }
     code += "\n\t}\n";
     code += "\treturn " + GenConstant(field) + "\n";
@@ -516,15 +543,15 @@ class GoGenerator : public BaseGenerator {
     std::string& code = *code_ptr;
     GenReceiver(struct_def, code_ptr);
     code += " " + namer_.Function(field);
-    code += "(obj *" + TypeName(field);
+    code += "(obj_ *" + TypeName(field);
     code += ") *" + TypeName(field);
     code += " {\n";
-    code += "\tif obj == nil {\n";
-    code += "\t\tobj = new(" + TypeName(field) + ")\n";
+    code += "\tif obj_ == nil {\n";
+    code += "\t\tobj_ = new(" + TypeName(field) + ")\n";
     code += "\t}\n";
-    code += "\tobj.Init(rcv._tab.Bytes, rcv._tab.Pos+";
+    code += "\tobj_.Init(rcv_._tab.Bytes, rcv_._tab.Pos+";
     code += NumToString(field.value.offset) + ")";
-    code += "\n\treturn obj\n";
+    code += "\n\treturn obj_\n";
     code += "}\n";
   }
 
@@ -535,19 +562,19 @@ class GoGenerator : public BaseGenerator {
     std::string& code = *code_ptr;
     GenReceiver(struct_def, code_ptr);
     code += " " + namer_.Function(field);
-    code += "(obj *";
+    code += "(obj_ *";
     code += TypeName(field);
     code += ") *" + TypeName(field) + " " + OffsetPrefix(field);
     if (field.value.type.struct_def->fixed) {
-      code += "\t\tx := o + rcv._tab.Pos\n";
+      code += "\t\tx_ := o_ + rcv_._tab.Pos\n";
     } else {
-      code += "\t\tx := rcv._tab.Indirect(o + rcv._tab.Pos)\n";
+      code += "\t\tx_ := rcv_._tab.Indirect(o_ + rcv_._tab.Pos)\n";
     }
-    code += "\t\tif obj == nil {\n";
-    code += "\t\t\tobj = new(" + TypeName(field) + ")\n";
+    code += "\t\tif obj_ == nil {\n";
+    code += "\t\t\tobj_ = new(" + TypeName(field) + ")\n";
     code += "\t\t}\n";
-    code += "\t\tobj.Init(rcv._tab.Bytes, x)\n";
-    code += "\t\treturn obj\n\t}\n\treturn nil\n";
+    code += "\t\tobj_.Init(rcv_._tab.Bytes, x_)\n";
+    code += "\t\treturn obj_\n\t}\n\treturn nil\n";
     code += "}\n\n";
   }
 
@@ -559,7 +586,7 @@ class GoGenerator : public BaseGenerator {
     code += " " + namer_.Function(field);
     code += "() " + TypeName(field) + " ";
     code += OffsetPrefix(field) + "\t\treturn " + GenGetter(field.value.type);
-    code += "(o + rcv._tab.Pos)\n\t}\n\treturn nil\n";
+    code += "(o_ + rcv_._tab.Pos)\n\t}\n\treturn nil\n";
     code += "}\n\n";
   }
 
@@ -569,10 +596,10 @@ class GoGenerator : public BaseGenerator {
     std::string& code = *code_ptr;
     GenReceiver(struct_def, code_ptr);
     code += " " + namer_.Function(field) + "(";
-    code += "obj " + GenTypePointer(field.value.type) + ") bool ";
+    code += "obj_ " + GenTypePointer(field.value.type) + ") bool ";
     code += OffsetPrefix(field);
     code += "\t\t" + GenGetter(field.value.type);
-    code += "(obj, o)\n\t\treturn true\n\t}\n";
+    code += "(obj_, o_)\n\t\treturn true\n\t}\n";
     code += "\treturn false\n";
     code += "}\n\n";
   }
@@ -585,15 +612,15 @@ class GoGenerator : public BaseGenerator {
 
     GenReceiver(struct_def, code_ptr);
     code += " " + namer_.Function(field);
-    code += "(obj *" + TypeName(field);
-    code += ", j int) bool " + OffsetPrefix(field);
-    code += "\t\tx := rcv._tab.Vector(o)\n";
-    code += "\t\tx += flatbuffers.UOffsetT(j) * ";
+    code += "(obj_ *" + TypeName(field);
+    code += ", j_ int) bool " + OffsetPrefix(field);
+    code += "\t\tx_ := rcv_._tab.Vector(o_)\n";
+    code += "\t\tx_ += flatbuffers.UOffsetT(j_) * ";
     code += NumToString(InlineSize(vectortype)) + "\n";
     if (!(vectortype.struct_def->fixed)) {
-      code += "\t\tx = rcv._tab.Indirect(x)\n";
+      code += "\t\tx_ = rcv_._tab.Indirect(x_)\n";
     }
-    code += "\t\tobj.Init(rcv._tab.Bytes, x)\n";
+    code += "\t\tobj_.Init(rcv_._tab.Bytes, x_)\n";
     code += "\t\treturn true\n\t}\n";
     code += "\treturn false\n";
     code += "}\n\n";
@@ -618,12 +645,12 @@ class GoGenerator : public BaseGenerator {
 
     GenReceiver(struct_def, code_ptr);
     code += " " + namer_.Field(field) + "ByKey";
-    code += "(obj *" + TypeName(field);
-    code += ", key " + NativeType(key_field.value.type) + ") bool " +
+    code += "(obj_ *" + TypeName(field);
+    code += ", key_ " + NativeType(key_field.value.type) + ") bool " +
             OffsetPrefix(field);
-    code += "\t\tx := rcv._tab.Vector(o)\n";
+    code += "\t\tx_ := rcv_._tab.Vector(o_)\n";
     code += "\t\treturn ";
-    code += "obj.LookupByKey(key, x, rcv._tab.Bytes)\n";
+    code += "obj_.LookupByKey(key_, x_, rcv_._tab.Bytes)\n";
     code += "\t}\n";
     code += "\treturn false\n";
     code += "}\n\n";
@@ -638,13 +665,13 @@ class GoGenerator : public BaseGenerator {
 
     GenReceiver(struct_def, code_ptr);
     code += " " + namer_.Function(field);
-    code += "(j int) " + TypeName(field) + " ";
+    code += "(j_ int) " + TypeName(field) + " ";
     code += OffsetPrefix(field);
-    code += "\t\ta := rcv._tab.Vector(o)\n";
+    code += "\t\ta_ := rcv_._tab.Vector(o_)\n";
     code += "\t\treturn " +
             CastToEnum(field.value.type,
                        GenGetter(field.value.type) +
-                           "(a + flatbuffers.UOffsetT(j*" +
+                           "(a_ + flatbuffers.UOffsetT(j_*" +
                            NumToString(InlineSize(vectortype)) + "))");
     code += "\n\t}\n";
     if (IsString(vectortype)) {
@@ -666,7 +693,7 @@ class GoGenerator : public BaseGenerator {
       code += "\n";
     }
     code += "func Create" + struct_def.name;
-    code += "(builder *flatbuffers.Builder";
+    code += "(builder_ *flatbuffers.Builder";
   }
 
   // Recursively generate arguments for a constructor, to deal with nested
@@ -685,7 +712,7 @@ class GoGenerator : public BaseGenerator {
       } else {
         std::string& code = *code_ptr;
         code += std::string(", ") + nameprefix;
-        code += namer_.Variable(field);
+        code += FieldArg(field);
         code += " " + TypeName(field);
       }
     }
@@ -702,20 +729,19 @@ class GoGenerator : public BaseGenerator {
   void StructBuilderBody(const StructDef& struct_def, const char* nameprefix,
                          std::string* code_ptr) {
     std::string& code = *code_ptr;
-    code += "\tbuilder.Prep(" + NumToString(struct_def.minalign) + ", ";
+    code += "\tbuilder_.Prep(" + NumToString(struct_def.minalign) + ", ";
     code += NumToString(struct_def.bytesize) + ")\n";
     for (auto it = struct_def.fields.vec.rbegin();
          it != struct_def.fields.vec.rend(); ++it) {
       auto& field = **it;
       if (field.padding)
-        code += "\tbuilder.Pad(" + NumToString(field.padding) + ")\n";
+        code += "\tbuilder_.Pad(" + NumToString(field.padding) + ")\n";
       if (IsStruct(field.value.type)) {
         StructBuilderBody(*field.value.type.struct_def,
                           (nameprefix + (field.name + "_")).c_str(), code_ptr);
       } else {
-        code += "\tbuilder.Prepend" + GenMethod(field) + "(";
-        code += CastToBaseType(field.value.type,
-                               nameprefix + namer_.Variable(field)) +
+        code += "\tbuilder_.Prepend" + GenMethod(field) + "(";
+        code += CastToBaseType(field.value.type, nameprefix + FieldArg(field)) +
                 ")\n";
       }
     }
@@ -723,7 +749,7 @@ class GoGenerator : public BaseGenerator {
 
   void EndBuilderBody(std::string* code_ptr) {
     std::string& code = *code_ptr;
-    code += "\treturn builder.Offset()\n";
+    code += "\treturn builder_.Offset()\n";
     code += "}\n";
   }
 
@@ -731,8 +757,8 @@ class GoGenerator : public BaseGenerator {
   void GetStartOfTable(const StructDef& struct_def, std::string* code_ptr) {
     std::string& code = *code_ptr;
     code += "func " + namer_.Type(struct_def) + "Start";
-    code += "(builder *flatbuffers.Builder) {\n";
-    code += "\tbuilder.StartObject(";
+    code += "(builder_ *flatbuffers.Builder) {\n";
+    code += "\tbuilder_.StartObject(";
     code += NumToString(struct_def.fields.vec.size());
     code += ")\n}\n";
   }
@@ -741,9 +767,9 @@ class GoGenerator : public BaseGenerator {
   void BuildFieldOfTable(const StructDef& struct_def, const FieldDef& field,
                          const size_t offset, std::string* code_ptr) {
     std::string& code = *code_ptr;
-    const std::string field_var = namer_.Variable(field);
+    const std::string field_var = FieldArg(field);
     code += "func " + namer_.Type(struct_def) + "Add" + namer_.Function(field);
-    code += "(builder *flatbuffers.Builder, ";
+    code += "(builder_ *flatbuffers.Builder, ";
     code += field_var + " ";
     if (!IsScalar(field.value.type.base_type) && (!struct_def.fixed)) {
       code += "flatbuffers.UOffsetT";
@@ -751,7 +777,7 @@ class GoGenerator : public BaseGenerator {
       code += GenTypeGet(field.value.type);
     }
     code += ") {\n\t";
-    code += "builder.Prepend";
+    code += "builder_.Prepend";
     code += GenMethod(field);
     if (field.IsScalarOptional()) {
       code += "(";
@@ -766,7 +792,7 @@ class GoGenerator : public BaseGenerator {
     }
     if (field.IsScalarOptional()) {
       code += ")\n";
-      code += "\tbuilder.Slot(" + NumToString(offset);
+      code += "\tbuilder_.Slot(" + NumToString(offset);
     } else {
       code += ", " + GenConstant(field);
     }
@@ -780,13 +806,13 @@ class GoGenerator : public BaseGenerator {
     std::string& code = *code_ptr;
     code += "func " + namer_.Type(struct_def) + "Start";
     code += namer_.Function(field);
-    code += "Vector(builder *flatbuffers.Builder, numElems int) ";
-    code += "flatbuffers.UOffsetT {\n\treturn builder.StartVector(";
+    code += "Vector(builder_ *flatbuffers.Builder, numElems_ int) ";
+    code += "flatbuffers.UOffsetT {\n\treturn builder_.StartVector(";
     auto vector_type = field.value.type.VectorType();
     auto alignment = InlineAlignment(vector_type);
     auto elem_size = InlineSize(vector_type);
     code += NumToString(elem_size);
-    code += ", numElems, " + NumToString(alignment);
+    code += ", numElems_, " + NumToString(alignment);
     code += ")\n}\n";
   }
 
@@ -794,14 +820,14 @@ class GoGenerator : public BaseGenerator {
   void GetEndOffsetOnTable(const StructDef& struct_def, std::string* code_ptr) {
     std::string& code = *code_ptr;
     code += "func " + namer_.Type(struct_def) + "End";
-    code += "(builder *flatbuffers.Builder) flatbuffers.UOffsetT ";
-    code += "{\n\treturn builder.EndObject()\n}\n";
+    code += "(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT ";
+    code += "{\n\treturn builder_.EndObject()\n}\n";
   }
 
   // Generate the receiver for function signatures.
   void GenReceiver(const StructDef& struct_def, std::string* code_ptr) {
     std::string& code = *code_ptr;
-    code += "func (rcv *" + namer_.Type(struct_def) + ")";
+    code += "func (rcv_ *" + namer_.Type(struct_def) + ")";
   }
 
   // Generate a struct field getter, conditioned on its child type(s).
@@ -861,27 +887,27 @@ class GoGenerator : public BaseGenerator {
                                  const FieldDef& field, std::string* code_ptr) {
     std::string& code = *code_ptr;
     std::string setter =
-        "rcv._tab.Mutate" + namer_.Method(GenTypeBasic(field.value.type));
+        "rcv_._tab.Mutate" + namer_.Method(GenTypeBasic(field.value.type));
     GenReceiver(struct_def, code_ptr);
     code += " Mutate" + namer_.Function(field);
     code +=
-        "(n " + GenTypeGet(field.value.type) + ") bool {\n\treturn " + setter;
-    code += "(rcv._tab.Pos+flatbuffers.UOffsetT(";
+        "(n_ " + GenTypeGet(field.value.type) + ") bool {\n\treturn " + setter;
+    code += "(rcv_._tab.Pos+flatbuffers.UOffsetT(";
     code += NumToString(field.value.offset) + "), ";
-    code += CastToBaseType(field.value.type, "n") + ")\n}\n\n";
+    code += CastToBaseType(field.value.type, "n_") + ")\n}\n\n";
   }
 
   // Mutate the value of a table's scalar.
   void MutateScalarFieldOfTable(const StructDef& struct_def,
                                 const FieldDef& field, std::string* code_ptr) {
     std::string& code = *code_ptr;
-    std::string setter = "rcv._tab.Mutate" +
+    std::string setter = "rcv_._tab.Mutate" +
                          namer_.Method(GenTypeBasic(field.value.type)) + "Slot";
     GenReceiver(struct_def, code_ptr);
     code += " Mutate" + namer_.Function(field);
-    code += "(n " + GenTypeGet(field.value.type) + ") bool {\n\treturn ";
+    code += "(n_ " + GenTypeGet(field.value.type) + ") bool {\n\treturn ";
     code += setter + "(" + NumToString(field.value.offset) + ", ";
-    code += CastToBaseType(field.value.type, "n") + ")\n";
+    code += CastToBaseType(field.value.type, "n_") + ")\n";
     code += "}\n\n";
   }
 
@@ -892,16 +918,16 @@ class GoGenerator : public BaseGenerator {
     std::string& code = *code_ptr;
     auto vectortype = field.value.type.VectorType();
     std::string setter =
-        "rcv._tab.Mutate" + namer_.Method(GenTypeBasic(vectortype));
+        "rcv_._tab.Mutate" + namer_.Method(GenTypeBasic(vectortype));
     GenReceiver(struct_def, code_ptr);
     code += " Mutate" + namer_.Function(field);
-    code += "(j int, n " + TypeName(field) + ") bool ";
+    code += "(j_ int, n_ " + TypeName(field) + ") bool ";
     code += OffsetPrefix(field);
-    code += "\t\ta := rcv._tab.Vector(o)\n";
+    code += "\t\ta_ := rcv_._tab.Vector(o_)\n";
     code += "\t\treturn " + setter + "(";
-    code += "a+flatbuffers.UOffsetT(j*";
+    code += "a_+flatbuffers.UOffsetT(j_*";
     code += NumToString(InlineSize(vectortype)) + "), ";
-    code += CastToBaseType(vectortype, "n") + ")\n";
+    code += CastToBaseType(vectortype, "n_") + ")\n";
     code += "\t}\n";
     code += "\treturn false\n";
     code += "}\n\n";
@@ -932,34 +958,34 @@ class GoGenerator : public BaseGenerator {
 
     // Public entry point: VerifyRootAs{Type}
     code += "func VerifyRootAs" + struct_type +
-            "(buf []byte, opts *flatbuffers.VerifierOptions) error {\n";
-    code += "\tv := flatbuffers.NewVerifier(buf, opts)\n";
-    code += "\ttablePos, err := v.CheckUOffsetT(0)\n";
-    code += "\tif err != nil {\n";
-    code += "\t\treturn err\n";
+            "(buf_ []byte, opts_ *flatbuffers.VerifierOptions) error {\n";
+    code += "\tv_ := flatbuffers.NewVerifier(buf_, opts_)\n";
+    code += "\ttablePos_, err_ := v_.CheckUOffsetT(0)\n";
+    code += "\tif err_ != nil {\n";
+    code += "\t\treturn err_\n";
     code += "\t}\n";
-    code += "\treturn verify" + struct_type + "(v, int(tablePos))\n";
+    code += "\treturn verify" + struct_type + "(v_, int(tablePos_))\n";
     code += "}\n\n";
 
     // Exported per-table verifier for cross-package callers: Verify{Type}
     code += "func Verify" + struct_type +
-            "(v *flatbuffers.Verifier, tablePos int) error {\n";
-    code += "\treturn verify" + struct_type + "(v, tablePos)\n";
+            "(v_ *flatbuffers.Verifier, tablePos_ int) error {\n";
+    code += "\treturn verify" + struct_type + "(v_, tablePos_)\n";
     code += "}\n\n";
 
     // Unexported per-table verifier: verify{Type}
     code += "func verify" + struct_type +
-            "(v *flatbuffers.Verifier, tablePos int) error {\n";
-    code += "\tif err := v.CheckTable(tablePos); err != nil {\n";
-    code += "\t\treturn err\n";
+            "(v_ *flatbuffers.Verifier, tablePos_ int) error {\n";
+    code += "\tif err_ := v_.CheckTable(tablePos_); err_ != nil {\n";
+    code += "\t\treturn err_\n";
     code += "\t}\n";
-    code += "\tif err := v.CountTable(); err != nil {\n";
-    code += "\t\treturn err\n";
+    code += "\tif err_ := v_.CountTable(); err_ != nil {\n";
+    code += "\t\treturn err_\n";
     code += "\t}\n";
-    code += "\tif err := v.PushDepth(); err != nil {\n";
-    code += "\t\treturn err\n";
+    code += "\tif err_ := v_.PushDepth(); err_ != nil {\n";
+    code += "\t\treturn err_\n";
     code += "\t}\n";
-    code += "\tdefer v.PopDepth()\n\n";
+    code += "\tdefer v_.PopDepth()\n\n";
 
     for (auto it = struct_def.fields.vec.begin();
          it != struct_def.fields.vec.end(); ++it) {
@@ -973,19 +999,19 @@ class GoGenerator : public BaseGenerator {
         // Scalar field (includes union type discriminant enum fields).
         const std::string scalar_size =
             NumToString(SizeOf(field.value.type.base_type));
-        code += "\tif err := v.CheckScalarField(tablePos, " + voffset + ", " +
-                scalar_size + "); err != nil {\n";
-        code += "\t\treturn err\n";
+        code += "\tif err_ := v_.CheckScalarField(tablePos_, " + voffset +
+                ", " + scalar_size + "); err_ != nil {\n";
+        code += "\t\treturn err_\n";
         code += "\t}\n";
       } else {
         switch (field.value.type.base_type) {
           case BASE_TYPE_STRING: {
-            code += "\tif pos, err := v.CheckOffsetField(tablePos, " + voffset +
-                    "); err != nil {\n";
-            code += "\t\treturn err\n";
-            code += "\t} else if pos != 0 {\n";
-            code += "\t\tif err := v.CheckString(pos); err != nil {\n";
-            code += "\t\t\treturn err\n";
+            code += "\tif pos_, err_ := v_.CheckOffsetField(tablePos_, " +
+                    voffset + "); err_ != nil {\n";
+            code += "\t\treturn err_\n";
+            code += "\t} else if pos_ != 0 {\n";
+            code += "\t\tif err_ := v_.CheckString(pos_); err_ != nil {\n";
+            code += "\t\t\treturn err_\n";
             code += "\t\t}\n";
             code += "\t}\n";
             break;
@@ -995,20 +1021,21 @@ class GoGenerator : public BaseGenerator {
               // Inline fixed struct — treat like a scalar block.
               const std::string struct_size =
                   NumToString(field.value.type.struct_def->bytesize);
-              code += "\tif err := v.CheckScalarField(tablePos, " + voffset +
-                      ", " + struct_size + "); err != nil {\n";
-              code += "\t\treturn err\n";
+              code += "\tif err_ := v_.CheckScalarField(tablePos_, " + voffset +
+                      ", " + struct_size + "); err_ != nil {\n";
+              code += "\t\treturn err_\n";
               code += "\t}\n";
             } else {
               // Nested table.
               const std::string verify_call =
                   VerifyFuncForTable(field.value.type.struct_def);
-              code += "\tif pos, err := v.CheckOffsetField(tablePos, " +
-                      voffset + "); err != nil {\n";
-              code += "\t\treturn err\n";
-              code += "\t} else if pos != 0 {\n";
-              code += "\t\tif err := " + verify_call + "(v, pos); err != nil {\n";
-              code += "\t\t\treturn err\n";
+              code += "\tif pos_, err_ := v_.CheckOffsetField(tablePos_, " +
+                      voffset + "); err_ != nil {\n";
+              code += "\t\treturn err_\n";
+              code += "\t} else if pos_ != 0 {\n";
+              code += "\t\tif err_ := " + verify_call +
+                      "(v_, pos_); err_ != nil {\n";
+              code += "\t\t\treturn err_\n";
               code += "\t\t}\n";
               code += "\t}\n";
             }
@@ -1016,21 +1043,23 @@ class GoGenerator : public BaseGenerator {
           }
           case BASE_TYPE_VECTOR: {
             const Type vector_type = field.value.type.VectorType();
-            code += "\tif pos, err := v.CheckOffsetField(tablePos, " + voffset +
-                    "); err != nil {\n";
-            code += "\t\treturn err\n";
-            code += "\t} else if pos != 0 {\n";
+            code += "\tif pos_, err_ := v_.CheckOffsetField(tablePos_, " +
+                    voffset + "); err_ != nil {\n";
+            code += "\t\treturn err_\n";
+            code += "\t} else if pos_ != 0 {\n";
             if (IsScalar(vector_type.base_type)) {
               const std::string elem_size =
                   NumToString(InlineSize(vector_type));
-              code += "\t\tif _, err := v.CheckVector(pos, " + elem_size +
-                      "); err != nil {\n";
-              code += "\t\t\treturn err\n";
+              code += "\t\tif _, err_ := v_.CheckVector(pos_, " + elem_size +
+                      "); err_ != nil {\n";
+              code += "\t\t\treturn err_\n";
               code += "\t\t}\n";
             } else if (vector_type.base_type == BASE_TYPE_STRING) {
               // Vector of strings: verify vector bounds AND each string.
-              code += "\t\tif err := v.CheckVectorOfStrings(pos); err != nil {\n";
-              code += "\t\t\treturn err\n";
+              code +=
+                  "\t\tif err_ := v_.CheckVectorOfStrings(pos_); err_ != nil "
+                  "{\n";
+              code += "\t\t\treturn err_\n";
               code += "\t\t}\n";
             } else if (vector_type.base_type == BASE_TYPE_STRUCT) {
               if (vector_type.struct_def->fixed) {
@@ -1038,23 +1067,24 @@ class GoGenerator : public BaseGenerator {
                 // size.
                 const std::string elem_size =
                     NumToString(vector_type.struct_def->bytesize);
-                code += "\t\tif _, err := v.CheckVector(pos, " + elem_size +
-                        "); err != nil {\n";
-                code += "\t\t\treturn err\n";
+                code += "\t\tif _, err_ := v_.CheckVector(pos_, " + elem_size +
+                        "); err_ != nil {\n";
+                code += "\t\t\treturn err_\n";
                 code += "\t\t}\n";
               } else {
                 // Vector of tables.
                 const std::string verify_call =
                     VerifyFuncForTable(vector_type.struct_def);
-                code += "\t\tif err := v.CheckVectorOfTables(pos, " +
-                        verify_call + "); err != nil {\n";
-                code += "\t\t\treturn err\n";
+                code += "\t\tif err_ := v_.CheckVectorOfTables(pos_, " +
+                        verify_call + "); err_ != nil {\n";
+                code += "\t\t\treturn err_\n";
                 code += "\t\t}\n";
               }
             } else {
               // Fallback: treat as opaque scalar elements of size 1.
-              code += "\t\tif _, err := v.CheckVector(pos, 1); err != nil {\n";
-              code += "\t\t\treturn err\n";
+              code +=
+                  "\t\tif _, err_ := v_.CheckVector(pos_, 1); err_ != nil {\n";
+              code += "\t\t\treturn err_\n";
               code += "\t\t}\n";
             }
             code += "\t}\n";
@@ -1071,25 +1101,25 @@ class GoGenerator : public BaseGenerator {
             const std::string type_voffset =
                 NumToString(type_field->value.offset);
             // Verify type and value are both present or both absent.
-            code += "\tif err := v.CheckUnionConsistency(tablePos, " +
+            code += "\tif err_ := v_.CheckUnionConsistency(tablePos_, " +
                     type_voffset + ", " + voffset + ", \"" + field.name +
-                    "\"); err != nil {\n";
-            code += "\t\treturn err\n";
+                    "\"); err_ != nil {\n";
+            code += "\t\treturn err_\n";
             code += "\t}\n";
             // Follow the value offset to get the union data position.
-            code += "\tif pos, err := v.CheckOffsetField(tablePos, " +
-                    voffset + "); err != nil {\n";
-            code += "\t\treturn err\n";
-            code += "\t} else if pos != 0 {\n";
+            code += "\tif pos_, err_ := v_.CheckOffsetField(tablePos_, " +
+                    voffset + "); err_ != nil {\n";
+            code += "\t\treturn err_\n";
+            code += "\t} else if pos_ != 0 {\n";
             // Read the type discriminant byte.
-            code += "\t\tuType, err := v.ReadFieldByte(tablePos, " +
+            code += "\t\tuType_, err_ := v_.ReadFieldByte(tablePos_, " +
                     type_voffset + ")\n";
-            code += "\t\tif err != nil {\n";
-            code += "\t\t\treturn err\n";
+            code += "\t\tif err_ != nil {\n";
+            code += "\t\t\treturn err_\n";
             code += "\t\t}\n";
             // Dispatch per-variant verification.
             const std::string enum_type = GetEnumTypeName(union_enum);
-            code += "\t\tswitch " + enum_type + "(uType) {\n";
+            code += "\t\tswitch " + enum_type + "(uType_) {\n";
             for (auto vit = union_enum.Vals().begin();
                  vit != union_enum.Vals().end(); ++vit) {
               const EnumVal& ev = **vit;
@@ -1102,18 +1132,18 @@ class GoGenerator : public BaseGenerator {
                 const std::string struct_size =
                     NumToString(ev.union_type.struct_def->bytesize);
                 code += "\t\tcase " + variant_name + ":\n";
-                code += "\t\t\tif err := v.CheckRange(pos, " +
-                        struct_size + "); err != nil {\n";
-                code += "\t\t\t\treturn err\n";
+                code += "\t\t\tif err_ := v_.CheckRange(pos_, " + struct_size +
+                        "); err_ != nil {\n";
+                code += "\t\t\t\treturn err_\n";
                 code += "\t\t\t}\n";
               } else {
                 // Table variant: recurse into per-table verify.
                 const std::string verify_call =
                     VerifyFuncForTable(ev.union_type.struct_def);
                 code += "\t\tcase " + variant_name + ":\n";
-                code += "\t\t\tif err := " + verify_call +
-                        "(v, pos); err != nil {\n";
-                code += "\t\t\t\treturn err\n";
+                code += "\t\t\tif err_ := " + verify_call +
+                        "(v_, pos_); err_ != nil {\n";
+                code += "\t\t\t\treturn err_\n";
                 code += "\t\t\t}\n";
               }
             }
@@ -1129,9 +1159,9 @@ class GoGenerator : public BaseGenerator {
 
       // Required field check (emitted after the content check for the field).
       if (field.IsRequired()) {
-        code += "\tif err := v.CheckRequiredField(tablePos, " + voffset +
-                ", \"" + field.name + "\"); err != nil {\n";
-        code += "\t\treturn err\n";
+        code += "\tif err_ := v_.CheckRequiredField(tablePos_, " + voffset +
+                ", \"" + field.name + "\"); err_ != nil {\n";
+        code += "\t\treturn err_\n";
         code += "\t}\n";
       }
     }
@@ -1216,18 +1246,21 @@ class GoGenerator : public BaseGenerator {
     std::string& code = *code_ptr;
 
     code += "func " + namer_.Type(struct_def) + "KeyCompare(";
-    code += "o1, o2 flatbuffers.UOffsetT, buf []byte) bool {\n";
+    code += "o1_, o2_ flatbuffers.UOffsetT, buf_ []byte) bool {\n";
     // Stack-allocate the two accessors (no pointer escapes this function) to
     // avoid two heap allocations on every comparator call during a sort.
-    code += "\tvar obj1, obj2 " + namer_.Type(struct_def) + "\n";
-    code += "\tobj1.Init(buf, flatbuffers.UOffsetT(len(buf))-o1)\n";
-    code += "\tobj2.Init(buf, flatbuffers.UOffsetT(len(buf))-o2)\n";
+    code += "\tvar obj1_, obj2_ " + namer_.Type(struct_def) + "\n";
+    code += "\tobj1_.Init(buf_, flatbuffers.UOffsetT(len(buf_))-o1_)\n";
+    code += "\tobj2_.Init(buf_, flatbuffers.UOffsetT(len(buf_))-o2_)\n";
     if (IsString(field.value.type)) {
-      code += "\treturn string(obj1." + namer_.Function(field.name) + "()) < ";
-      code += "string(obj2." + namer_.Function(field.name) + "())\n";
+      code += "\treturn string(obj1_." + namer_.Function(field.name) + "()) < ";
+      code += "string(obj2_." + namer_.Function(field.name) + "())\n";
     } else {
-      code += "\treturn obj1." + namer_.Function(field.name) + "() < ";
-      code += "obj2." + namer_.Function(field.name) + "()\n";
+      code += "\treturn " +
+              GoKeyLess(field.value.type,
+                        "obj1_." + namer_.Function(field.name) + "()",
+                        "obj2_." + namer_.Function(field.name) + "()") +
+              "\n";
     }
     code += "}\n\n";
   }
@@ -1240,46 +1273,51 @@ class GoGenerator : public BaseGenerator {
 
     GenReceiver(struct_def, code_ptr);
     code += " LookupByKey(";
-    code += "key " + NativeType(field.value.type) + ", ";
-    code += "vectorLocation flatbuffers.UOffsetT, ";
-    code += "buf []byte) bool {\n";
-    code += "\tspan := flatbuffers.GetUOffsetT(buf[vectorLocation-4:])\n";
-    code += "\tstart := flatbuffers.UOffsetT(0)\n";
+    code += "key_ " + NativeType(field.value.type) + ", ";
+    code += "vectorLocation_ flatbuffers.UOffsetT, ";
+    code += "buf_ []byte) bool {\n";
+    code += "\tspan_ := flatbuffers.GetUOffsetT(buf_[vectorLocation_-4:])\n";
+    code += "\tstart_ := flatbuffers.UOffsetT(0)\n";
     if (IsString(field.value.type)) {
-      code += "\tbKey := []byte(key)\n";
+      code += "\tbKey_ := []byte(key_)\n";
     }
-    code += "\tfor span != 0 {\n";
-    code += "\t\tmiddle := span / 2\n";
-    code += "\t\ttableOffset := flatbuffers.GetIndirectOffset(buf, ";
-    code += "vectorLocation+4*(start+middle))\n";
+    code += "\tfor span_ != 0 {\n";
+    code += "\t\tmiddle_ := span_ / 2\n";
+    code += "\t\ttableOffset_ := flatbuffers.GetIndirectOffset(buf_, ";
+    code += "vectorLocation_+4*(start_+middle_))\n";
 
     // Stack-allocate the accessor (no pointer escapes the loop) to avoid a heap
     // allocation on every step of the O(log n) binary search.
-    code += "\t\tvar obj " + namer_.Type(struct_def) + "\n";
-    code += "\t\tobj.Init(buf, tableOffset)\n";
+    code += "\t\tvar obj_ " + namer_.Type(struct_def) + "\n";
+    code += "\t\tobj_.Init(buf_, tableOffset_)\n";
 
     if (IsString(field.value.type)) {
       needs_bytes_import_ = true;
-      code +=
-          "\t\tcomp := bytes.Compare(obj." + namer_.Function(field.name) + "()";
-      code += ", bKey)\n";
+      code += "\t\tcomp_ := bytes.Compare(obj_." + namer_.Function(field.name) +
+              "()";
+      code += ", bKey_)\n";
     } else {
-      code += "\t\tval := obj." + namer_.Function(field.name) + "()\n";
-      code += "\t\tcomp := 0\n";
-      code += "\t\tif val > key {\n";
-      code += "\t\t\tcomp = 1\n";
-      code += "\t\t} else if val < key {\n";
-      code += "\t\t\tcomp = -1\n";
+      code += "\t\tval_ := obj_." + namer_.Function(field.name) + "()\n";
+      code += "\t\tcomp_ := 0\n";
+      code += "\t\tif " +
+              (field.value.type.base_type == BASE_TYPE_BOOL
+                   ? GoKeyLess(field.value.type, "key_", "val_")
+                   : std::string("val_ > key_")) +
+              " {\n";
+      code += "\t\t\tcomp_ = 1\n";
+      code += "\t\t} else if " + GoKeyLess(field.value.type, "val_", "key_") +
+              " {\n";
+      code += "\t\t\tcomp_ = -1\n";
       code += "\t\t}\n";
     }
-    code += "\t\tif comp > 0 {\n";
-    code += "\t\t\tspan = middle\n";
-    code += "\t\t} else if comp < 0 {\n";
-    code += "\t\t\tmiddle += 1\n";
-    code += "\t\t\tstart += middle\n";
-    code += "\t\t\tspan -= middle\n";
+    code += "\t\tif comp_ > 0 {\n";
+    code += "\t\t\tspan_ = middle_\n";
+    code += "\t\t} else if comp_ < 0 {\n";
+    code += "\t\t\tmiddle_ += 1\n";
+    code += "\t\t\tstart_ += middle_\n";
+    code += "\t\t\tspan_ -= middle_\n";
     code += "\t\t} else {\n";
-    code += "\t\t\trcv.Init(buf, tableOffset)\n";
+    code += "\t\t\trcv_.Init(buf_, tableOffset_)\n";
     code += "\t\t\treturn true\n";
     code += "\t\t}\n";
     code += "\t}\n";
@@ -1329,6 +1367,14 @@ class GoGenerator : public BaseGenerator {
     }
   }
 
+  // A Go expression ordering two map/set keys (or key fields) a and b the way
+  // FlatBuffers sorts a keyed vector. Go has no < on bool: false sorts first.
+  static std::string GoKeyLess(const Type& type, const std::string& a,
+                               const std::string& b) {
+    if (type.base_type == BASE_TYPE_BOOL) return "!" + a + " && " + b;
+    return a + " < " + b;
+  }
+
   void GenNativeStruct(const StructDef& struct_def, std::string* code_ptr) {
     std::string& code = *code_ptr;
 
@@ -1376,6 +1422,7 @@ class GoGenerator : public BaseGenerator {
       GenNativeStructPack(struct_def, code_ptr);
       GenNativeStructUnPack(struct_def, code_ptr);
     }
+    if (parser_.opts.go_gen_json) GenNativeJSON(struct_def, code_ptr);
   }
 
   void GenNativeUnion(const EnumDef& enum_def, std::string* code_ptr) {
@@ -1392,18 +1439,18 @@ class GoGenerator : public BaseGenerator {
     if (enum_def.generated) return;
 
     std::string& code = *code_ptr;
-    code += "func (t *" + NativeName(enum_def) +
-            ") Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {\n";
-    code += "\tif t == nil {\n\t\treturn 0\n\t}\n";
+    code += "func (t_ *" + NativeName(enum_def) +
+            ") Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {\n";
+    code += "\tif t_ == nil {\n\t\treturn 0\n\t}\n";
 
-    code += "\tswitch t.Type {\n";
+    code += "\tswitch t_.Type {\n";
     for (auto it2 = enum_def.Vals().begin(); it2 != enum_def.Vals().end();
          ++it2) {
       const EnumVal& ev = **it2;
       if (ev.IsZero()) continue;
       code += "\tcase " + namer_.EnumVariant(enum_def, ev) + ":\n";
-      code += "\t\treturn t.Value.(" + NativeType(ev.union_type) +
-              ").Pack(builder)\n";
+      code += "\t\treturn t_.Value.(" + NativeType(ev.union_type) +
+              ").Pack(builder_)\n";
     }
     code += "\t}\n";
     code += "\treturn 0\n";
@@ -1415,26 +1462,26 @@ class GoGenerator : public BaseGenerator {
 
     std::string& code = *code_ptr;
 
-    code += "func (rcv " + namer_.Type(enum_def) +
-            ") UnPack(table flatbuffers.Table) *" + NativeName(enum_def) +
+    code += "func (rcv_ " + namer_.Type(enum_def) +
+            ") UnPack(table_ flatbuffers.Table) *" + NativeName(enum_def) +
             " {\n";
-    code += "\tswitch rcv {\n";
+    code += "\tswitch rcv_ {\n";
 
     for (auto it2 = enum_def.Vals().begin(); it2 != enum_def.Vals().end();
          ++it2) {
       const EnumVal& ev = **it2;
       if (ev.IsZero()) continue;
       code += "\tcase " + namer_.EnumVariant(enum_def, ev) + ":\n";
-      code += "\t\tvar x " +
+      code += "\t\tvar x_ " +
               WrapInNameSpaceAndTrack(ev.union_type.struct_def,
                                       ev.union_type.struct_def->name) +
               "\n";
-      code += "\t\tx.Init(table.Bytes, table.Pos)\n";
+      code += "\t\tx_.Init(table_.Bytes, table_.Pos)\n";
 
       code += "\t\treturn &" +
               WrapInNameSpaceAndTrack(&enum_def, NativeName(enum_def)) +
               "{Type: " + namer_.EnumVariant(enum_def, ev) +
-              ", Value: x.UnPack()}\n";
+              ", Value: x_.UnPack()}\n";
     }
     code += "\t}\n";
     code += "\treturn nil\n";
@@ -1450,25 +1497,25 @@ class GoGenerator : public BaseGenerator {
     code += "// Match dispatches to the appropriate callback based on the union variant.\n";
     code += "// Each callback receives the correctly typed value. If the variant is NONE\n";
     code += "// or unrecognized, no callback is invoked.\n";
-    code += "func (u *" + native_name + ") Match(\n";
+    code += "func (t_ *" + native_name + ") Match(\n";
     for (auto it2 = enum_def.Vals().begin(); it2 != enum_def.Vals().end();
          ++it2) {
       const EnumVal& ev = **it2;
       if (ev.IsZero()) continue;
-      code += "\ton" + namer_.Variant(ev) + " func(" + NativeType(ev.union_type) +
-              "),\n";
+      code += "\ton" + namer_.Variant(ev) + "_ func(" +
+              NativeType(ev.union_type) + "),\n";
     }
     code += ") {\n";
-    code += "\tif u == nil {\n\t\treturn\n\t}\n";
-    code += "\tswitch u.Type {\n";
+    code += "\tif t_ == nil {\n\t\treturn\n\t}\n";
+    code += "\tswitch t_.Type {\n";
     for (auto it2 = enum_def.Vals().begin(); it2 != enum_def.Vals().end();
          ++it2) {
       const EnumVal& ev = **it2;
       if (ev.IsZero()) continue;
       code += "\tcase " + namer_.EnumVariant(enum_def, ev) + ":\n";
-      code += "\t\tif v, ok := u.Value.(" + NativeType(ev.union_type) +
-              "); ok {\n";
-      code += "\t\t\ton" + namer_.Variant(ev) + "(v)\n";
+      code += "\t\tif v_, ok_ := t_.Value.(" + NativeType(ev.union_type) +
+              "); ok_ {\n";
+      code += "\t\t\ton" + namer_.Variant(ev) + "_(v_)\n";
       code += "\t\t}\n";
     }
     code += "\t}\n";
@@ -1479,9 +1526,9 @@ class GoGenerator : public BaseGenerator {
     std::string& code = *code_ptr;
     const std::string struct_type = namer_.Type(struct_def);
 
-    code += "func (t *" + NativeName(struct_def) +
-            ") Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {\n";
-    code += "\tif t == nil {\n\t\treturn 0\n\t}\n";
+    code += "func (t_ *" + NativeName(struct_def) +
+            ") Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {\n";
+    code += "\tif t_ == nil {\n\t\treturn 0\n\t}\n";
     for (auto it = struct_def.fields.vec.begin();
          it != struct_def.fields.vec.end(); ++it) {
       const FieldDef& field = **it;
@@ -1490,25 +1537,25 @@ class GoGenerator : public BaseGenerator {
 
       const std::string field_field = namer_.Field(field);
       const std::string field_var = namer_.Variable(field);
-      const std::string offset = field_var + "Offset";
+      const std::string offset = field_var + "Offset_";
 
       if (IsString(field.value.type)) {
         if (!field.IsRequired()) {
           code += "\t" + offset + " := flatbuffers.UOffsetT(0)\n";
-          code += "\tif t." + field_field + " != \"\" {\n";
-          code += "\t\t" + offset + " = builder.CreateString(t." + field_field +
-                  ")\n";
+          code += "\tif t_." + field_field + " != \"\" {\n";
+          code += "\t\t" + offset + " = builder_.CreateString(t_." +
+                  field_field + ")\n";
           code += "\t}\n";
         } else {
-          code += "\t" + offset + " := builder.CreateString(t." + field_field +
-                  ")\n";
+          code += "\t" + offset + " := builder_.CreateString(t_." +
+                  field_field + ")\n";
         }
       } else if (IsVector(field.value.type) &&
                  field.value.type.element == BASE_TYPE_UCHAR &&
                  field.value.type.enum_def == nullptr) {
         code += "\t" + offset + " := flatbuffers.UOffsetT(0)\n";
-        code += "\tif t." + field_field + " != nil {\n";
-        code += "\t\t" + offset + " = builder.CreateByteString(t." +
+        code += "\tif t_." + field_field + " != nil {\n";
+        code += "\t\t" + offset + " = builder_.CreateByteString(t_." +
                 field_field + ")\n";
         code += "\t}\n";
       } else if (IsVector(field.value.type) && IsMapField(field)) {
@@ -1522,29 +1569,32 @@ class GoGenerator : public BaseGenerator {
                                     field.value.type.struct_def->name);
         const std::string key_go = GoKeyType(kf->value.type);
         const std::string val_go = NativeType(vf->value.type);
-        const std::string offsets = field_var + "Offsets";
-        const std::string entries_var = field_var + "Entries";
-        const std::string length = field_var + "Length";
+        const std::string offsets = field_var + "Offsets_";
+        const std::string entries_var = field_var + "Entries_";
+        const std::string length = field_var + "Length_";
         const std::string kf_fn = namer_.Function(*kf);
         const std::string vf_fn = namer_.Function(*vf);
         code += "\t" + offset + " := flatbuffers.UOffsetT(0)\n";
-        code += "\tif t." + field_field + " != nil {\n";
+        code += "\tif t_." + field_field + " != nil {\n";
         // Collect map entries into a typed slice so we can sort them.
-        code += "\t\ttype " + field_var + "KV struct { k " + key_go + "; v " +
+        code += "\t\ttype " + field_var + "KV_ struct { k " + key_go + "; v " +
                 val_go + " }\n";
-        code += "\t\t" + entries_var + " := make([]" + field_var + "KV, 0, len(t." +
-                field_field + "))\n";
-        code += "\t\tfor k, v := range t." + field_field + " {\n";
+        code += "\t\t" + entries_var + " := make([]" + field_var +
+                "KV_, 0, len(t_." + field_field + "))\n";
+        code += "\t\tfor k_, v_ := range t_." + field_field + " {\n";
         code += "\t\t\t" + entries_var + " = append(" + entries_var + ", " +
-                field_var + "KV{k, v})\n";
+                field_var + "KV_{k_, v_})\n";
         code += "\t\t}\n";
-        code += "\t\tsort.Slice(" + entries_var + ", func(i, j int) bool { return " +
-                entries_var + "[i].k < " + entries_var + "[j].k })\n";
+        code += "\t\tsort.Slice(" + entries_var +
+                ", func(i_, j_ int) bool { return " +
+                GoKeyLess(kf->value.type, entries_var + "[i_].k",
+                          entries_var + "[j_].k") +
+                " })\n";
         // Pack each entry struct, collecting offsets.
         code += "\t\t" + length + " := len(" + entries_var + ")\n";
         code += "\t\t" + offsets + " := make([]flatbuffers.UOffsetT, " + length +
                 ")\n";
-        code += "\t\tfor i, e := range " + entries_var + " {\n";
+        code += "\t\tfor i_, e_ := range " + entries_var + " {\n";
         // Build any offset-type fields before starting the entry table.
         const bool key_is_string = IsString(kf->value.type);
         const bool val_is_string = IsString(vf->value.type);
@@ -1552,33 +1602,39 @@ class GoGenerator : public BaseGenerator {
             vf->value.type.base_type == BASE_TYPE_STRUCT &&
             !vf->value.type.struct_def->fixed;
         if (key_is_string) {
-          code += "\t\t\tkeyOffset := builder.CreateString(e.k)\n";
+          code += "\t\t\tkeyOffset_ := builder_.CreateString(e_.k)\n";
         }
         if (val_is_string) {
-          code += "\t\t\tvalOffset := builder.CreateString(e.v)\n";
+          code += "\t\t\tvalOffset_ := builder_.CreateString(e_.v)\n";
         } else if (val_is_table) {
-          code += "\t\t\tvalOffset := e.v.Pack(builder)\n";
+          code += "\t\t\tvalOffset_ := e_.v.Pack(builder_)\n";
         }
-        code += "\t\t\t" + entry_type + "Start(builder)\n";
+        code += "\t\t\t" + entry_type + "Start(builder_)\n";
         if (key_is_string) {
-          code += "\t\t\t" + entry_type + "Add" + kf_fn + "(builder, keyOffset)\n";
+          code += "\t\t\t" + entry_type + "Add" + kf_fn +
+                  "(builder_, keyOffset_)\n";
         } else {
-          code += "\t\t\t" + entry_type + "Add" + kf_fn + "(builder, e.k)\n";
+          code += "\t\t\t" + entry_type + "Add" + kf_fn + "(builder_, e_.k)\n";
         }
         if (val_is_string || val_is_table) {
-          code += "\t\t\t" + entry_type + "Add" + vf_fn + "(builder, valOffset)\n";
+          code += "\t\t\t" + entry_type + "Add" + vf_fn +
+                  "(builder_, valOffset_)\n";
+        } else if (IsStruct(vf->value.type)) {
+          // A struct value is stored inline, so it is built inside the entry.
+          code += "\t\t\t" + entry_type + "Add" + vf_fn +
+                  "(builder_, e_.v.Pack(builder_))\n";
         } else {
-          code += "\t\t\t" + entry_type + "Add" + vf_fn + "(builder, e.v)\n";
+          code += "\t\t\t" + entry_type + "Add" + vf_fn + "(builder_, e_.v)\n";
         }
-        code += "\t\t\t" + offsets + "[i] = " + entry_type + "End(builder)\n";
+        code += "\t\t\t" + offsets + "[i_] = " + entry_type + "End(builder_)\n";
         code += "\t\t}\n";
         // Create the vector in reverse order (FlatBuffers convention).
         code += "\t\t" + struct_type + "Start" + namer_.Function(field) +
-                "Vector(builder, " + length + ")\n";
-        code += "\t\tfor i := " + length + " - 1; i >= 0; i-- {\n";
-        code += "\t\t\tbuilder.PrependUOffsetT(" + offsets + "[i])\n";
+                "Vector(builder_, " + length + ")\n";
+        code += "\t\tfor i_ := " + length + " - 1; i_ >= 0; i_-- {\n";
+        code += "\t\t\tbuilder_.PrependUOffsetT(" + offsets + "[i_])\n";
         code += "\t\t}\n";
-        code += "\t\t" + offset + " = builder.EndVector(" + length + ")\n";
+        code += "\t\t" + offset + " = builder_.EndVector(" + length + ")\n";
         code += "\t}\n";
       } else if (IsVector(field.value.type) && IsSetField(field)) {
         // Pack a map[K]struct{} field as a sorted vector of entry structs.
@@ -1589,112 +1645,115 @@ class GoGenerator : public BaseGenerator {
             WrapInNameSpaceAndTrack(field.value.type.struct_def,
                                     field.value.type.struct_def->name);
         const std::string key_go = GoKeyType(kf->value.type);
-        const std::string offsets = field_var + "Offsets";
-        const std::string keys_var = field_var + "Keys";
-        const std::string length = field_var + "Length";
+        const std::string offsets = field_var + "Offsets_";
+        const std::string keys_var = field_var + "Keys_";
+        const std::string length = field_var + "Length_";
         const std::string kf_fn = namer_.Function(*kf);
         code += "\t" + offset + " := flatbuffers.UOffsetT(0)\n";
-        code += "\tif t." + field_field + " != nil {\n";
+        code += "\tif t_." + field_field + " != nil {\n";
         // Collect set keys into a sorted slice.
-        code += "\t\t" + keys_var + " := make([]" + key_go + ", 0, len(t." +
+        code += "\t\t" + keys_var + " := make([]" + key_go + ", 0, len(t_." +
                 field_field + "))\n";
-        code += "\t\tfor k := range t." + field_field + " {\n";
-        code += "\t\t\t" + keys_var + " = append(" + keys_var + ", k)\n";
+        code += "\t\tfor k_ := range t_." + field_field + " {\n";
+        code += "\t\t\t" + keys_var + " = append(" + keys_var + ", k_)\n";
         code += "\t\t}\n";
-        code += "\t\tsort.Slice(" + keys_var + ", func(i, j int) bool { return " +
-                keys_var + "[i] < " + keys_var + "[j] })\n";
+        code += "\t\tsort.Slice(" + keys_var +
+                ", func(i_, j_ int) bool { return " +
+                GoKeyLess(kf->value.type, keys_var + "[i_]", keys_var + "[j_]") +
+                " })\n";
         code += "\t\t" + length + " := len(" + keys_var + ")\n";
         code += "\t\t" + offsets + " := make([]flatbuffers.UOffsetT, " + length +
                 ")\n";
-        code += "\t\tfor i, k := range " + keys_var + " {\n";
+        code += "\t\tfor i_, k_ := range " + keys_var + " {\n";
         const bool key_is_string = IsString(kf->value.type);
         if (key_is_string) {
-          code += "\t\t\tkeyOffset := builder.CreateString(k)\n";
+          code += "\t\t\tkeyOffset_ := builder_.CreateString(k_)\n";
         }
-        code += "\t\t\t" + entry_type + "Start(builder)\n";
+        code += "\t\t\t" + entry_type + "Start(builder_)\n";
         if (key_is_string) {
-          code += "\t\t\t" + entry_type + "Add" + kf_fn + "(builder, keyOffset)\n";
+          code += "\t\t\t" + entry_type + "Add" + kf_fn +
+                  "(builder_, keyOffset_)\n";
         } else {
-          code += "\t\t\t" + entry_type + "Add" + kf_fn + "(builder, k)\n";
+          code += "\t\t\t" + entry_type + "Add" + kf_fn + "(builder_, k_)\n";
         }
-        code += "\t\t\t" + offsets + "[i] = " + entry_type + "End(builder)\n";
+        code += "\t\t\t" + offsets + "[i_] = " + entry_type + "End(builder_)\n";
         code += "\t\t}\n";
         code += "\t\t" + struct_type + "Start" + namer_.Function(field) +
-                "Vector(builder, " + length + ")\n";
-        code += "\t\tfor i := " + length + " - 1; i >= 0; i-- {\n";
-        code += "\t\t\tbuilder.PrependUOffsetT(" + offsets + "[i])\n";
+                "Vector(builder_, " + length + ")\n";
+        code += "\t\tfor i_ := " + length + " - 1; i_ >= 0; i_-- {\n";
+        code += "\t\t\tbuilder_.PrependUOffsetT(" + offsets + "[i_])\n";
         code += "\t\t}\n";
-        code += "\t\t" + offset + " = builder.EndVector(" + length + ")\n";
+        code += "\t\t" + offset + " = builder_.EndVector(" + length + ")\n";
         code += "\t}\n";
       } else if (IsVector(field.value.type)) {
         code += "\t" + offset + " := flatbuffers.UOffsetT(0)\n";
-        code += "\tif t." + field_field + " != nil {\n";
-        std::string length = field_var + "Length";
-        std::string offsets = field_var + "Offsets";
-        code += "\t\t" + length + " := len(t." + field_field + ")\n";
+        code += "\tif t_." + field_field + " != nil {\n";
+        std::string length = field_var + "Length_";
+        std::string offsets = field_var + "Offsets_";
+        code += "\t\t" + length + " := len(t_." + field_field + ")\n";
         if (field.value.type.element == BASE_TYPE_STRING) {
           code += "\t\t" + offsets + " := make([]flatbuffers.UOffsetT, " +
                   length + ")\n";
-          code += "\t\tfor j := 0; j < " + length + "; j++ {\n";
-          code += "\t\t\t" + offsets + "[j] = builder.CreateString(t." +
-                  field_field + "[j])\n";
+          code += "\t\tfor j_ := 0; j_ < " + length + "; j_++ {\n";
+          code += "\t\t\t" + offsets + "[j_] = builder_.CreateString(t_." +
+                  field_field + "[j_])\n";
           code += "\t\t}\n";
         } else if (field.value.type.element == BASE_TYPE_STRUCT &&
                    !field.value.type.struct_def->fixed) {
           code += "\t\t" + offsets + " := make([]flatbuffers.UOffsetT, " +
                   length + ")\n";
-          code += "\t\tfor j := 0; j < " + length + "; j++ {\n";
-          code += "\t\t\t" + offsets + "[j] = t." + field_field +
-                  "[j].Pack(builder)\n";
+          code += "\t\tfor j_ := 0; j_ < " + length + "; j_++ {\n";
+          code += "\t\t\t" + offsets + "[j_] = t_." + field_field +
+                  "[j_].Pack(builder_)\n";
           code += "\t\t}\n";
         }
         code += "\t\t" + struct_type + "Start" + namer_.Function(field) +
-                "Vector(builder, " + length + ")\n";
-        code += "\t\tfor j := " + length + " - 1; j >= 0; j-- {\n";
+                "Vector(builder_, " + length + ")\n";
+        code += "\t\tfor j_ := " + length + " - 1; j_ >= 0; j_-- {\n";
         if (IsScalar(field.value.type.element)) {
-          code += "\t\t\tbuilder.Prepend" +
+          code += "\t\t\tbuilder_.Prepend" +
                   namer_.Method(GenTypeBasic(field.value.type.VectorType())) +
                   "(" +
                   CastToBaseType(field.value.type.VectorType(),
-                                 "t." + field_field + "[j]") +
+                                 "t_." + field_field + "[j_]") +
                   ")\n";
         } else if (field.value.type.element == BASE_TYPE_STRUCT &&
                    field.value.type.struct_def->fixed) {
-          code += "\t\t\tt." + field_field + "[j].Pack(builder)\n";
+          code += "\t\t\tt_." + field_field + "[j_].Pack(builder_)\n";
         } else {
-          code += "\t\t\tbuilder.PrependUOffsetT(" + offsets + "[j])\n";
+          code += "\t\t\tbuilder_.PrependUOffsetT(" + offsets + "[j_])\n";
         }
         code += "\t\t}\n";
-        code += "\t\t" + offset + " = builder.EndVector(" + length + ")\n";
+        code += "\t\t" + offset + " = builder_.EndVector(" + length + ")\n";
         code += "\t}\n";
       } else if (field.value.type.base_type == BASE_TYPE_STRUCT) {
         if (field.value.type.struct_def->fixed) continue;
-        code += "\t" + offset + " := t." + field_field + ".Pack(builder)\n";
+        code += "\t" + offset + " := t_." + field_field + ".Pack(builder_)\n";
       } else if (field.value.type.base_type == BASE_TYPE_UNION) {
-        code += "\t" + offset + " := t." + field_field + ".Pack(builder)\n\n";
+        code += "\t" + offset + " := t_." + field_field + ".Pack(builder_)\n\n";
       } else {
         FLATBUFFERS_ASSERT(0);
       }
     }
-    code += "\t" + struct_type + "Start(builder)\n";
+    code += "\t" + struct_type + "Start(builder_)\n";
     for (auto it = struct_def.fields.vec.begin();
          it != struct_def.fields.vec.end(); ++it) {
       const FieldDef& field = **it;
       if (field.deprecated) continue;
       const std::string field_field = namer_.Field(field);
       const std::string field_fn = namer_.Function(field);
-      const std::string offset = namer_.Variable(field) + "Offset";
+      const std::string offset = namer_.Variable(field) + "Offset_";
 
       if (IsScalar(field.value.type.base_type)) {
         std::string prefix;
         if (field.IsScalarOptional()) {
-          code += "\tif t." + field_field + " != nil {\n\t";
+          code += "\tif t_." + field_field + " != nil {\n\t";
           prefix = "*";
         }
         if (field.value.type.enum_def == nullptr ||
             !field.value.type.enum_def->is_union) {
-          code += "\t" + struct_type + "Add" + field_fn + "(builder, " +
-                  prefix + "t." + field_field + ")\n";
+          code += "\t" + struct_type + "Add" + field_fn + "(builder_, " +
+                  prefix + "t_." + field_field + ")\n";
         }
         if (field.IsScalarOptional()) {
           code += "\t}\n";
@@ -1702,48 +1761,48 @@ class GoGenerator : public BaseGenerator {
       } else {
         if (field.value.type.base_type == BASE_TYPE_STRUCT &&
             field.value.type.struct_def->fixed) {
-          code += "\t" + offset + " := t." + field_field + ".Pack(builder)\n";
+          code += "\t" + offset + " := t_." + field_field + ".Pack(builder_)\n";
         } else if (field.value.type.enum_def != nullptr &&
                    field.value.type.enum_def->is_union) {
-          code += "\tif t." + field_field + " != nil {\n";
+          code += "\tif t_." + field_field + " != nil {\n";
           code += "\t\t" + struct_type + "Add" +
                   namer_.Method(field.name + UnionTypeFieldSuffix()) +
-                  "(builder, t." + field_field + ".Type)\n";
+                  "(builder_, t_." + field_field + ".Type)\n";
           code += "\t}\n";
         }
-        code += "\t" + struct_type + "Add" + field_fn + "(builder, " + offset +
+        code += "\t" + struct_type + "Add" + field_fn + "(builder_, " + offset +
                 ")\n";
       }
     }
-    code += "\treturn " + struct_type + "End(builder)\n";
+    code += "\treturn " + struct_type + "End(builder_)\n";
     code += "}\n\n";
   }
 
   void GenNativeTableUnPack(const StructDef& struct_def,
                             std::string* code_ptr) {
     std::string& code = *code_ptr;
-    const std::string struct_type = namer_.Type(struct_def);
 
-    code += "func (rcv *" + struct_type + ") UnPackTo(t *" +
-            NativeName(struct_def) + ") {\n";
+    GenReceiver(struct_def, code_ptr);
+    code += " UnPackTo(t_ *" + NativeName(struct_def) + ") {\n";
     for (auto it = struct_def.fields.vec.begin();
          it != struct_def.fields.vec.end(); ++it) {
       const FieldDef& field = **it;
       if (field.deprecated) continue;
       const std::string field_field = namer_.Field(field);
       const std::string field_var = namer_.Variable(field);
-      const std::string length = field_var + "Length";
+      const std::string length = field_var + "Length_";
       if (IsScalar(field.value.type.base_type)) {
         if (field.value.type.enum_def != nullptr &&
             field.value.type.enum_def->is_union)
           continue;
-        code += "\tt." + field_field + " = rcv." + field_field + "()\n";
+        code += "\tt_." + field_field + " = rcv_." + field_field + "()\n";
       } else if (IsString(field.value.type)) {
-        code += "\tt." + field_field + " = string(rcv." + field_field + "())\n";
+        code +=
+            "\tt_." + field_field + " = string(rcv_." + field_field + "())\n";
       } else if (IsVector(field.value.type) &&
                  field.value.type.element == BASE_TYPE_UCHAR &&
                  field.value.type.enum_def == nullptr) {
-        code += "\tt." + field_field + " = rcv." + field_field + "Bytes()\n";
+        code += "\tt_." + field_field + " = rcv_." + field_field + "Bytes()\n";
       } else if (IsVector(field.value.type) && IsMapField(field)) {
         const auto& entry = *field.value.type.struct_def;
         const auto *kf = GetEntryKeyField(entry);
@@ -1753,29 +1812,29 @@ class GoGenerator : public BaseGenerator {
                                     field.value.type.struct_def->name);
         const std::string key_go = GoKeyType(kf->value.type);
         const std::string val_go = NativeType(vf->value.type);
-        code += "\t" + length + " := rcv." + field_field + "Length()\n";
-        code += "\tt." + field_field + " = make(map[" + key_go + "]" + val_go +
+        code += "\t" + length + " := rcv_." + field_field + "Length()\n";
+        code += "\tt_." + field_field + " = make(map[" + key_go + "]" + val_go +
                 ", " + length + ")\n";
-        code += "\tfor j := 0; j < " + length + "; j++ {\n";
-        code += "\t\tx := " + entry_type + "{}\n";
-        code += "\t\trcv." + field_field + "(&x, j)\n";
+        code += "\tfor j_ := 0; j_ < " + length + "; j_++ {\n";
+        code += "\t\tx_ := " + entry_type + "{}\n";
+        code += "\t\trcv_." + field_field + "(&x_, j_)\n";
         // Key extraction — string keys need a cast.
         const std::string key_expr =
-            IsString(kf->value.type) ? "string(x." + namer_.Method(*kf) + "())"
-                                     : "x." + namer_.Method(*kf) + "()";
+            IsString(kf->value.type) ? "string(x_." + namer_.Method(*kf) + "())"
+                                     : "x_." + namer_.Method(*kf) + "()";
         // Value extraction — depends on value base type.
         std::string val_expr;
         if (IsScalar(vf->value.type.base_type)) {
-          val_expr = "x." + namer_.Method(*vf) + "()";
+          val_expr = "x_." + namer_.Method(*vf) + "()";
         } else if (IsString(vf->value.type)) {
-          val_expr = "string(x." + namer_.Method(*vf) + "())";
+          val_expr = "string(x_." + namer_.Method(*vf) + "())";
         } else if (vf->value.type.base_type == BASE_TYPE_STRUCT) {
-          val_expr = "x." + namer_.Method(*vf) + "(nil).UnPack()";
+          val_expr = "x_." + namer_.Method(*vf) + "(nil).UnPack()";
         } else {
-          val_expr = "x." + namer_.Method(*vf) + "()";
+          val_expr = "x_." + namer_.Method(*vf) + "()";
         }
-        code += "\t\tt." + field_field + "[" + key_expr + "] = " + val_expr +
-                "\n";
+        code +=
+            "\t\tt_." + field_field + "[" + key_expr + "] = " + val_expr + "\n";
         code += "\t}\n";
       } else if (IsVector(field.value.type) && IsSetField(field)) {
         const auto& entry = *field.value.type.struct_def;
@@ -1784,36 +1843,36 @@ class GoGenerator : public BaseGenerator {
             WrapInNameSpaceAndTrack(field.value.type.struct_def,
                                     field.value.type.struct_def->name);
         const std::string key_go = GoKeyType(kf->value.type);
-        code += "\t" + length + " := rcv." + field_field + "Length()\n";
-        code += "\tt." + field_field + " = make(map[" + key_go + "]struct{}, " +
-                length + ")\n";
-        code += "\tfor j := 0; j < " + length + "; j++ {\n";
-        code += "\t\tx := " + entry_type + "{}\n";
-        code += "\t\trcv." + field_field + "(&x, j)\n";
+        code += "\t" + length + " := rcv_." + field_field + "Length()\n";
+        code += "\tt_." + field_field + " = make(map[" + key_go +
+                "]struct{}, " + length + ")\n";
+        code += "\tfor j_ := 0; j_ < " + length + "; j_++ {\n";
+        code += "\t\tx_ := " + entry_type + "{}\n";
+        code += "\t\trcv_." + field_field + "(&x_, j_)\n";
         const std::string key_expr =
-            IsString(kf->value.type) ? "string(x." + namer_.Method(*kf) + "())"
-                                     : "x." + namer_.Method(*kf) + "()";
-        code += "\t\tt." + field_field + "[" + key_expr + "] = struct{}{}\n";
+            IsString(kf->value.type) ? "string(x_." + namer_.Method(*kf) + "())"
+                                     : "x_." + namer_.Method(*kf) + "()";
+        code += "\t\tt_." + field_field + "[" + key_expr + "] = struct{}{}\n";
         code += "\t}\n";
       } else if (IsVector(field.value.type)) {
-        code += "\t" + length + " := rcv." + field_field + "Length()\n";
-        code += "\tt." + field_field + " = make(" +
+        code += "\t" + length + " := rcv_." + field_field + "Length()\n";
+        code += "\tt_." + field_field + " = make(" +
                 NativeType(field.value.type) + ", " + length + ")\n";
-        code += "\tfor j := 0; j < " + length + "; j++ {\n";
+        code += "\tfor j_ := 0; j_ < " + length + "; j_++ {\n";
         if (field.value.type.element == BASE_TYPE_STRUCT) {
-          code += "\t\tx := " +
+          code += "\t\tx_ := " +
                   WrapInNameSpaceAndTrack(field.value.type.struct_def,
                                           field.value.type.struct_def->name) +
                   "{}\n";
-          code += "\t\trcv." + field_field + "(&x, j)\n";
+          code += "\t\trcv_." + field_field + "(&x_, j_)\n";
         }
-        code += "\t\tt." + field_field + "[j] = ";
+        code += "\t\tt_." + field_field + "[j_] = ";
         if (IsScalar(field.value.type.element)) {
-          code += "rcv." + field_field + "(j)";
+          code += "rcv_." + field_field + "(j_)";
         } else if (field.value.type.element == BASE_TYPE_STRING) {
-          code += "string(rcv." + field_field + "(j))";
+          code += "string(rcv_." + field_field + "(j_))";
         } else if (field.value.type.element == BASE_TYPE_STRUCT) {
-          code += "x.UnPack()";
+          code += "x_.UnPack()";
         } else {
           // TODO(iceboy): Support vector of unions.
           FLATBUFFERS_ASSERT(0);
@@ -1821,14 +1880,14 @@ class GoGenerator : public BaseGenerator {
         code += "\n";
         code += "\t}\n";
       } else if (field.value.type.base_type == BASE_TYPE_STRUCT) {
-        code +=
-            "\tt." + field_field + " = rcv." + field_field + "(nil).UnPack()\n";
+        code += "\tt_." + field_field + " = rcv_." + field_field +
+                "(nil).UnPack()\n";
       } else if (field.value.type.base_type == BASE_TYPE_UNION) {
-        const std::string field_table = field_var + "Table";
+        const std::string field_table = field_var + "Table_";
         code += "\t" + field_table + " := flatbuffers.Table{}\n";
         code +=
-            "\tif rcv." + namer_.Method(field) + "(&" + field_table + ") {\n";
-        code += "\t\tt." + field_field + " = rcv." +
+            "\tif rcv_." + namer_.Method(field) + "(&" + field_table + ") {\n";
+        code += "\t\tt_." + field_field + " = rcv_." +
                 namer_.Method(field.name + UnionTypeFieldSuffix()) +
                 "().UnPack(" + field_table + ")\n";
         code += "\t}\n";
@@ -1838,12 +1897,12 @@ class GoGenerator : public BaseGenerator {
     }
     code += "}\n\n";
 
-    code += "func (rcv *" + struct_type + ") UnPack() *" +
-            NativeName(struct_def) + " {\n";
-    code += "\tif rcv == nil {\n\t\treturn nil\n\t}\n";
-    code += "\tt := &" + NativeName(struct_def) + "{}\n";
-    code += "\trcv.UnPackTo(t)\n";
-    code += "\treturn t\n";
+    GenReceiver(struct_def, code_ptr);
+    code += " UnPack() *" + NativeName(struct_def) + " {\n";
+    code += "\tif rcv_ == nil {\n\t\treturn nil\n\t}\n";
+    code += "\tt_ := &" + NativeName(struct_def) + "{}\n";
+    code += "\trcv_.UnPackTo(t_)\n";
+    code += "\treturn t_\n";
     code += "}\n\n";
   }
 
@@ -1879,12 +1938,12 @@ class GoGenerator : public BaseGenerator {
     code += "// This avoids materializing the entire table tree. Pass the\n";
     code += "// generated " + struct_type +
             "Field* constants rather than raw strings.\n";
-    code += "func (rcv *" + struct_type + ") UnpackFields(fields ...string) *" +
-            native_type + " {\n";
-    code += "\tt := &" + native_type + "{}\n";
-    code += "\tfieldSet := make(map[string]bool, len(fields))\n";
-    code += "\tfor _, f := range fields {\n";
-    code += "\t\tfieldSet[f] = true\n";
+    GenReceiver(struct_def, code_ptr);
+    code += " UnpackFields(fields_ ...string) *" + native_type + " {\n";
+    code += "\tt_ := &" + native_type + "{}\n";
+    code += "\tfieldSet_ := make(map[string]bool, len(fields_))\n";
+    code += "\tfor _, f_ := range fields_ {\n";
+    code += "\t\tfieldSet_[f_] = true\n";
     code += "\t}\n";
 
     for (auto it = struct_def.fields.vec.begin();
@@ -1898,19 +1957,20 @@ class GoGenerator : public BaseGenerator {
 
       const std::string field_field = namer_.Field(field);
       const std::string field_var = namer_.Variable(field);
-      const std::string length = field_var + "Length";
+      const std::string length = field_var + "Length_";
 
-      code += "\tif fieldSet[\"" + field.name + "\"] {\n";
+      code += "\tif fieldSet_[\"" + field.name + "\"] {\n";
 
       if (IsScalar(field.value.type.base_type)) {
-        code += "\t\tt." + field_field + " = rcv." + field_field + "()\n";
+        code += "\t\tt_." + field_field + " = rcv_." + field_field + "()\n";
       } else if (IsString(field.value.type)) {
-        code += "\t\tt." + field_field + " = string(rcv." + field_field +
-                "())\n";
+        code +=
+            "\t\tt_." + field_field + " = string(rcv_." + field_field + "())\n";
       } else if (IsVector(field.value.type) &&
                  field.value.type.element == BASE_TYPE_UCHAR &&
                  field.value.type.enum_def == nullptr) {
-        code += "\t\tt." + field_field + " = rcv." + field_field + "Bytes()\n";
+        code +=
+            "\t\tt_." + field_field + " = rcv_." + field_field + "Bytes()\n";
       } else if (IsVector(field.value.type) && IsMapField(field)) {
         const auto& entry = *field.value.type.struct_def;
         const auto *kf = GetEntryKeyField(entry);
@@ -1920,27 +1980,26 @@ class GoGenerator : public BaseGenerator {
                                     field.value.type.struct_def->name);
         const std::string key_go = GoKeyType(kf->value.type);
         const std::string val_go = NativeType(vf->value.type);
-        code += "\t\t" + length + " := rcv." + field_field + "Length()\n";
-        code += "\t\tt." + field_field + " = make(map[" + key_go + "]" + val_go +
-                ", " + length + ")\n";
-        code += "\t\tfor j := 0; j < " + length + "; j++ {\n";
-        code += "\t\t\tx := " + entry_type + "{}\n";
-        code += "\t\t\trcv." + field_field + "(&x, j)\n";
+        code += "\t\t" + length + " := rcv_." + field_field + "Length()\n";
+        code += "\t\tt_." + field_field + " = make(map[" + key_go + "]" +
+                val_go + ", " + length + ")\n";
+        code += "\t\tfor j_ := 0; j_ < " + length + "; j_++ {\n";
+        code += "\t\t\tx_ := " + entry_type + "{}\n";
+        code += "\t\t\trcv_." + field_field + "(&x_, j_)\n";
         const std::string key_expr =
-            IsString(kf->value.type)
-                ? "string(x." + namer_.Method(*kf) + "())"
-                : "x." + namer_.Method(*kf) + "()";
+            IsString(kf->value.type) ? "string(x_." + namer_.Method(*kf) + "())"
+                                     : "x_." + namer_.Method(*kf) + "()";
         std::string val_expr;
         if (IsScalar(vf->value.type.base_type)) {
-          val_expr = "x." + namer_.Method(*vf) + "()";
+          val_expr = "x_." + namer_.Method(*vf) + "()";
         } else if (IsString(vf->value.type)) {
-          val_expr = "string(x." + namer_.Method(*vf) + "())";
+          val_expr = "string(x_." + namer_.Method(*vf) + "())";
         } else if (vf->value.type.base_type == BASE_TYPE_STRUCT) {
-          val_expr = "x." + namer_.Method(*vf) + "(nil).UnPack()";
+          val_expr = "x_." + namer_.Method(*vf) + "(nil).UnPack()";
         } else {
-          val_expr = "x." + namer_.Method(*vf) + "()";
+          val_expr = "x_." + namer_.Method(*vf) + "()";
         }
-        code += "\t\t\tt." + field_field + "[" + key_expr + "] = " + val_expr +
+        code += "\t\t\tt_." + field_field + "[" + key_expr + "] = " + val_expr +
                 "\n";
         code += "\t\t}\n";
       } else if (IsVector(field.value.type) && IsSetField(field)) {
@@ -1950,37 +2009,36 @@ class GoGenerator : public BaseGenerator {
             WrapInNameSpaceAndTrack(field.value.type.struct_def,
                                     field.value.type.struct_def->name);
         const std::string key_go = GoKeyType(kf->value.type);
-        code += "\t\t" + length + " := rcv." + field_field + "Length()\n";
-        code += "\t\tt." + field_field + " = make(map[" + key_go + "]struct{}, " +
-                length + ")\n";
-        code += "\t\tfor j := 0; j < " + length + "; j++ {\n";
-        code += "\t\t\tx := " + entry_type + "{}\n";
-        code += "\t\t\trcv." + field_field + "(&x, j)\n";
+        code += "\t\t" + length + " := rcv_." + field_field + "Length()\n";
+        code += "\t\tt_." + field_field + " = make(map[" + key_go +
+                "]struct{}, " + length + ")\n";
+        code += "\t\tfor j_ := 0; j_ < " + length + "; j_++ {\n";
+        code += "\t\t\tx_ := " + entry_type + "{}\n";
+        code += "\t\t\trcv_." + field_field + "(&x_, j_)\n";
         const std::string key_expr =
-            IsString(kf->value.type)
-                ? "string(x." + namer_.Method(*kf) + "())"
-                : "x." + namer_.Method(*kf) + "()";
-        code += "\t\t\tt." + field_field + "[" + key_expr + "] = struct{}{}\n";
+            IsString(kf->value.type) ? "string(x_." + namer_.Method(*kf) + "())"
+                                     : "x_." + namer_.Method(*kf) + "()";
+        code += "\t\t\tt_." + field_field + "[" + key_expr + "] = struct{}{}\n";
         code += "\t\t}\n";
       } else if (IsVector(field.value.type)) {
-        code += "\t\t" + length + " := rcv." + field_field + "Length()\n";
-        code += "\t\tt." + field_field + " = make(" +
+        code += "\t\t" + length + " := rcv_." + field_field + "Length()\n";
+        code += "\t\tt_." + field_field + " = make(" +
                 NativeType(field.value.type) + ", " + length + ")\n";
-        code += "\t\tfor j := 0; j < " + length + "; j++ {\n";
+        code += "\t\tfor j_ := 0; j_ < " + length + "; j_++ {\n";
         if (field.value.type.element == BASE_TYPE_STRUCT) {
-          code += "\t\t\tx := " +
+          code += "\t\t\tx_ := " +
                   WrapInNameSpaceAndTrack(field.value.type.struct_def,
                                           field.value.type.struct_def->name) +
                   "{}\n";
-          code += "\t\t\trcv." + field_field + "(&x, j)\n";
+          code += "\t\t\trcv_." + field_field + "(&x_, j_)\n";
         }
-        code += "\t\t\tt." + field_field + "[j] = ";
+        code += "\t\t\tt_." + field_field + "[j_] = ";
         if (IsScalar(field.value.type.element)) {
-          code += "rcv." + field_field + "(j)";
+          code += "rcv_." + field_field + "(j_)";
         } else if (field.value.type.element == BASE_TYPE_STRING) {
-          code += "string(rcv." + field_field + "(j))";
+          code += "string(rcv_." + field_field + "(j_))";
         } else if (field.value.type.element == BASE_TYPE_STRUCT) {
-          code += "x.UnPack()";
+          code += "x_.UnPack()";
         } else {
           // TODO(iceboy): Support vector of unions.
           FLATBUFFERS_ASSERT(0);
@@ -1988,14 +2046,14 @@ class GoGenerator : public BaseGenerator {
         code += "\n";
         code += "\t\t}\n";
       } else if (field.value.type.base_type == BASE_TYPE_STRUCT) {
-        code += "\t\tt." + field_field + " = rcv." + field_field +
+        code += "\t\tt_." + field_field + " = rcv_." + field_field +
                 "(nil).UnPack()\n";
       } else if (field.value.type.base_type == BASE_TYPE_UNION) {
-        const std::string field_table = field_var + "Table";
+        const std::string field_table = field_var + "Table_";
         code += "\t\t" + field_table + " := flatbuffers.Table{}\n";
-        code += "\t\tif rcv." + namer_.Method(field) + "(&" + field_table +
+        code += "\t\tif rcv_." + namer_.Method(field) + "(&" + field_table +
                 ") {\n";
-        code += "\t\t\tt." + field_field + " = rcv." +
+        code += "\t\t\tt_." + field_field + " = rcv_." +
                 namer_.Method(field.name + UnionTypeFieldSuffix()) +
                 "().UnPack(" + field_table + ")\n";
         code += "\t\t}\n";
@@ -2006,18 +2064,18 @@ class GoGenerator : public BaseGenerator {
       code += "\t}\n";
     }
 
-    code += "\treturn t\n";
+    code += "\treturn t_\n";
     code += "}\n\n";
   }
 
   void GenNativeStructPack(const StructDef& struct_def, std::string* code_ptr) {
     std::string& code = *code_ptr;
 
-    code += "func (t *" + NativeName(struct_def) +
-            ") Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {\n";
-    code += "\tif t == nil {\n\t\treturn 0\n\t}\n";
+    code += "func (t_ *" + NativeName(struct_def) +
+            ") Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {\n";
+    code += "\tif t_ == nil {\n\t\treturn 0\n\t}\n";
     StructPackGuards(struct_def, "", code_ptr);
-    code += "\treturn Create" + namer_.Type(struct_def) + "(builder";
+    code += "\treturn Create" + namer_.Type(struct_def) + "(builder_";
     StructPackArgs(struct_def, "", code_ptr);
     code += ")\n";
     code += "}\n";
@@ -2034,7 +2092,7 @@ class GoGenerator : public BaseGenerator {
                        (nameprefix + namer_.Field(field) + ".").c_str(),
                        code_ptr);
       } else {
-        code += std::string(", t.") + nameprefix + namer_.Field(field);
+        code += std::string(", t_.") + nameprefix + namer_.Field(field);
       }
     }
   }
@@ -2052,12 +2110,12 @@ class GoGenerator : public BaseGenerator {
       const FieldDef& field = **it;
       if (field.value.type.base_type == BASE_TYPE_STRUCT) {
         const std::string path = nameprefix + namer_.Field(field);
-        code += "\tif t." + path + " == nil {\n";
-        code += "\t\tt." + path + " = &" +
-                WrapInNameSpaceAndTrack(
-                    field.value.type.struct_def,
-                    NativeName(*field.value.type.struct_def)) +
-                "{}\n";
+        code += "\tif t_." + path + " == nil {\n";
+        code +=
+            "\t\tt_." + path + " = &" +
+            WrapInNameSpaceAndTrack(field.value.type.struct_def,
+                                    NativeName(*field.value.type.struct_def)) +
+            "{}\n";
         code += "\t}\n";
         StructPackGuards(*field.value.type.struct_def, path + ".", code_ptr);
       }
@@ -2068,27 +2126,27 @@ class GoGenerator : public BaseGenerator {
                              std::string* code_ptr) {
     std::string& code = *code_ptr;
 
-    code += "func (rcv *" + namer_.Type(struct_def) + ") UnPackTo(t *" +
-            NativeName(struct_def) + ") {\n";
+    GenReceiver(struct_def, code_ptr);
+    code += " UnPackTo(t_ *" + NativeName(struct_def) + ") {\n";
     for (auto it = struct_def.fields.vec.begin();
          it != struct_def.fields.vec.end(); ++it) {
       const FieldDef& field = **it;
       if (field.value.type.base_type == BASE_TYPE_STRUCT) {
-        code += "\tt." + namer_.Field(field) + " = rcv." +
+        code += "\tt_." + namer_.Field(field) + " = rcv_." +
                 namer_.Method(field) + "(nil).UnPack()\n";
       } else {
-        code += "\tt." + namer_.Field(field) + " = rcv." +
+        code += "\tt_." + namer_.Field(field) + " = rcv_." +
                 namer_.Method(field) + "()\n";
       }
     }
     code += "}\n\n";
 
-    code += "func (rcv *" + namer_.Type(struct_def) + ") UnPack() *" +
-            NativeName(struct_def) + " {\n";
-    code += "\tif rcv == nil {\n\t\treturn nil\n\t}\n";
-    code += "\tt := &" + NativeName(struct_def) + "{}\n";
-    code += "\trcv.UnPackTo(t)\n";
-    code += "\treturn t\n";
+    GenReceiver(struct_def, code_ptr);
+    code += " UnPack() *" + NativeName(struct_def) + " {\n";
+    code += "\tif rcv_ == nil {\n\t\treturn nil\n\t}\n";
+    code += "\tt_ := &" + NativeName(struct_def) + "{}\n";
+    code += "\trcv_.UnPackTo(t_)\n";
+    code += "\treturn t_\n";
     code += "}\n\n";
   }
 
@@ -2130,13 +2188,13 @@ class GoGenerator : public BaseGenerator {
   std::string GenGetter(const Type& type) {
     switch (type.base_type) {
       case BASE_TYPE_STRING:
-        return "rcv._tab.ByteVector";
+        return "rcv_._tab.ByteVector";
       case BASE_TYPE_UNION:
-        return "rcv._tab.Union";
+        return "rcv_._tab.Union";
       case BASE_TYPE_VECTOR:
         return GenGetter(type.VectorType());
       default:
-        return "rcv._tab.Get" + namer_.Function(GenTypeBasic(type));
+        return "rcv_._tab.Get" + namer_.Function(GenTypeBasic(type));
     }
   }
 
@@ -2207,6 +2265,500 @@ class GoGenerator : public BaseGenerator {
     } else {
       return GenTypeBasic(type) + "(" + value + ")";
     }
+  }
+
+  // ── Canonical JSON (--go-json) ───────────────────────────────────────
+  //
+  // Every Object API type gets methods reading and writing canonical
+  // FlatBuffers JSON through the flatbuffers runtime (go/json_canonical.go):
+  // the format flatc's own JSON parser and printer use, with defaults, empty
+  // strings and empty collections omitted. Schema reflection
+  // (ReflectToCanonicalJSON) writes through the same runtime, so both give
+  // the same bytes for the same message.
+
+  std::string json_error_;
+
+  void JSONUnsupported(const StructDef& struct_def, const FieldDef& field,
+                       const std::string& what) {
+    if (json_error_.empty()) {
+      json_error_ = struct_def.name + "." + field.name +
+                    ": --go-json does not support " + what;
+    }
+  }
+
+  // The definition name flatc --jsonschema gives a type.
+  static std::string JSONSchemaDefinition(const Definition& def) {
+    std::string name;
+    for (const auto& component : def.defined_namespace->components) {
+      name += component + "_";
+    }
+    return name + def.name;
+  }
+
+  std::string JSONEnumNames(const EnumDef& enum_def) {
+    return WrapInNameSpaceAndTrack(&enum_def, "EnumNames" + enum_def.name);
+  }
+
+  std::string JSONEnumValues(const EnumDef& enum_def) {
+    return WrapInNameSpaceAndTrack(&enum_def,
+                                   "EnumValues" + namer_.Type(enum_def));
+  }
+
+  static bool IsJSONBitFlags(const EnumDef& enum_def) {
+    return enum_def.attributes.Lookup("bit_flags") != nullptr;
+  }
+
+  // Like all generated code (see the note above needs_sort_import_), the JSON
+  // methods give every receiver, parameter and local a trailing underscore.
+
+  // A Go statement writing `expr`, a scalar, string, struct or table of
+  // `type` as the Object API holds it, to the JSONWriter w_.
+  std::string GenJSONWrite(const Type& type, const std::string& expr) {
+    const bool int64_strings = parser_.opts.json_int64_as_string;
+    if (type.enum_def != nullptr && IsScalar(type.base_type)) {
+      // A 64-bit value no variant names is a 64-bit number, quoted under
+      // --json-int64-as-string like any other.
+      const bool quoted = int64_strings && (type.base_type == BASE_TYPE_LONG ||
+                                            type.base_type == BASE_TYPE_ULONG);
+      std::string call = IsJSONBitFlags(*type.enum_def)
+                             ? "flatbuffers.WriteJSONBitFlags"
+                             : "flatbuffers.WriteJSONEnum";
+      if (quoted) call += "Quoted";
+      return call + "(w_, " + expr + ", " + JSONEnumNames(*type.enum_def) + ")";
+    }
+    switch (type.base_type) {
+      case BASE_TYPE_BOOL:
+        return "w_.Bool(" + expr + ")";
+      case BASE_TYPE_CHAR:
+      case BASE_TYPE_SHORT:
+      case BASE_TYPE_INT:
+        return "w_.Int(int64(" + expr + "))";
+      case BASE_TYPE_UCHAR:
+      case BASE_TYPE_USHORT:
+      case BASE_TYPE_UINT:
+        return "w_.Uint(uint64(" + expr + "))";
+      case BASE_TYPE_LONG:
+        return std::string(int64_strings ? "w_.IntString(" : "w_.Int(") +
+               expr + ")";
+      case BASE_TYPE_ULONG:
+        return std::string(int64_strings ? "w_.UintString(" : "w_.Uint(") +
+               expr + ")";
+      case BASE_TYPE_FLOAT:
+        return "w_.Float32(" + expr + ")";
+      case BASE_TYPE_DOUBLE:
+        return "w_.Float64(" + expr + ")";
+      case BASE_TYPE_STRING:
+        return "w_.String(" + expr + ")";
+      case BASE_TYPE_STRUCT:
+        return expr + ".WriteFlatJSON(w_)";
+      default:
+        FLATBUFFERS_ASSERT(0);
+        return "";
+    }
+  }
+
+  // Go statements reading the JSON value `src`, located by the JSON Pointer
+  // expression `ptr`, into `lhs`: a scalar, string, struct or table of
+  // `type`. A failure returns `ret` + "err_" from the enclosing function.
+  std::string GenJSONRead(const Type& type, const std::string& lhs,
+                          const std::string& src, const std::string& ptr,
+                          const std::string& ret, const std::string& indent) {
+    std::string call;
+    if (type.enum_def != nullptr && IsScalar(type.base_type)) {
+      call = std::string(IsJSONBitFlags(*type.enum_def)
+                             ? "flatbuffers.JSONBitFlags("
+                             : "flatbuffers.JSONEnum(") +
+             src + ", " + ptr + ", " + JSONEnumValues(*type.enum_def) + ")";
+    } else if (type.base_type == BASE_TYPE_BOOL) {
+      call = "flatbuffers.JSONBool(" + src + ", " + ptr + ")";
+    } else if (IsFloat(type.base_type)) {
+      call = "flatbuffers.JSONFloat[" + GenTypeBasic(type) + "](" + src +
+             ", " + ptr + ")";
+    } else if (IsInteger(type.base_type)) {
+      call = "flatbuffers.JSONInt[" + GenTypeBasic(type) + "](" + src + ", " +
+             ptr + ")";
+    } else if (IsString(type)) {
+      call = "flatbuffers.JSONString(" + src + ", " + ptr + ")";
+    } else if (type.base_type == BASE_TYPE_STRUCT) {
+      const std::string native =
+          WrapInNameSpaceAndTrack(type.struct_def, NativeName(*type.struct_def));
+      return indent + lhs + " = &" + native + "{}\n" + indent +
+             "if err_ := " + lhs + ".UnmarshalFlatJSONValue(" + src + ", " +
+             ptr + "); err_ != nil {\n" + indent + "\t" + ret + "err_\n" +
+             indent + "}\n";
+    } else {
+      FLATBUFFERS_ASSERT(0);
+      return "";
+    }
+    return indent + "if " + lhs + ", err_ = " + call + "; err_ != nil {\n" +
+           indent + "\t" + ret + "err_\n" + indent + "}\n";
+  }
+
+  // The keys of a map or set field, in FlatBuffers key order.
+  std::string GenJSONSortedKeys(const FieldDef& key_field,
+                                const std::string& expr) {
+    return key_field.value.type.base_type == BASE_TYPE_BOOL
+               ? "flatbuffers.JSONBoolMapKeys(" + expr + ")"
+               : "flatbuffers.JSONMapKeys(" + expr + ")";
+  }
+
+  // A map key `k_` spelled as a JSON property name.
+  std::string GenJSONKeyText(const Type& key_type) {
+    if (IsString(key_type)) return "k_";
+    if (key_type.enum_def != nullptr) {
+      return std::string(IsJSONBitFlags(*key_type.enum_def)
+                             ? "flatbuffers.JSONBitFlagsKey(k_, "
+                             : "flatbuffers.JSONEnumKey(k_, ") +
+             JSONEnumNames(*key_type.enum_def) + ")";
+    }
+    if (key_type.base_type == BASE_TYPE_BOOL) {
+      return "flatbuffers.JSONBoolKeyText(k_)";
+    }
+    return "flatbuffers.JSONIntegerKey(k_)";
+  }
+
+  // Go statements parsing map key text `k_` (at pointer `p_`) into `key_`.
+  std::string GenJSONKeyParse(const Type& key_type, const std::string& indent) {
+    if (IsString(key_type)) return indent + "key_ := k_\n";
+    std::string call;
+    if (key_type.enum_def != nullptr) {
+      call = std::string(IsJSONBitFlags(*key_type.enum_def)
+                             ? "flatbuffers.JSONBitFlags(k_, p_, "
+                             : "flatbuffers.JSONEnum(k_, p_, ") +
+             JSONEnumValues(*key_type.enum_def) + ")";
+    } else if (key_type.base_type == BASE_TYPE_BOOL) {
+      call = "flatbuffers.JSONBoolKey(k_, p_)";
+    } else {
+      call = "flatbuffers.JSONInt[" + GoKeyType(key_type) + "](k_, p_)";
+    }
+    return indent + "key_, err_ := " + call + "\n" + indent +
+           "if err_ != nil {\n" + indent + "\treturn err_\n" + indent + "}\n";
+  }
+
+  // The Go condition under which a scalar table field differs from its
+  // default and so is written. NaN equals nothing, itself included, so a NaN
+  // default is matched by math.IsNaN instead of !=.
+  std::string GenJSONNotDefault(const FieldDef& field, const std::string& f) {
+    if (IsFloat(field.value.type.base_type) &&
+        StringIsFlatbufferNan(field.value.constant)) {
+      needs_math_import_ = true;
+      return "!math.IsNaN(float64(" + f + "))";
+    }
+    return f + " != " + GenConstant(field);
+  }
+
+  void GenJSONWriteField(const StructDef& struct_def, const FieldDef& field,
+                         std::string* code_ptr) {
+    std::string& code = *code_ptr;
+    const Type& type = field.value.type;
+    if (field.deprecated) return;
+    // A union's type field is written together with the union.
+    if (type.base_type == BASE_TYPE_UTYPE) return;
+    const std::string f = "t_." + namer_.Field(field);
+    const std::string key = "\"" + field.name + "\"";
+    const std::string write_key = "w_.Key(" + key + ")\n";
+
+    if (field.IsScalarOptional()) {
+      code += "\tif " + f + " != nil {\n\t\t" + write_key + "\t\t" +
+              GenJSONWrite(type, "*" + f) + "\n\t}\n";
+    } else if (IsScalar(type.base_type)) {
+      if (struct_def.fixed) {
+        code += "\t" + write_key + "\t" + GenJSONWrite(type, f) + "\n";
+      } else {
+        code += "\tif " + GenJSONNotDefault(field, f) + " {\n\t\t" +
+                write_key + "\t\t" + GenJSONWrite(type, f) + "\n\t}\n";
+      }
+    } else if (IsString(type)) {
+      if (field.IsRequired()) {
+        code += "\t" + write_key + "\t" + GenJSONWrite(type, f) + "\n";
+      } else {
+        code += "\tif " + f + " != \"\" {\n\t\t" + write_key + "\t\t" +
+                GenJSONWrite(type, f) + "\n\t}\n";
+      }
+    } else if (type.base_type == BASE_TYPE_STRUCT) {
+      if (struct_def.fixed) {
+        code += "\t" + write_key + "\t" + GenJSONWrite(type, f) + "\n";
+      } else if (field.IsRequired()) {
+        // A required table or struct that is missing cannot be packed
+        // either; JSON has no spelling for it but an error.
+        code += "\tif " + f + " == nil {\n\t\tw_.Fail(flatbuffers.JSONErrorf(" +
+                "\"\", \"required member " + field.name +
+                " is missing\"))\n\t} else {\n\t\t" + write_key + "\t\t" +
+                GenJSONWrite(type, f) + "\n\t}\n";
+      } else {
+        code += "\tif " + f + " != nil {\n\t\t" + write_key + "\t\t" +
+                GenJSONWrite(type, f) + "\n\t}\n";
+      }
+    } else if (type.base_type == BASE_TYPE_UNION) {
+      // A union with no value is no union, as UnPack reads one: a type
+      // without a value, or a variant this code does not know, unpacks nil.
+      code += "\tif " + f + " != nil && " + f + ".Type != 0 && " + f +
+              ".Value != nil {\n";
+      code += "\t\tw_.Key(\"" + field.sibling_union_field->name + "\")\n";
+      code += "\t\t" + f + ".WriteFlatJSONType(w_)\n";
+      code += "\t\t" + write_key + "\t\t" + f + ".WriteFlatJSONValue(w_)\n\t}\n";
+    } else if (IsVector(type)) {
+      const bool is_map = IsMapField(field);
+      const bool is_set = IsSetField(field);
+      std::string body;
+      if (is_map || is_set) {
+        const auto& entry = *type.struct_def;
+        const FieldDef* kf = GetEntryKeyField(entry);
+        body += is_map ? "\t\tw_.BeginObject()\n" : "\t\tw_.BeginArray()\n";
+        body += "\n\t\tfor _, k_ := range " + GenJSONSortedKeys(*kf, f) +
+                " {\n";
+        if (is_map) {
+          const FieldDef* vf = GetEntryValueField(entry);
+          body += "\t\t\tw_.MapKey(" + GenJSONKeyText(kf->value.type) + ")\n";
+          body += "\t\t\t" + GenJSONWrite(vf->value.type, f + "[k_]") + "\n";
+        } else {
+          body += "\t\t\t" + GenJSONWrite(kf->value.type, "k_") + "\n";
+        }
+        body += "\t\t}\n\n";
+        body += is_map ? "\t\tw_.EndObject()\n" : "\t\tw_.EndArray()\n";
+      } else {
+        body += "\t\tw_.BeginArray()\n\n\t\tfor _, e_ := range " + f + " {\n";
+        body += "\t\t\t" + GenJSONWrite(type.VectorType(), "e_") + "\n";
+        body += "\t\t}\n\n\t\tw_.EndArray()\n";
+      }
+      if (field.IsRequired()) {
+        code += "\t{\n\t\t" + write_key + body + "\t}\n";
+      } else {
+        code += "\tif len(" + f + ") > 0 {\n\t\t" + write_key + body +
+                "\t}\n";
+      }
+    }
+  }
+
+  void GenJSONReadField(const StructDef& struct_def, const FieldDef& field,
+                        std::string* code_ptr) {
+    std::string& code = *code_ptr;
+    const Type& type = field.value.type;
+    if (field.deprecated) return;
+    if (type.base_type == BASE_TYPE_UTYPE) return;
+    const std::string f = "t_." + namer_.Field(field);
+    const std::string key = "\"" + field.name + "\"";
+    const std::string fp = "flatbuffers.JSONPointer(pointer_, " + key + ")";
+    const bool required = field.IsRequired() || struct_def.fixed;
+    const std::string missing =
+        required ? " else {\n\t\treturn flatbuffers.JSONRequired(pointer_, " +
+                       key + ")\n\t}\n"
+                 : "\n";
+
+    if (type.base_type == BASE_TYPE_UNION) {
+      code += "\tif " + f + ", err_ = " +
+              WrapInNameSpaceAndTrack(
+                  type.enum_def,
+                  "Unmarshal" + namer_.Type(*type.enum_def) + "FlatJSON") +
+              "(m_, pointer_, \"" + field.sibling_union_field->name + "\", " +
+              key + "); err_ != nil {\n\t\treturn err_\n\t}\n";
+      return;
+    }
+
+    code += "\tif x_, ok_ := flatbuffers.JSONMember(m_, " + key + "); ok_ {\n";
+    if (field.IsScalarOptional()) {
+      code += "\t\tvar value_ " + NativeType(type) + "\n";
+      code += GenJSONRead(type, "value_", "x_", fp, "return ", "\t\t");
+      code += "\t\t" + f + " = &value_\n";
+    } else if (!IsVector(type)) {
+      code += GenJSONRead(type, f, "x_", fp, "return ", "\t\t");
+    } else if (IsMapField(field)) {
+      const auto& entry = *type.struct_def;
+      const FieldDef* kf = GetEntryKeyField(entry);
+      const FieldDef* vf = GetEntryValueField(entry);
+      code += "\t\tfp_ := " + fp + "\n\n";
+      code += "\t\to_, err_ := flatbuffers.JSONObject(x_, fp_)\n";
+      code += "\t\tif err_ != nil {\n\t\t\treturn err_\n\t\t}\n\n";
+      code += "\t\t" + f + " = make(map[" + GoKeyType(kf->value.type) + "]" +
+              NativeType(vf->value.type) + ", len(o_))\n\n";
+      // Two spellings of one key ("1" and "01") collapse to the last in
+      // sorted order, as two entries with one key do in UnPack.
+      code += "\t\tfor _, k_ := range flatbuffers.JSONSortedKeys(o_) {\n";
+      code += "\t\t\tp_ := flatbuffers.JSONPointer(fp_, k_)\n";
+      code += GenJSONKeyParse(kf->value.type, "\t\t\t");
+      code += "\n\t\t\tvar value_ " + NativeType(vf->value.type) + "\n";
+      code += "\t\t\tif e_, ok_ := flatbuffers.JSONMember(o_, k_); ok_ {\n";
+      code += GenJSONRead(vf->value.type, "value_", "e_", "p_", "return ",
+                          "\t\t\t\t");
+      code += "\t\t\t}\n\n";
+      code += "\t\t\t" + f + "[key_] = value_\n\t\t}\n";
+    } else if (IsSetField(field)) {
+      const FieldDef* kf = GetEntryKeyField(*type.struct_def);
+      code += "\t\tfp_ := " + fp + "\n\n";
+      code += "\t\ta_, err_ := flatbuffers.JSONArray(x_, fp_)\n";
+      code += "\t\tif err_ != nil {\n\t\t\treturn err_\n\t\t}\n\n";
+      code += "\t\t" + f + " = make(map[" + GoKeyType(kf->value.type) +
+              "]struct{}, len(a_))\n\n";
+      code += "\t\tfor i_, e_ := range a_ {\n";
+      code += "\t\t\tvar key_ " + GoKeyType(kf->value.type) + "\n";
+      code += GenJSONRead(kf->value.type, "key_", "e_",
+                          "flatbuffers.JSONIndexPointer(fp_, i_)", "return ",
+                          "\t\t\t");
+      code += "\t\t\t" + f + "[key_] = struct{}{}\n\t\t}\n";
+    } else {
+      code += "\t\tfp_ := " + fp + "\n\n";
+      code += "\t\ta_, err_ := flatbuffers.JSONArray(x_, fp_)\n";
+      code += "\t\tif err_ != nil {\n\t\t\treturn err_\n\t\t}\n\n";
+      code += "\t\t" + f + " = make(" + NativeType(type) + ", len(a_))\n\n";
+      code += "\t\tfor i_, e_ := range a_ {\n";
+      code += GenJSONRead(type.VectorType(), f + "[i_]", "e_",
+                          "flatbuffers.JSONIndexPointer(fp_, i_)", "return ",
+                          "\t\t\t");
+      code += "\t\t}\n";
+    }
+    code += "\t}" + missing;
+  }
+
+  void GenNativeJSON(const StructDef& struct_def, std::string* code_ptr) {
+    std::string& code = *code_ptr;
+    const std::string native = NativeName(struct_def);
+
+    std::string members;
+    for (const FieldDef* field : struct_def.fields.vec) {
+      const Type& type = field->value.type;
+      members += ", \"" + field->name + "\"";
+      if (field->deprecated) continue;
+      if (IsArray(type)) JSONUnsupported(struct_def, *field, "fixed-size arrays");
+      if (field->nested_flatbuffer) {
+        JSONUnsupported(struct_def, *field, "nested_flatbuffer");
+      }
+      if (field->flexbuffer) JSONUnsupported(struct_def, *field, "flexbuffer");
+      if (IsVector(type) && type.element == BASE_TYPE_UNION) {
+        JSONUnsupported(struct_def, *field, "vectors of unions");
+      }
+      if (field->offset64) {
+        JSONUnsupported(struct_def, *field, "64-bit offsets (offset64)");
+      }
+    }
+    if (!json_error_.empty()) return;
+
+    code += "// FlatJSONSchema names the JSON Schema definition flatc --jsonschema\n";
+    code += "// generates for " + struct_def.name + ": its file, and its name there.\n";
+    code += "func (*" + native + ") FlatJSONSchema() (string, string) {\n";
+    code += "\treturn \"" + StripExtension(StripPath(struct_def.file)) +
+            ".schema.json\", \"" + JSONSchemaDefinition(struct_def) + "\"\n";
+    code += "}\n\n";
+
+    code += "// MarshalFlatJSON returns t as canonical FlatBuffers JSON.\n";
+    code += "func (t_ *" + native + ") MarshalFlatJSON() ([]byte, error) {\n";
+    code += "\tw_ := flatbuffers.NewJSONWriter()\n\tt_.WriteFlatJSON(w_)\n\n";
+    code += "\treturn w_.Bytes()\n}\n\n";
+
+    code += "// WriteFlatJSON writes t to w_ as canonical FlatBuffers JSON.\n";
+    code += "func (t_ *" + native + ") WriteFlatJSON(w_ *flatbuffers.JSONWriter) {\n";
+    code += "\tif t_ == nil {\n\t\tw_.Null()\n\n\t\treturn\n\t}\n\n";
+    code += "\tw_.BeginObject()\n";
+    for (const FieldDef* field : struct_def.fields.vec) {
+      GenJSONWriteField(struct_def, *field, &code);
+    }
+    code += "\tw_.EndObject()\n}\n\n";
+
+    code += "// UnmarshalFlatJSON replaces t with the value the canonical FlatBuffers\n";
+    code += "// JSON in data_ describes; an absent scalar takes its schema default.\n";
+    code += "func (t_ *" + native + ") UnmarshalFlatJSON(data_ []byte) error {\n";
+    code += "\tv_, err_ := flatbuffers.ParseJSON(data_)\n";
+    code += "\tif err_ != nil {\n\t\treturn err_\n\t}\n\n";
+    code += "\treturn t_.UnmarshalFlatJSONValue(v_, \"\")\n}\n\n";
+
+    code += "// UnmarshalFlatJSONValue is UnmarshalFlatJSON for a value\n";
+    code += "// flatbuffers.ParseJSON has already parsed; pointer_ locates it in errors.\n";
+    code += "func (t_ *" + native +
+            ") UnmarshalFlatJSONValue(v_ any, pointer_ string) error {\n";
+    code += "\tm_, err_ := flatbuffers.JSONObject(v_, pointer_)\n";
+    code += "\tif err_ != nil {\n\t\treturn err_\n\t}\n\n";
+    code += "\terr_ = flatbuffers.JSONCheckMembers(m_, pointer_" + members + ")\n";
+    code += "\tif err_ != nil {\n\t\treturn err_\n\t}\n\n";
+    code += "\t*t_ = " + native + "{}\n";
+    if (!struct_def.fixed) {
+      for (const FieldDef* field : struct_def.fields.vec) {
+        const Type& type = field->value.type;
+        if (field->deprecated || field->IsScalarOptional() ||
+            !IsScalar(type.base_type) || type.base_type == BASE_TYPE_UTYPE) {
+          continue;
+        }
+        const std::string constant = GenConstant(*field);
+        if (constant == "0" || constant == "false" || constant == "0.0") {
+          continue;
+        }
+        code += "\tt_." + namer_.Field(*field) + " = " + constant + "\n";
+      }
+    }
+    code += "\n";
+    for (const FieldDef* field : struct_def.fields.vec) {
+      GenJSONReadField(struct_def, *field, &code);
+    }
+    code += "\n\treturn nil\n}\n\n";
+  }
+
+  void GenNativeUnionJSON(const EnumDef& enum_def, std::string* code_ptr) {
+    if (enum_def.generated) return;
+    std::string& code = *code_ptr;
+    const std::string native = NativeName(enum_def);
+    const std::string type_name = namer_.Type(enum_def);
+    bool has_variants = false;
+    for (const EnumVal* ev : enum_def.Vals()) {
+      if (!ev->IsZero()) has_variants = true;
+    }
+
+    code += "// WriteFlatJSONType writes the union's type as its variant name.\n";
+    code += "func (t_ *" + native +
+            ") WriteFlatJSONType(w_ *flatbuffers.JSONWriter) {\n";
+    code += "\tflatbuffers.WriteJSONEnum(w_, t_.Type, EnumNames" + enum_def.name +
+            ")\n}\n\n";
+
+    code += "// WriteFlatJSONValue writes the union's value; the enclosing table\n";
+    code += "// writes its type.\n";
+    code += "func (t_ *" + native +
+            ") WriteFlatJSONValue(w_ *flatbuffers.JSONWriter) {\n";
+    // A union with no variants has nothing to bind the value to.
+    code += has_variants ? "\tswitch v_ := t_.Value.(type) {\n"
+                         : "\tswitch t_.Value.(type) {\n";
+    std::set<std::string> seen;
+    for (const EnumVal* ev : enum_def.Vals()) {
+      if (ev->IsZero()) continue;
+      const std::string variant = NativeType(ev->union_type);
+      if (!seen.insert(variant).second) continue;
+      code += "\tcase " + variant + ":\n\t\tv_.WriteFlatJSON(w_)\n";
+    }
+    code += "\tdefault:\n\t\tw_.Fail(flatbuffers.JSONErrorf(\"\", \"union " +
+            enum_def.name + " holds %T\", t_.Value))\n\t}\n}\n\n";
+
+    code += "// Unmarshal" + type_name +
+            "FlatJSON reads the union held by the members typeKey_\n";
+    code += "// (the variant name) and valueKey_ (its value) of the object m_. A\n";
+    code += "// type with no value, or no type at all, reads as no union.\n";
+    code += "func Unmarshal" + type_name +
+            "FlatJSON(m_ map[string]any, pointer_, typeKey_, valueKey_ string) (*" +
+            native + ", error) {\n";
+    code += "\ttv_, hasType_ := flatbuffers.JSONMember(m_, typeKey_)\n";
+    code += std::string("\t") + (has_variants ? "value_" : "_") +
+            ", hasValue_ := flatbuffers.JSONMember(m_, valueKey_)\n\n";
+    code += "\tif !hasType_ {\n\t\tif hasValue_ {\n";
+    code += "\t\t\treturn nil, flatbuffers.JSONErrorf(flatbuffers.JSONPointer(pointer_, valueKey_), \"union value without %s\", typeKey_)\n";
+    code += "\t\t}\n\n\t\treturn nil, nil\n\t}\n\n";
+    code += "\ttyp_, err_ := flatbuffers.JSONEnum(tv_, flatbuffers.JSONPointer(pointer_, typeKey_), EnumValues" +
+            type_name + ")\n";
+    code += "\tif err_ != nil {\n\t\treturn nil, err_\n\t}\n\n";
+    code += "\tif !hasValue_ {\n\t\treturn nil, nil\n\t}\n\n";
+    code += "\tvp_ := flatbuffers.JSONPointer(pointer_, valueKey_)\n\n";
+    code += "\tswitch typ_ {\n";
+    for (const EnumVal* ev : enum_def.Vals()) {
+      const std::string constant = namer_.EnumVariant(enum_def, *ev);
+      if (ev->IsZero()) {
+        code += "\tcase " + constant +
+                ":\n\t\treturn nil, flatbuffers.JSONErrorf(vp_, \"union value under NONE\")\n";
+        continue;
+      }
+      std::string variant = NativeType(ev->union_type);  // "*Pkg.FooT"
+      code += "\tcase " + constant + ":\n";
+      code += "\t\tx_ := &" + variant.substr(1) + "{}\n";
+      code += "\t\tif err_ := x_.UnmarshalFlatJSONValue(value_, vp_); err_ != nil {\n";
+      code += "\t\t\treturn nil, err_\n\t\t}\n\n";
+      code += "\t\treturn &" + native + "{Type: typ_, Value: x_}, nil\n";
+    }
+    code += "\t}\n\n";
+    code += "\treturn nil, flatbuffers.JSONErrorf(flatbuffers.JSONPointer(pointer_, typeKey_), \"%d is not a variant of " +
+            enum_def.name + "\", typ_)\n}\n\n";
   }
 
   std::string GenConstant(const FieldDef& field) {

@@ -27,7 +27,10 @@ The test code itself is located in [go_test.go](https://github.com/google/
 flatbuffers/blob/master/tests/go_test.go).
 
 To run the tests, use the [GoTest.sh](https://github.com/google/flatbuffers/
-blob/master/tests/GoTest.sh) shell script.
+blob/master/tests/GoTest.sh) shell script. It also vets and tests every Go
+module under `tests/` and `examples/`, such as the union-of-unions round trip in
+`tests/union_of_union_test` and `examples/go-echo`. Each builds against the
+runtime in this repository through a `replace` directive.
 
 *Note: The shell script requires [Go](https://golang.org/doc/install) to
 be installed.*
@@ -89,6 +92,33 @@ In some cases it's necessary to modify values in an existing FlatBuffer in place
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The term `mutate` is used instead of `set` to indicate that this is a special use case. All mutate functions return a boolean value which is false if the field we're trying to mutate is not available in the buffer.
+
+## Names in generated code
+
+Generated code imports each referenced namespace as a package named after the
+namespace, which may be a single word such as `x`, `o` or `t`, and refers to
+the schema's own types, which may be named the same way. So that no name the
+generator chooses can shadow one of those -- or `flatbuffers` and `math`,
+which a field may also be called -- every receiver, parameter and local the
+generated code declares ends in an underscore:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.go}
+    func (rcv_ *Monster) Pos(obj_ *Vec3) *Vec3
+    func (t_ *MonsterT) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT
+    func MonsterAddHp(builder_ *flatbuffers.Builder, hpArg_ int16)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A name derived from a field also carries a role before the underscore --
+`hpArg_` in `MonsterAddHp`, `xArg_` in `CreateVec3`, `nameOffset_` in
+`MonsterT.Pack` -- so a field named `builder` cannot collide with the
+`builder_` parameter beside it.
+
+Parameter names are not part of a Go function's type, so callers are
+unaffected. A schema name that itself ends in an underscore can still collide
+with a generated name. Separately, a namespace cannot be named after a Go
+keyword (`func`, `range`), a predeclared identifier (`nil`, `len`, `error`) or
+a package the generated code imports (`flatbuffers`, `bytes`, `math`, `sort`,
+`strconv`): its package name itself conflicts.
 
 ## Text Parsing
 

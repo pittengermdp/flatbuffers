@@ -3,34 +3,73 @@
 package NamespaceB
 
 import (
-	"strconv"
-
 	flatbuffers "github.com/google/flatbuffers/go"
-
-	NamespaceA__NamespaceB "NamespaceA/NamespaceB"
+	"strconv"
 )
+
+type UnionInNestedNS byte
+
+const (
+	UnionInNestedNSNONE            UnionInNestedNS = 0
+	UnionInNestedNSTableInNestedNS UnionInNestedNS = 1
+)
+
+var EnumNamesUnionInNestedNS = map[UnionInNestedNS]string{
+	UnionInNestedNSNONE:            "NONE",
+	UnionInNestedNSTableInNestedNS: "TableInNestedNS",
+}
+
+var EnumValuesUnionInNestedNS = map[string]UnionInNestedNS{
+	"NONE":            UnionInNestedNSNONE,
+	"TableInNestedNS": UnionInNestedNSTableInNestedNS,
+}
+
+func (v_ UnionInNestedNS) String() string {
+	if s_, ok_ := EnumNamesUnionInNestedNS[v_]; ok_ {
+		return s_
+	}
+	return "UnionInNestedNS(" + strconv.FormatInt(int64(v_), 10) + ")"
+}
 
 type UnionInNestedNST struct {
 	Type  UnionInNestedNS
 	Value interface{}
 }
 
-func (t *UnionInNestedNST) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *UnionInNestedNST) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	switch t.Type {
+	switch t_.Type {
 	case UnionInNestedNSTableInNestedNS:
-		return t.Value.(*NamespaceA__NamespaceB.TableInNestedNST).Pack(builder)
+		return t_.Value.(*TableInNestedNST).Pack(builder_)
 	}
 	return 0
 }
 
-func (rcv UnionInNestedNS) UnPack(table flatbuffers.Table) *UnionInNestedNST {
-	switch rcv {
+func (rcv_ UnionInNestedNS) UnPack(table_ flatbuffers.Table) *UnionInNestedNST {
+	switch rcv_ {
 	case UnionInNestedNSTableInNestedNS:
-		x := TableInNestedNS{_tab: table}
-		return &NamespaceA__NamespaceB.UnionInNestedNST{Type: UnionInNestedNSTableInNestedNS, Value: x.UnPack()}
+		var x_ TableInNestedNS
+		x_.Init(table_.Bytes, table_.Pos)
+		return &UnionInNestedNST{Type: UnionInNestedNSTableInNestedNS, Value: x_.UnPack()}
 	}
 	return nil
+}
+
+// Match dispatches to the appropriate callback based on the union variant.
+// Each callback receives the correctly typed value. If the variant is NONE
+// or unrecognized, no callback is invoked.
+func (t_ *UnionInNestedNST) Match(
+	onTableInNestedNS_ func(*TableInNestedNST),
+) {
+	if t_ == nil {
+		return
+	}
+	switch t_.Type {
+	case UnionInNestedNSTableInNestedNS:
+		if v_, ok_ := t_.Value.(*TableInNestedNST); ok_ {
+			onTableInNestedNS_(v_)
+		}
+	}
 }

@@ -9,105 +9,105 @@ import (
 type MonsterT struct {
 }
 
-func (t *MonsterT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *MonsterT) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	MonsterStart(builder)
-	return MonsterEnd(builder)
+	MonsterStart(builder_)
+	return MonsterEnd(builder_)
 }
 
-func (rcv *Monster) UnPackTo(t *MonsterT) {
+func (rcv_ *Monster) UnPackTo(t_ *MonsterT) {
 }
 
-func (rcv *Monster) UnPack() *MonsterT {
-	if rcv == nil {
+func (rcv_ *Monster) UnPack() *MonsterT {
+	if rcv_ == nil {
 		return nil
 	}
-	t := &MonsterT{}
-	rcv.UnPackTo(t)
-	return t
+	t_ := &MonsterT{}
+	rcv_.UnPackTo(t_)
+	return t_
 }
 
 // UnpackFields returns a partial *MonsterT with only the named fields populated.
 // Fields not in the list are left at their zero/default values.
 // This avoids materializing the entire table tree. Pass the
 // generated MonsterField* constants rather than raw strings.
-func (rcv *Monster) UnpackFields(fields ...string) *MonsterT {
-	t := &MonsterT{}
-	fieldSet := make(map[string]bool, len(fields))
-	for _, f := range fields {
-		fieldSet[f] = true
+func (rcv_ *Monster) UnpackFields(fields_ ...string) *MonsterT {
+	t_ := &MonsterT{}
+	fieldSet_ := make(map[string]bool, len(fields_))
+	for _, f_ := range fields_ {
+		fieldSet_[f_] = true
 	}
-	return t
+	return t_
 }
 
 type Monster struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsMonster(buf []byte, offset flatbuffers.UOffsetT) *Monster {
-	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &Monster{}
-	x.Init(buf, n+offset)
-	return x
+func GetRootAsMonster(buf_ []byte, offset_ flatbuffers.UOffsetT) *Monster {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_:])
+	x_ := &Monster{}
+	x_.Init(buf_, n_+offset_)
+	return x_
 }
 
-func FinishMonsterBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.Finish(offset)
+func FinishMonsterBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.Finish(offset_)
 }
 
-func GetSizePrefixedRootAsMonster(buf []byte, offset flatbuffers.UOffsetT) *Monster {
-	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &Monster{}
-	x.Init(buf, n+offset+flatbuffers.SizeUint32)
-	return x
+func GetSizePrefixedRootAsMonster(buf_ []byte, offset_ flatbuffers.UOffsetT) *Monster {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_+flatbuffers.SizeUint32:])
+	x_ := &Monster{}
+	x_.Init(buf_, n_+offset_+flatbuffers.SizeUint32)
+	return x_
 }
 
-func FinishSizePrefixedMonsterBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.FinishSizePrefixed(offset)
+func FinishSizePrefixedMonsterBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.FinishSizePrefixed(offset_)
 }
 
-func VerifyRootAsMonster(buf []byte, opts *flatbuffers.VerifierOptions) error {
-	v := flatbuffers.NewVerifier(buf, opts)
-	tablePos, err := v.CheckUOffsetT(0)
-	if err != nil {
-		return err
+func VerifyRootAsMonster(buf_ []byte, opts_ *flatbuffers.VerifierOptions) error {
+	v_ := flatbuffers.NewVerifier(buf_, opts_)
+	tablePos_, err_ := v_.CheckUOffsetT(0)
+	if err_ != nil {
+		return err_
 	}
-	return verifyMonster(v, int(tablePos))
+	return verifyMonster(v_, int(tablePos_))
 }
 
-func VerifyMonster(v *flatbuffers.Verifier, tablePos int) error {
-	return verifyMonster(v, tablePos)
+func VerifyMonster(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	return verifyMonster(v_, tablePos_)
 }
 
-func verifyMonster(v *flatbuffers.Verifier, tablePos int) error {
-	if err := v.CheckTable(tablePos); err != nil {
-		return err
+func verifyMonster(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	if err_ := v_.CheckTable(tablePos_); err_ != nil {
+		return err_
 	}
-	if err := v.CountTable(); err != nil {
-		return err
+	if err_ := v_.CountTable(); err_ != nil {
+		return err_
 	}
-	if err := v.PushDepth(); err != nil {
-		return err
+	if err_ := v_.PushDepth(); err_ != nil {
+		return err_
 	}
-	defer v.PopDepth()
+	defer v_.PopDepth()
 
 	return nil
 }
 
-func (rcv *Monster) Init(buf []byte, i flatbuffers.UOffsetT) {
-	rcv._tab.Bytes = buf
-	rcv._tab.Pos = i
+func (rcv_ *Monster) Init(buf_ []byte, i_ flatbuffers.UOffsetT) {
+	rcv_._tab.Bytes = buf_
+	rcv_._tab.Pos = i_
 }
 
-func (rcv *Monster) Table() flatbuffers.Table {
-	return rcv._tab
+func (rcv_ *Monster) Table() flatbuffers.Table {
+	return rcv_._tab
 }
 
-func MonsterStart(builder *flatbuffers.Builder) {
-	builder.StartObject(0)
+func MonsterStart(builder_ *flatbuffers.Builder) {
+	builder_.StartObject(0)
 }
-func MonsterEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	return builder.EndObject()
+func MonsterEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder_.EndObject()
 }

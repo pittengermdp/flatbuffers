@@ -1,0 +1,32 @@
+// Every json_* validation attribute on every kind of field it applies to, for
+// the JSON Schema golden jsonschema_validation_test.schema.json. Integer
+// bounds replace the type's own range (clamped to it) rather than repeating
+// "minimum" / "maximum" in one object.
+attribute "json_minimum";
+attribute "json_maximum";
+attribute "json_exclusive_minimum";
+attribute "json_exclusive_maximum";
+attribute "json_min_length";
+attribute "json_max_length";
+attribute "json_pattern";
+attribute "json_format";
+attribute "json_min_items";
+attribute "json_max_items";
+
+namespace JsonSchemaValidation;
+
+table Bounded {
+  cars: short = 0 (json_minimum: 1, json_maximum: 64);
+  clamped: ubyte (json_minimum: -9, json_maximum: 900);
+  floor_only: int (json_minimum: 0);
+  maybe: int = null (json_maximum: 10);
+  ratio: float (json_minimum: "-0.5", json_exclusive_maximum: 1);
+  name: string (json_min_length: 1, json_max_length: 8, json_pattern: "^[a-z]+$");
+  email: string (json_format: "email");
+  counts: [short] (json_minimum: 0, json_min_items: 1, json_max_items: 4);
+  tags: [string] (json_pattern: "^t", json_max_items: 3);
+  limits: map<string, ubyte> (json_maximum: 9, json_max_items: 2);
+  ids: set<int> (json_minimum: 1);
+}
+
+root_type Bounded;

@@ -24,9 +24,9 @@ var EnumValuesLongEnum = map[string]LongEnum{
 	"LongBig": LongEnumLongBig,
 }
 
-func (v LongEnum) String() string {
-	if s, ok := EnumNamesLongEnum[v]; ok {
-		return s
+func (v_ LongEnum) String() string {
+	if s_, ok_ := EnumNamesLongEnum[v_]; ok_ {
+		return s_
 	}
-	return "LongEnum(" + strconv.FormatInt(int64(v), 10) + ")"
+	return "LongEnum(" + strconv.FormatInt(int64(v_), 10) + ")"
 }
