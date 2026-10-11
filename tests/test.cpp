@@ -2183,6 +2183,7 @@ int FlatBufferTests(const std::string& tests_data_path) {
   AnnotateUnionByValueTest(tests_data_path);
   AnnotateUnionUnderlyingTypeTest(tests_data_path);
   AnnotateUnionVectorTest(tests_data_path);
+  AnnotateUnionWithoutTypeTest(tests_data_path);
   ParseProtoTest(tests_data_path);
   EvolutionTest(tests_data_path);
   UnionDeprecationTest(tests_data_path);
