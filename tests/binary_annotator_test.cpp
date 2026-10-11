@@ -170,16 +170,6 @@ std::vector<uint8_t> FinishedBuffer(const FlatBufferBuilder& fbb) {
                               fbb.GetBufferPointer() + fbb.GetSize());
 }
 
-// Annotates `buffer` against the binary schema `bfbs`, as `flatc --annotate`
-// does.
-Annotations Annotate(const std::string& bfbs,
-                     const std::vector<uint8_t>& buffer) {
-  BinaryAnnotator annotator(reinterpret_cast<const uint8_t*>(bfbs.data()),
-                            bfbs.size(), buffer.data(), buffer.size(),
-                            /*is_size_prefixed=*/false);
-  return annotator.Annotate();
-}
-
 // The regions of the one vtable in `annotations`.
 std::vector<BinaryRegion> VTableRegions(const Annotations& annotations) {
   std::vector<BinaryRegion> regions;
