@@ -24,17 +24,16 @@
 ///
 /// ### Notes:
 /// * In the binary format, Each element of a `Map` or (heterogenous) `Vector`
-/// is stored with a byte describing its FlexBufferType and BitWidth.
+///   is stored with a byte describing its FlexBufferType and BitWidth.
 ///
 /// * Typed vectors do not store this extra type information and fixed length
-/// typed vectors do not store length. Whether a vector is stored as a typed
-/// vector or fixed length typed vector is determined dymaically from the
-/// given data.
+///   typed vectors do not store length. Whether a vector is stored as a typed
+///   vector or fixed length typed vector is determined dymaically from the
+///   given data.
 ///
 /// * Indirect numbers are stored as an offset instead of inline. Using
-/// indirect numbers instead of their inline counterparts in maps and typed
-/// vectors can reduce the minimum element width and therefore bytes used.
-
+///   indirect numbers instead of their inline counterparts in maps and typed
+///   vectors can reduce the minimum element width and therefore bytes used.
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, num_enum::TryFromPrimitive)]
 pub enum FlexBufferType {
@@ -104,6 +103,8 @@ pub enum FlexBufferType {
 }
 use FlexBufferType::*;
 
+/// Written out, not derived: num_enum 0.5 would also read `#[default]` and make
+/// `TryFrom<u8>` decode every unknown type as `Null` (see `tests/packed_type.rs`).
 impl Default for FlexBufferType {
     fn default() -> Self {
         Null
