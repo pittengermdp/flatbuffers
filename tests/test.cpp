@@ -1724,6 +1724,10 @@ static void Offset64Tests() {
   Offset64ForceAlign();
   Offset64ReflectionVerify();
   Offset64ReflectionVerifyRequired();
+  Offset64ReflectionVerifySizePrefixed();
+  Offset64ReflectionVerifyRoot();
+  Offset64ReflectionVerifyMaxSize();
+  Offset64SizePrefixedIdentifierBounds();
   Offset64ReflectionVerifyAlignment();
 #endif
 }

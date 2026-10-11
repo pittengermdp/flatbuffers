@@ -860,21 +860,69 @@ Offset<const Table*> CopyTable(FlatBufferBuilder& fbb,
   }
 }
 
+// Verifies the flatbuffer that starts `start` bytes into the buffer, as the
+// generated VerifyBufferFromStart() does, with the schema's root in place of
+// a generated T::Verify().
+static bool VerifyRoot(Verifier& v, const reflection::Schema& schema,
+                       const reflection::Object& root, const uint8_t* const buf,
+                       const size_t start) {
+  const size_t root_table = v.VerifyBufferStart(nullptr, start);
+  return root_table != 0 &&
+         VerifyObject(v, schema, root,
+                      reinterpret_cast<const Table*>(buf + root_table),
+                      /*required=*/true);
+}
+
+static Verifier::Options MakeOptions(const uoffset_t max_depth,
+                                     const uoffset_t max_tables) {
+  Verifier::Options opts;
+  opts.max_depth = max_depth;
+  opts.max_tables = max_tables;
+  return opts;
+}
+
+bool Verify(const reflection::Schema& schema, const reflection::Object& root,
+            const uint8_t* const buf, const size_t length,
+            const Verifier::Options& opts) {
+  // The Verifier asserts that the buffer is below max_size; the caller's
+  // length is not known to be, so reject it here instead.
+  if (length >= opts.max_size) return false;
+  Verifier v(buf, length, opts);
+  return VerifyRoot(v, schema, root, buf, 0);
+}
+
 bool Verify(const reflection::Schema& schema, const reflection::Object& root,
             const uint8_t* const buf, const size_t length,
             const uoffset_t max_depth, const uoffset_t max_tables) {
-  Verifier v(buf, length, max_depth, max_tables);
-  return VerifyObject(v, schema, root, flatbuffers::GetAnyRoot(buf),
-                      /*required=*/true);
+  return Verify(schema, root, buf, length, MakeOptions(max_depth, max_tables));
 }
+
+template <typename SizeT>
+bool VerifySizePrefixed(const reflection::Schema& schema,
+                        const reflection::Object& root,
+                        const uint8_t* const buf, const size_t length,
+                        const Verifier::Options& opts) {
+  if (length >= opts.max_size) return false;
+  Verifier v(buf, length, opts);
+  return v.VerifySizePrefix<SizeT>() &&
+         VerifyRoot(v, schema, root, buf, sizeof(SizeT));
+}
+
+template bool VerifySizePrefixed<uoffset_t>(const reflection::Schema&,
+                                            const reflection::Object&,
+                                            const uint8_t*, size_t,
+                                            const Verifier::Options&);
+template bool VerifySizePrefixed<uoffset64_t>(const reflection::Schema&,
+                                              const reflection::Object&,
+                                              const uint8_t*, size_t,
+                                              const Verifier::Options&);
 
 bool VerifySizePrefixed(const reflection::Schema& schema,
                         const reflection::Object& root,
                         const uint8_t* const buf, const size_t length,
                         const uoffset_t max_depth, const uoffset_t max_tables) {
-  Verifier v(buf, length, max_depth, max_tables);
-  return VerifyObject(v, schema, root, flatbuffers::GetAnySizePrefixedRoot(buf),
-                      /*required=*/true);
+  return VerifySizePrefixed<uoffset_t>(schema, root, buf, length,
+                                       MakeOptions(max_depth, max_tables));
 }
 
 }  // namespace flatbuffers
