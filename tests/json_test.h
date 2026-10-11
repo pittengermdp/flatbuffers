@@ -13,6 +13,7 @@ void ParseIncorrectMonsterJsonTest(const std::string& tests_data_path);
 void JsonUnionUnderlyingTypeParseTest(const std::string& tests_data_path);
 void JsonUnsortedArrayTest();
 void JsonUnionStructTest();
+void JsonUnionUnderlyingTypeGenTextTest(const std::string& tests_data_path);
 
 }  // namespace tests
 }  // namespace flatbuffers

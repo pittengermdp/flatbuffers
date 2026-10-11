@@ -310,5 +310,62 @@ root_type JsonUnionStructTest;
   TEST_EQ_STR(json_source, json_generated.c_str());
 }
 
+// A union declared with an underlying type stores its types as that type:
+// `union ABC: int { A = 555, B = 666, C = 777 }` makes test_union_type an int,
+// and test_vector_of_union_type a vector of ints. The text generator must read
+// them at that width, to name them and to find the members they type.
+void JsonUnionUnderlyingTypeGenTextTest(const std::string& tests_data_path) {
+  using namespace UnionUnderlyingType;
+  std::string schemafile;
+  TEST_EQ(flatbuffers::LoadFile(
+              (tests_data_path + "union_underlying_type_test.fbs").c_str(),
+              false, &schemafile),
+          true);
+  flatbuffers::Parser parser;
+  TEST_EQ(parser.Parse(schemafile.c_str()), true);
+  TEST_EQ(parser.SetRootType("UnionUnderlyingType.D"), true);
+
+  AT a;
+  a.a = 42;
+  BT b;
+  b.b = "foo";
+  CT c;
+  c.c = true;
+  DT d;
+  d.test_union.Set(c);
+  d.test_vector_of_union.resize(3);
+  d.test_vector_of_union[0].Set(a);
+  d.test_vector_of_union[1].Set(b);
+  d.test_vector_of_union[2].Set(c);
+  flatbuffers::FlatBufferBuilder fbb;
+  fbb.Finish(D::Pack(fbb, &d));
+
+  std::string json;
+  TEST_NULL(GenText(parser, fbb.GetBufferPointer(), &json));
+  TEST_EQ_STR(json.c_str(),
+              "{\n"
+              "  test_union_type: \"C\",\n"
+              "  test_union: {\n"
+              "    c: true\n"
+              "  },\n"
+              "  test_vector_of_union_type: [\n"
+              "    \"A\",\n"
+              "    \"B\",\n"
+              "    \"C\"\n"
+              "  ],\n"
+              "  test_vector_of_union: [\n"
+              "    {\n"
+              "      a: 42\n"
+              "    },\n"
+              "    {\n"
+              "      b: \"foo\"\n"
+              "    },\n"
+              "    {\n"
+              "      c: true\n"
+              "    }\n"
+              "  ]\n"
+              "}\n");
+}
+
 }  // namespace tests
 }  // namespace flatbuffers
