@@ -145,27 +145,18 @@ fn test_schema_correct_table_field_nullability() {
 
     let fields = root_table.fields();
 
-    assert_eq!(
-        fields
-            .lookup_by_key("hp", |field, key| field.key_compare_with_value(key))
-            .unwrap()
-            .optional(),
-        false
-    );
-    assert_eq!(
-        fields
-            .lookup_by_key("pos", |field, key| field.key_compare_with_value(key))
-            .unwrap()
-            .optional(),
-        true
-    );
-    assert_eq!(
-        fields
-            .lookup_by_key("name", |field, key| field.key_compare_with_value(key))
-            .unwrap()
-            .optional(),
-        false
-    );
+    assert!(!fields
+        .lookup_by_key("hp", |field, key| field.key_compare_with_value(key))
+        .unwrap()
+        .optional());
+    assert!(fields
+        .lookup_by_key("pos", |field, key| field.key_compare_with_value(key))
+        .unwrap()
+        .optional());
+    assert!(!fields
+        .lookup_by_key("name", |field, key| field.key_compare_with_value(key))
+        .unwrap()
+        .optional());
 }
 
 #[test]
@@ -237,7 +228,7 @@ fn test_buffer_float_same_type_succeeds() {
     let value = unsafe { get_field_float::<f32>(&root_table, &f32_field) };
 
     assert!(value.is_ok());
-    assert_eq!(value.unwrap(), Some(3.14));
+    assert_eq!(value.unwrap(), Some(TESTF_VALUE));
 }
 
 #[test]
@@ -478,7 +469,8 @@ fn test_buffer_f32_as_integer_succeeds() {
     let value = unsafe { get_any_field_integer(&root_table, &f32_field) };
 
     assert!(value.is_ok());
-    assert_eq!(value.unwrap(), 3);
+    // TESTF_VALUE (2.5) read as an integer truncates toward zero.
+    assert_eq!(value.unwrap(), 2);
 }
 
 #[test]
@@ -562,7 +554,7 @@ fn test_buffer_f32_as_float_succeeds() {
     let value = unsafe { get_any_field_float(&root_table, &f32_field) };
 
     assert!(value.is_ok());
-    assert_approx_eq!(value.unwrap(), 3.14);
+    assert_eq!(value.unwrap(), f64::from(TESTF_VALUE));
 }
 
 #[test]
@@ -614,8 +606,8 @@ fn test_buffer_f32_as_string_succeeds() {
         )
     };
 
-    value.truncate(4);
-    assert_eq!(value, String::from("3.14"));
+    value.truncate(3);
+    assert_eq!(value, String::from("2.5"));
 }
 
 #[test]
@@ -1951,7 +1943,7 @@ fn test_safe_buffer_float_same_type_succeeds() {
     let value = root_table.get_field_float::<f32>("testf");
 
     assert!(value.is_ok());
-    assert_eq!(value.unwrap(), Some(3.14));
+    assert_eq!(value.unwrap(), Some(TESTF_VALUE));
 }
 
 #[test]
@@ -2678,10 +2670,7 @@ fn test_safe_table_get_any_field_float() {
 
     let val = root.get_any_field("testf").unwrap();
     match val {
-        FieldValue::Float(f) => {
-            let diff = (f - 3.14f64).abs();
-            assert!(diff < 0.001, "expected ~3.14, got {}", f);
-        }
+        FieldValue::Float(f) => assert_eq!(f, f64::from(TESTF_VALUE)),
         other => panic!("expected FieldValue::Float, got {:?}", other),
     }
 }
@@ -2851,8 +2840,8 @@ fn test_field_value_display_integer() {
 
 #[test]
 fn test_field_value_display_float() {
-    let v = FieldValue::Float(3.14);
-    assert_eq!(v.to_string(), "3.14");
+    let v = FieldValue::Float(2.5);
+    assert_eq!(v.to_string(), "2.5");
 }
 
 #[test]
@@ -2953,6 +2942,11 @@ fn get_object_field<'a>(
         .unwrap()
 }
 
+/// The `testf` value `create_test_buffer` writes. It differs from the schema
+/// default so the field is actually serialized, and is exact in f32 so reads
+/// widened to f64 compare and print exactly.
+const TESTF_VALUE: f32 = 2.5;
+
 fn create_test_buffer() -> Vec<u8> {
     let mut builder = FlatBufferBuilder::new();
     let mon = {
@@ -2973,7 +2967,7 @@ fn create_test_buffer() -> Vec<u8> {
 
         let args = my_game::example::MonsterArgs {
             hp: 32767,
-            testf: 3.14,
+            testf: TESTF_VALUE,
             mana: 150,
             name: Some(builder.create_string("MyMonster")),
             pos: Some(&pos),
