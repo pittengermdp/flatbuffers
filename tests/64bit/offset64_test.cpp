@@ -527,6 +527,236 @@ void Offset64ForceAlign() {
   FinishRootTableBuffer(builder, root_table_offset);
 }
 
+static bool GeneratedVerify(const std::vector<uint8_t>& buf);
+// Packs a RootTable with every 64-bit offset field set. near_string and
+// many_vectors stay empty: Pack() serializes them ahead of the 64-bit
+// nested_root and forced_aligned_vector, which the builder does not allow.
+static std::vector<uint8_t> PackCopyFixture() {
+  RootTableT nested;
+  nested.a = 7;
+  FlatBufferBuilder64 nested_fbb;
+  FinishRootTableBuffer(nested_fbb, RootTable::Pack(nested_fbb, &nested));
+
+  RootTableT root;
+  root.far_vector = {1, 2, 3};
+  root.a = 42;
+  root.far_string = "some far string";
+  root.big_bool_vector = {1, 0, 1};
+  root.big_vector = {4, 5, 6, 7};
+  root.nested_root.assign(nested_fbb.GetBufferPointer(),
+                          nested_fbb.GetBufferPointer() + nested_fbb.GetSize());
+  root.far_struct_vector = {LeafStruct{123, 4.567}, LeafStruct{987, 6.543}};
+  root.big_struct_vector = {LeafStruct{72, 72.8}};
+  root.forced_aligned_vector = {8, 9};
+
+  FlatBufferBuilder64 fbb;
+  FinishRootTableBuffer(fbb, RootTable::Pack(fbb, &root));
+  std::vector<uint8_t> buf(fbb.GetBufferPointer(),
+                           fbb.GetBufferPointer() + fbb.GetSize());
+
+  const std::unique_ptr<RootTableT> unpacked(
+      GetRootTable(buf.data())->UnPack());
+  TEST_ASSERT(*unpacked == root);
+  return buf;
+}
+
+// Returns `buf` with every 64-bit field of its root table except `keep` (none
+// when null) made absent, by zeroing its vtable entry as if it was never set.
+static std::vector<uint8_t> Keep64BitField(const std::vector<uint8_t>& buf,
+                                           const reflection::Object& root_table,
+                                           const reflection::Field* keep) {
+  std::vector<uint8_t> out = buf;
+  const Table* const root = GetAnyRoot(out.data());
+  const size_t vtable = static_cast<size_t>(root->GetVTable() - out.data());
+  for (const reflection::Field* const field : *root_table.fields()) {
+    if (!field->offset64() || field == keep) continue;
+    TEST_EQ(root->CheckField(field->offset()), true);
+    WriteScalar<voffset_t>(out.data() + vtable + field->offset(), 0);
+  }
+  TEST_EQ(GeneratedVerify(out), true);
+  return out;
+}
+
+// Copies the root table of `buf` into a 32-bit builder with reflection.
+static Offset<const Table*> ReflectionCopy(FlatBufferBuilder& fbb,
+                                           const reflection::Schema& schema,
+                                           const std::vector<uint8_t>& buf,
+                                           bool use_string_pooling = false) {
+  return CopyTable(fbb, schema, *schema.root_table(), *GetAnyRoot(buf.data()),
+                   use_string_pooling);
+}
+
+// Copies the fixture without its 64-bit fields into `fbb` and checks the copy,
+// so a rejected copy before it shows that it left fbb usable.
+static void CheckCopyWithout64BitFields(FlatBufferBuilder& fbb,
+                                        const reflection::Schema& schema,
+                                        const std::vector<uint8_t>& buf) {
+  const Offset<const Table*> copy = ReflectionCopy(
+      fbb, schema, Keep64BitField(buf, *schema.root_table(), nullptr));
+  TEST_EQ(copy.IsNull(), false);
+  fbb.Finish(copy);
+  const std::vector<uint8_t> copied(fbb.GetBufferPointer(),
+                                    fbb.GetBufferPointer() + fbb.GetSize());
+  TEST_EQ(GeneratedVerify(copied), true);
+  RootTableT expected;
+  expected.a = 42;
+  const std::unique_ptr<RootTableT> unpacked(
+      GetRootTable(copied.data())->UnPack());
+  TEST_ASSERT(*unpacked == expected);
+}
+
+void Offset64ReflectionCopyTable() {
+  const reflection::Schema& schema =
+      *reflection::GetSchema(RootTable::BinarySchema::data());
+  const reflection::Object& root_table = *schema.root_table();
+  const std::vector<uint8_t> buf = PackCopyFixture();
+
+  // Without its 64-bit fields, the table copies as it always has.
+  {
+    FlatBufferBuilder fbb;
+    CheckCopyWithout64BitFields(fbb, schema, buf);
+  }
+
+  // A 32-bit builder cannot write a 64-bit offset, so a copy that reaches one
+  // is rejected with a null offset, in every build type. Each field on its
+  // own, as the first one CopyTable reaches would otherwise mask the rest.
+  for (const reflection::Field* const field : *root_table.fields()) {
+    if (!field->offset64()) continue;
+    const std::vector<uint8_t> only_field =
+        Keep64BitField(buf, root_table, field);
+    FlatBufferBuilder fbb;
+    TEST_EQ(ReflectionCopy(fbb, schema, only_field).IsNull(), true);
+    CheckCopyWithout64BitFields(fbb, schema, buf);
+  }
+
+  // A schema not written by flatc may leave offset64 unset on a Vector64
+  // field. Its 64-bit offset is still no scalar to copy inline.
+  {
+    const uint8_t* const data = RootTable::BinarySchema::data();
+    std::vector<uint8_t> bfbs(data, data + RootTable::BinarySchema::size());
+    const reflection::Schema& flagless = *reflection::GetSchema(bfbs.data());
+    const reflection::Field& big_vector =
+        *flagless.root_table()->fields()->LookupByKey("big_vector");
+    // Field derives privately from Table, which knows where the flag is stored.
+    const uint8_t* const flag =
+        reinterpret_cast<const Table*>(&big_vector)
+            ->GetAddressOf(reflection::Field::VT_OFFSET64);
+    TEST_NOTNULL(flag);
+    bfbs[static_cast<size_t>(flag - bfbs.data())] = 0;
+    TEST_EQ(big_vector.offset64(), false);
+    TEST_EQ(big_vector.type()->base_type(), reflection::Vector64);
+
+    const std::vector<uint8_t> only_big_vector = Keep64BitField(
+        buf, root_table, root_table.fields()->LookupByKey("big_vector"));
+    FlatBufferBuilder fbb;
+    TEST_EQ(ReflectionCopy(fbb, flagless, only_big_vector).IsNull(), true);
+    CheckCopyWithout64BitFields(fbb, schema, buf);
+  }
+}
+
+// A 64-bit field below a table, union or vector of tables, none of which
+// test_64bit.fbs has. Field names sort as s, t, ts, u, so each place a copy
+// fails in leaves what came before it copied.
+static const char kSubTablesSchema[] =
+    "table Inner { v:[ubyte] (offset64); }"
+    "union U { Inner }"
+    "table Outer { s:string; t:Inner; u:U; ts:[Inner]; }"
+    "root_type Outer;";
+
+// Which Inner of an Outer has its 64-bit field set.
+enum class Far { kNone, kTable, kUnion, kLastOfVector };
+
+// Packs an Outer with every field set, but Inner.v only in the Inner at `far`.
+// The schema has no generated code, so fields go to their reflected offsets.
+static std::vector<uint8_t> PackOuter(const reflection::Schema& schema,
+                                      const Far far) {
+  const auto offset_of = [](const reflection::Object& object,
+                            const char* const name) {
+    return object.fields()->LookupByKey(name)->offset();
+  };
+  const reflection::Object& inner = *schema.objects()->LookupByKey("Inner");
+  const reflection::Object& outer = *schema.root_table();
+  const reflection::EnumVal& inner_type =
+      *schema.enums()->LookupByKey("U")->values()->Get(1);
+  TEST_EQ_STR(inner_type.name()->c_str(), "Inner");
+
+  FlatBufferBuilder64 fbb;
+  // The builder keeps 64-bit data at the tail of the buffer: serialize it
+  // before anything else.
+  const std::vector<uint8_t> data = {1, 2, 3};
+  const Offset64<Vector<uint8_t>> v = fbb.CreateVector64<Vector>(data);
+  const auto pack_inner = [&](const bool with_v) {
+    const uoffset_t start = fbb.StartTable();
+    if (with_v) fbb.AddOffset(offset_of(inner, "v"), v);
+    return Offset<void>(fbb.EndTable(start));
+  };
+  const Offset<void> t = pack_inner(far == Far::kTable);
+  const Offset<void> u = pack_inner(far == Far::kUnion);
+  const std::vector<Offset<void>> ts = {pack_inner(false), pack_inner(false),
+                                        pack_inner(far == Far::kLastOfVector)};
+  const auto ts_vector = fbb.CreateVector(ts);
+  const Offset<String> s = fbb.CreateString("near");
+
+  const uoffset_t start = fbb.StartTable();
+  fbb.AddOffset(offset_of(outer, "s"), s);
+  fbb.AddOffset(offset_of(outer, "t"), t);
+  fbb.AddElement<uint8_t>(offset_of(outer, "u_type"),
+                          static_cast<uint8_t>(inner_type.value()), 0);
+  fbb.AddOffset(offset_of(outer, "u"), u);
+  fbb.AddOffset(offset_of(outer, "ts"), ts_vector);
+  fbb.Finish(Offset<void>(fbb.EndTable(start)));
+  return std::vector<uint8_t>(fbb.GetBufferPointer(),
+                              fbb.GetBufferPointer() + fbb.GetSize());
+}
+
+// Copies an Outer without its 64-bit field into `fbb` and checks the copy.
+static void CheckOuterCopy(FlatBufferBuilder& fbb,
+                           const reflection::Schema& schema,
+                           const bool use_string_pooling) {
+  const Offset<const Table*> copy = ReflectionCopy(
+      fbb, schema, PackOuter(schema, Far::kNone), use_string_pooling);
+  TEST_EQ(copy.IsNull(), false);
+  fbb.Finish(copy);
+
+  const reflection::Object& outer = *schema.root_table();
+  TEST_EQ(
+      flatbuffers::Verify(schema, outer, fbb.GetBufferPointer(), fbb.GetSize()),
+      true);
+  const Table& root = *GetAnyRoot(fbb.GetBufferPointer());
+  const auto field = [&](const char* const name) -> const reflection::Field& {
+    return *outer.fields()->LookupByKey(name);
+  };
+  TEST_EQ_STR(GetFieldS(root, field("s"))->c_str(), "near");
+  TEST_NOTNULL(GetFieldT(root, field("t")));
+  TEST_NOTNULL(GetFieldT(root, field("u")));
+  TEST_EQ(GetFieldAnyV(root, field("ts"))->size(), 3u);
+}
+
+void Offset64ReflectionCopyTableSubTables() {
+  Parser parser;
+  TEST_EQ(parser.Parse(kSubTablesSchema), true);
+  parser.Serialize();
+  const reflection::Schema& schema =
+      *reflection::GetSchema(parser.builder_.GetBufferPointer());
+
+  for (const bool use_string_pooling : {false, true}) {
+    {
+      FlatBufferBuilder fbb;
+      CheckOuterCopy(fbb, schema, use_string_pooling);
+    }
+    // A sub-table that fails the copy fails its parent, and every table above
+    // that, rather than leave a null offset in them.
+    for (const Far far : {Far::kTable, Far::kUnion, Far::kLastOfVector}) {
+      FlatBufferBuilder fbb;
+      TEST_EQ(ReflectionCopy(fbb, schema, PackOuter(schema, far),
+                             use_string_pooling)
+                  .IsNull(),
+              true);
+      CheckOuterCopy(fbb, schema, use_string_pooling);
+    }
+  }
+}
+
 void Offset64ObjectApiRoundTrip() {
   // First pack a RootTable buffer to carry in the nested_root field.
   std::vector<uint8_t> nested_data;

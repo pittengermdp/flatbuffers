@@ -836,6 +836,14 @@ Offset<const Table*> CopyTable(FlatBufferBuilder& fbb,
     auto& fielddef = **it;
     // Skip if field is not present in the source.
     if (!table.CheckField(fielddef.offset())) continue;
+    // A 32-bit builder cannot write a 64-bit offset. Fail here, before this
+    // table is started, so fbb is never left mid-table. A Vector64 is checked
+    // too, as a schema not written by flatc may leave offset64 unset on one,
+    // and it would otherwise be copied inline below, as a scalar.
+    if (fielddef.offset64() ||
+        fielddef.type()->base_type() == reflection::Vector64) {
+      return Offset<const Table*>();
+    }
     uoffset_t offset = 0;
     switch (fielddef.type()->base_type()) {
       case reflection::String: {
@@ -847,17 +855,21 @@ Offset<const Table*> CopyTable(FlatBufferBuilder& fbb,
       case reflection::Obj: {
         auto& subobjectdef = *schema.objects()->Get(fielddef.type()->index());
         if (!subobjectdef.is_struct()) {
-          offset = CopyTable(fbb, schema, subobjectdef,
-                             *GetFieldT(table, fielddef), use_string_pooling)
-                       .o;
+          const auto copy =
+              CopyTable(fbb, schema, subobjectdef, *GetFieldT(table, fielddef),
+                        use_string_pooling);
+          if (copy.IsNull()) return copy;
+          offset = copy.o;
         }
         break;
       }
       case reflection::Union: {
         auto& subobjectdef = GetUnionType(schema, objectdef, fielddef, table);
-        offset = CopyTable(fbb, schema, subobjectdef,
-                           *GetFieldT(table, fielddef), use_string_pooling)
-                     .o;
+        const auto copy =
+            CopyTable(fbb, schema, subobjectdef, *GetFieldT(table, fielddef),
+                      use_string_pooling);
+        if (copy.IsNull()) return copy;
+        offset = copy.o;
         break;
       }
       case reflection::Vector: {
@@ -886,6 +898,7 @@ Offset<const Table*> CopyTable(FlatBufferBuilder& fbb,
               for (uoffset_t i = 0; i < vec->size(); i++) {
                 elements[i] = CopyTable(fbb, schema, *elemobjectdef,
                                         *vec->Get(i), use_string_pooling);
+                if (elements[i].IsNull()) return elements[i];
               }
               offset = fbb.CreateVector(elements).o;
               break;
