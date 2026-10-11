@@ -632,12 +632,12 @@ inline bool operator==(const ScalarStuffT &lhs, const ScalarStuffT &rhs) {
       (lhs.just_u64 == rhs.just_u64) &&
       (lhs.maybe_u64 == rhs.maybe_u64) &&
       (lhs.default_u64 == rhs.default_u64) &&
-      (lhs.just_f32 == rhs.just_f32) &&
-      (lhs.maybe_f32 == rhs.maybe_f32) &&
-      (lhs.default_f32 == rhs.default_f32) &&
-      (lhs.just_f64 == rhs.just_f64) &&
-      (lhs.maybe_f64 == rhs.maybe_f64) &&
-      (lhs.default_f64 == rhs.default_f64) &&
+      ::flatbuffers::IsFloatTheSameAs(lhs.just_f32, rhs.just_f32) &&
+      (lhs.maybe_f32.has_value() == rhs.maybe_f32.has_value() && (!lhs.maybe_f32.has_value() || ::flatbuffers::IsFloatTheSameAs(*lhs.maybe_f32, *rhs.maybe_f32))) &&
+      ::flatbuffers::IsFloatTheSameAs(lhs.default_f32, rhs.default_f32) &&
+      ::flatbuffers::IsFloatTheSameAs(lhs.just_f64, rhs.just_f64) &&
+      (lhs.maybe_f64.has_value() == rhs.maybe_f64.has_value() && (!lhs.maybe_f64.has_value() || ::flatbuffers::IsFloatTheSameAs(*lhs.maybe_f64, *rhs.maybe_f64))) &&
+      ::flatbuffers::IsFloatTheSameAs(lhs.default_f64, rhs.default_f64) &&
       (lhs.just_bool == rhs.just_bool) &&
       (lhs.maybe_bool == rhs.maybe_bool) &&
       (lhs.default_bool == rhs.default_bool) &&

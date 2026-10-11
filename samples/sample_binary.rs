@@ -38,9 +38,20 @@ fn main() {
 
     // Use the `Weapon::create` shortcut to create Weapons with named field
     // arguments.
-    let sword =
-        Weapon::create(&mut builder, &WeaponArgs { name: Some(weapon_one_name), damage: 3 });
-    let axe = Weapon::create(&mut builder, &WeaponArgs { name: Some(weapon_two_name), damage: 5 });
+    let sword = Weapon::create(
+        &mut builder,
+        &WeaponArgs {
+            name: Some(weapon_one_name),
+            damage: 3,
+        },
+    );
+    let axe = Weapon::create(
+        &mut builder,
+        &WeaponArgs {
+            name: Some(weapon_two_name),
+            damage: 5,
+        },
+    );
 
     // Name of the Monster.
     let name = builder.create_string("Orc");

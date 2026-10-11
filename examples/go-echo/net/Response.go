@@ -141,8 +141,8 @@ func (rcv_ *Response) Player(obj_ *hero.Warrior) *hero.Warrior {
 func ResponseStart(builder_ *flatbuffers.Builder) {
 	builder_.StartObject(1)
 }
-func ResponseAddPlayer(builder_ *flatbuffers.Builder, player_ flatbuffers.UOffsetT) {
-	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(player_), 0)
+func ResponseAddPlayer(builder_ *flatbuffers.Builder, playerArg_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(playerArg_), 0)
 }
 func ResponseEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder_.EndObject()
