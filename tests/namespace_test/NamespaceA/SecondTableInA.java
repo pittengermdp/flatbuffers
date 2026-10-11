@@ -2,92 +2,68 @@
 
 package NamespaceA;
 
-import com.google.flatbuffers.*;
-import java.nio.*;
-import java.util.*;
+import com.google.flatbuffers.BaseVector;
+import com.google.flatbuffers.BooleanVector;
+import com.google.flatbuffers.ByteVector;
+import com.google.flatbuffers.Constants;
+import com.google.flatbuffers.DoubleVector;
+import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.flatbuffers.FloatVector;
+import com.google.flatbuffers.IntVector;
+import com.google.flatbuffers.LongVector;
+import com.google.flatbuffers.ShortVector;
+import com.google.flatbuffers.StringVector;
+import com.google.flatbuffers.Struct;
+import com.google.flatbuffers.UnionVector;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 @SuppressWarnings("unused")
-public final class SecondTableInA extends Table {
-  public static void ValidateVersion() {
-    Constants.FLATBUFFERS_0_5_0();
-  }
+public final class SecondTableInA extends com.google.flatbuffers.Table {
+  public static void ValidateVersion() { Constants.FLATBUFFERS_0_5_0(); }
+  public static SecondTableInA getRootAsSecondTableInA(ByteBuffer _bb) { return getRootAsSecondTableInA(_bb, new SecondTableInA()); }
+  public static SecondTableInA getRootAsSecondTableInA(ByteBuffer _bb, SecondTableInA obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
+  public void __init(int _i, ByteBuffer _bb) { __reset(_i, _bb); }
+  public SecondTableInA __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
-  public static SecondTableInA getRootAsSecondTableInA(ByteBuffer _bb) {
-    return getRootAsSecondTableInA(_bb, new SecondTableInA());
-  }
+  public NamespaceC.TableInC referToC() { return referToC(new NamespaceC.TableInC()); }
+  public NamespaceC.TableInC referToC(NamespaceC.TableInC obj) { int o = __offset(4); return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null; }
 
-  public static SecondTableInA getRootAsSecondTableInA(ByteBuffer _bb, SecondTableInA obj) {
-    _bb.order(ByteOrder.LITTLE_ENDIAN);
-    return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb));
-  }
-
-  public void __init(int _i, ByteBuffer _bb) {
-    __reset(_i, _bb);
-  }
-
-  public SecondTableInA __assign(int _i, ByteBuffer _bb) {
-    __init(_i, _bb);
-    return this;
-  }
-
-  public NamespaceC.TableInC referToC() {
-    return referToC(new NamespaceC.TableInC());
-  }
-
-  public NamespaceC.TableInC referToC(NamespaceC.TableInC obj) {
-    int o = __offset(4);
-    return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null;
-  }
-
-  public static int createSecondTableInA(FlatBufferBuilder builder, int referToCOffset) {
+  public static int createSecondTableInA(FlatBufferBuilder builder,
+      int referToCOffset) {
     builder.startTable(1);
     SecondTableInA.addReferToC(builder, referToCOffset);
     return SecondTableInA.endSecondTableInA(builder);
   }
 
-  public static void startSecondTableInA(FlatBufferBuilder builder) {
-    builder.startTable(1);
-  }
-
-  public static void addReferToC(FlatBufferBuilder builder, int referToCOffset) {
-    builder.addOffset(0, referToCOffset, 0);
-  }
-
+  public static void startSecondTableInA(FlatBufferBuilder builder) { builder.startTable(1); }
+  public static void addReferToC(FlatBufferBuilder builder, int referToCOffset) { builder.addOffset(0, referToCOffset, 0); }
   public static int endSecondTableInA(FlatBufferBuilder builder) {
     int o = builder.endTable();
     return o;
   }
 
   public static final class Vector extends BaseVector {
-    public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) {
-      __reset(_vector, _element_size, _bb);
-      return this;
-    }
+    public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) { __reset(_vector, _element_size, _bb); return this; }
 
-    public SecondTableInA get(int j) {
-      return get(new SecondTableInA(), j);
-    }
-
-    public SecondTableInA get(SecondTableInA obj, int j) {
-      return obj.__assign(__indirect(__element(j), bb), bb);
-    }
+    public SecondTableInA get(int j) { return get(new SecondTableInA(), j); }
+    public SecondTableInA get(SecondTableInA obj, int j) {  return obj.__assign(__indirect(__element(j), bb), bb); }
   }
-
   public SecondTableInAT unpack() {
     SecondTableInAT _o = new SecondTableInAT();
     unpackTo(_o);
     return _o;
   }
-
   public void unpackTo(SecondTableInAT _o) {
     if (referToC() != null) _o.setReferToC(referToC().unpack());
     else _o.setReferToC(null);
   }
-
   public static int pack(FlatBufferBuilder builder, SecondTableInAT _o) {
     if (_o == null) return 0;
-    int _refer_to_c =
-        _o.getReferToC() == null ? 0 : NamespaceC.TableInC.pack(builder, _o.getReferToC());
-    return createSecondTableInA(builder, _refer_to_c);
+    int _referToC = _o.getReferToC() == null ? 0 : NamespaceC.TableInC.pack(builder, _o.getReferToC());
+    return createSecondTableInA(
+      builder,
+      _referToC);
   }
 }
+

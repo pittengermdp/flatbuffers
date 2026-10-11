@@ -56,6 +56,8 @@ impl BitWidth {
     }
 }
 
+/// Written out, not derived: num_enum 0.5 would also read `#[default]` and make
+/// `TryFrom<u8>` accept every unknown width as `W8` (see `tests/packed_type.rs`).
 impl Default for BitWidth {
     fn default() -> Self {
         W8
@@ -68,13 +70,13 @@ macro_rules! impl_bitwidth_from {
         impl From<$from> for BitWidth {
             fn from(x: $from) -> BitWidth {
                 let x = x as $w64;
-                if x >= $w8::min_value() as $w64 && x <= $w8::max_value() as $w64 {
+                if x >= $w8::MIN as $w64 && x <= $w8::MAX as $w64 {
                     return W8;
                 }
-                if x >= $w16::min_value() as $w64 && x <= $w16::max_value() as $w64 {
+                if x >= $w16::MIN as $w64 && x <= $w16::MAX as $w64 {
                     return W16;
                 }
-                if x >= $w32::min_value() as $w64 && x <= $w32::max_value() as $w64 {
+                if x >= $w32::MIN as $w64 && x <= $w32::MAX as $w64 {
                     return W32;
                 }
                 W64
@@ -86,9 +88,11 @@ impl_bitwidth_from!(u64, u64, u32, u16, u8);
 impl_bitwidth_from!(usize, u64, u32, u16, u8);
 impl_bitwidth_from!(i64, i64, i32, i16, i8);
 
-#[allow(clippy::float_cmp)]
 impl From<f64> for BitWidth {
     fn from(x: f64) -> BitWidth {
+        // Exact on purpose, like C++ `WidthF`: 32 bits only when the value
+        // survives the f32 round trip unchanged. NaN never equals itself, so
+        // it stays 64 bits. See tests/float_width.rs.
         if x != x as f32 as f64 {
             W64
         } else {
@@ -107,7 +111,7 @@ pub fn align(buffer: &mut Vec<u8>, width: BitWidth) {
     let bytes = 1 << width as u8;
     let alignment = (bytes - buffer.len() % bytes) % bytes;
     // Profiling reveals the loop is faster than Vec::resize.
-    for _ in 0..alignment as usize {
+    for _ in 0..alignment {
         buffer.push(0);
     }
 }

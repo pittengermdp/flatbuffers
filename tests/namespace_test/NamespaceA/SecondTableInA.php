@@ -62,7 +62,7 @@ class SecondTableInA extends Table
 
     /**
      * @param FlatBufferBuilder $builder
-     * @param int
+     * @param VectorOffset
      * @return void
      */
     public static function addReferToC(FlatBufferBuilder $builder, $referToC)
