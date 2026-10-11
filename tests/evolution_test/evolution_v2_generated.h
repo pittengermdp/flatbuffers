@@ -153,7 +153,7 @@ FLATBUFFERS_STRUCT_END(Struct, 16);
 inline bool operator==(const Struct &lhs, const Struct &rhs) {
   return
       (lhs.a() == rhs.a()) &&
-      (lhs.b() == rhs.b());
+      ::flatbuffers::IsFloatTheSameAs(lhs.b(), rhs.b());
 }
 
 inline bool operator!=(const Struct &lhs, const Struct &rhs) {

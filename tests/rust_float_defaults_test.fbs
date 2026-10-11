@@ -1,0 +1,19 @@
+// Float defaults the Rust generator must spell exactly, including ones no
+// decimal literal can: inexact values, and approximations of std constants
+// that clippy::approx_constant rejects. Exercised by
+// tests/rust_usage_test/tests/float_defaults_test.rs. Generated without
+// --rust-module-root-file: standalone output has no `use super::*`, so the
+// test includes it warning-free.
+
+table FloatDefaults {
+  pi_approx: float = 3.14159;   // inexact; approximates PI
+  e_approx: double = 2.718;     // inexact; approximates E
+  tenth: double = 0.1;          // inexact
+  milli: float = 1e-3;          // inexact, scientific notation
+  half: float = 0.5;            // exact
+  neg_eighth: double = -0.125;  // exact, negative
+  neg_zero: float = -0.0;       // exact; the sign must survive
+  plus: float = +2.5;           // Rust has no unary plus
+  whole: float = 3;             // integral
+  big: double = 1e19;           // integral, above i64::MAX
+}

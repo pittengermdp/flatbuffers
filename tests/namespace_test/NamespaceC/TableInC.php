@@ -70,7 +70,7 @@ class TableInC extends Table
 
     /**
      * @param FlatBufferBuilder $builder
-     * @param int
+     * @param VectorOffset
      * @return void
      */
     public static function addReferToA1(FlatBufferBuilder $builder, $referToA1)
@@ -80,7 +80,7 @@ class TableInC extends Table
 
     /**
      * @param FlatBufferBuilder $builder
-     * @param int
+     * @param VectorOffset
      * @return void
      */
     public static function addReferToA2(FlatBufferBuilder $builder, $referToA2)

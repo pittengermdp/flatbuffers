@@ -40,6 +40,37 @@ struct PrintTag<const void*> {
   typedef PrintPointerTag type;
 };
 
+// A union's types are UTYPE to the schema, but are stored as the union's
+// underlying type: UTYPE, 1 byte, by default, but INT for `union U: int`.
+// Returns the base type a value of base type `t`, of type `type`, is stored as.
+static BaseType StoredBaseType(BaseType t, const Type& type) {
+  return t == BASE_TYPE_UTYPE && type.enum_def
+             ? type.enum_def->underlying_type.base_type
+             : t;
+}
+
+// Reads a union's type, stored at `p` as the union's underlying type, `type`.
+static int64_t ReadUnionType(BaseType type, const uint8_t* p) {
+  switch (type) {
+    case BASE_TYPE_CHAR:
+      return ReadScalar<int8_t>(p);
+    case BASE_TYPE_SHORT:
+      return ReadScalar<int16_t>(p);
+    case BASE_TYPE_USHORT:
+      return ReadScalar<uint16_t>(p);
+    case BASE_TYPE_INT:
+      return ReadScalar<int32_t>(p);
+    case BASE_TYPE_UINT:
+      return ReadScalar<uint32_t>(p);
+    case BASE_TYPE_LONG:
+      return ReadScalar<int64_t>(p);
+    case BASE_TYPE_ULONG:  // As an EnumVal holds it.
+      return static_cast<int64_t>(ReadScalar<uint64_t>(p));
+    default:  // UTYPE, UCHAR.
+      return ReadScalar<uint8_t>(p);
+  }
+}
+
 struct JsonPrinter {
   // If indentation is less than 0, that indicates we don't want any newlines
   // either.
@@ -210,13 +241,20 @@ struct JsonPrinter {
         // If this assert hits, you have an corrupt buffer, a union type field
         // was not present or was out of range.
         FLATBUFFERS_ASSERT(prev_val);
-        auto union_type_byte = *prev_val;  // Always a uint8_t.
+        // The type is stored as the union's underlying type.
+        const auto underlying = type.enum_def->underlying_type.base_type;
+        auto type_ptr = prev_val;
         if (vector_index >= 0) {
           auto type_vec = reinterpret_cast<const Vector<uint8_t>*>(
               prev_val + ReadScalar<uoffset_t>(prev_val));
-          union_type_byte = type_vec->Get(static_cast<uoffset_t>(vector_index));
+          // As Vector::Get() checks, for a vector of any width.
+          FLATBUFFERS_ASSERT(static_cast<uoffset_t>(vector_index) <
+                             type_vec->size());
+          type_ptr = type_vec->Data() +
+                     SizeOf(underlying) * static_cast<size_t>(vector_index);
         }
-        auto enum_val = type.enum_def->ReverseLookup(union_type_byte, true);
+        auto enum_val = type.enum_def->ReverseLookup(
+            ReadUnionType(underlying, type_ptr), true);
         if (enum_val) {
           return PrintOffset(val, enum_val->union_type, indent, nullptr, -1);
         } else {
@@ -236,7 +274,7 @@ struct JsonPrinter {
         const auto vec_type = type.VectorType();
         // Call PrintVector above specifically for each element type:
         // clang-format off
-        switch (vec_type.base_type) {
+        switch (StoredBaseType(vec_type.base_type, vec_type)) {
         #define FLATBUFFERS_TD(ENUM, IDLTYPE, CTYPE, ...) \
           case BASE_TYPE_ ## ENUM: { \
             auto err = PrintVector<CTYPE>(val, vec_type, indent, prev_val); \
@@ -487,7 +525,7 @@ struct JsonPrinter {
           text += ':';
         text += ' ';
         // clang-format off
-        switch (fd.value.type.base_type) {
+        switch (StoredBaseType(fd.value.type.base_type, fd.value.type)) {
         #define FLATBUFFERS_TD(ENUM, IDLTYPE, CTYPE, ...) \
           case BASE_TYPE_ ## ENUM: { \
             GenField<CTYPE>(fd, table, struct_def.fixed, elem_indent); \
