@@ -823,10 +823,11 @@ pub unsafe fn set_string(
     let mut bytes_to_insert = v.as_bytes().to_vec();
 
     if delta != 0 {
-        // Rounds the delta up to the nearest multiple of the maximum int size to keep the types after the insersion point aligned.
-        // stdint crate defines intmax_t as an alias for c_long; use it directly to avoid extra
-        // dependency.
-        let mask = (size_of::<core::ffi::c_long>() - 1) as isize;
+        // Rounds the delta up to a multiple of the largest scalar size, 8 bytes, so
+        // the 8-byte scalars after the insertion point stay aligned. This matches
+        // C++'s sizeof(largest_scalar_t) (uintmax_t); c_long would be only 4 bytes
+        // on Windows.
+        let mask = (size_of::<u64>() - 1) as isize;
         let offset = (delta + mask) & !mask;
         // Converts before anything is written, so a failure leaves `buf` intact.
         let len_new_value: SOffsetT = len_new.try_into()?;
