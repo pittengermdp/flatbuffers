@@ -477,6 +477,15 @@ double GetAnyValueF(reflection::BaseType type, const uint8_t* data) {
 std::string GetAnyValueS(reflection::BaseType type, const uint8_t* data,
                          const reflection::Schema* schema, int type_index) {
   switch (type) {
+    case reflection::UType:
+      // A union's type is stored as the union's underlying type, a UType only
+      // by default; `type_index` is the union's enum.
+      if (schema && type_index >= 0) {
+        auto union_def =
+            schema->enums()->Get(static_cast<uoffset_t>(type_index));
+        type = union_def->underlying_type()->base_type();
+      }
+      return NumToString(GetAnyValueI(type, data));
     case reflection::Float:
     case reflection::Double:
       return NumToString(GetAnyValueF(type, data));

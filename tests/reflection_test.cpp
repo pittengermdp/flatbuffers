@@ -146,6 +146,10 @@ void ReflectionTest(const std::string& tests_data_path, uint8_t* flatbuf,
   TEST_EQ(hp_double, 80.0);
   auto hp_string = flatbuffers::GetAnyFieldS(root, hp_field, &schema);
   TEST_EQ_STR(hp_string.c_str(), "80");
+  // A union's type is read as its union stores it: here as a UType.
+  TEST_EQ_STR(
+      flatbuffers::GetAnyFieldS(root, *test_type_field_ptr, &schema).c_str(),
+      "1");
 
   // Get struct field through reflection
   auto pos_struct = flatbuffers::GetFieldStruct(root, *pos_field_ptr);
@@ -880,6 +884,52 @@ void ReflectionVerifyUnionTypeSlotsTest(const std::string& tests_data_path) {
       GetAnyRoot(buf.data())->GetAddressOf(Movie::VT_MAIN_CHARACTER_TYPE));
   TEST_NOTNULL(GetAnyRoot(buf.data())->GetAddressOf(Movie::VT_CHARACTERS_TYPE));
   TestSlotsPastEnd(generated, reflected, schema, buf);
+}
+
+// Given the schema, GetAnyFieldS() reads a union's type at the union's
+// underlying width, as does the table printer of GetAnyValueS(), which calls
+// it: test_union_type is an int for `union ABC: int`, though the schema gives
+// it the base type UType.
+void ReflectionUnionUnderlyingTypeToStringTest(
+    const std::string& tests_data_path) {
+  using namespace UnionUnderlyingType;
+
+  std::string schemafile;
+  TEST_EQ(flatbuffers::LoadFile(
+              (tests_data_path + "union_underlying_type_test.fbs").c_str(),
+              false, &schemafile),
+          true);
+  flatbuffers::Parser parser;
+  TEST_EQ(parser.Parse(schemafile.c_str()), true);
+  parser.Serialize();
+  auto& schema = *reflection::GetSchema(parser.builder_.GetBufferPointer());
+  int d_index = -1;
+  for (uoffset_t i = 0; i < schema.objects()->size(); i++) {
+    if (schema.objects()->Get(i)->name()->str() == "UnionUnderlyingType.D") {
+      d_index = static_cast<int>(i);
+    }
+  }
+  TEST_EQ(d_index >= 0, true);
+  auto d_def = schema.objects()->Get(static_cast<uoffset_t>(d_index));
+  auto type_field = d_def->fields()->LookupByKey("test_union_type");
+  TEST_NOTNULL(type_field);
+
+  // A = 555, whose low byte is 43.
+  AT a;
+  a.a = 42;
+  DT d;
+  d.test_union.Set(a);
+  flatbuffers::FlatBufferBuilder fbb;
+  fbb.Finish(D::Pack(fbb, &d));
+  auto root = flatbuffers::GetAnyRoot(fbb.GetBufferPointer());
+
+  TEST_EQ_STR(flatbuffers::GetAnyFieldS(*root, *type_field, &schema).c_str(),
+              "555");
+  TEST_EQ_STR(flatbuffers::GetAnyValueS(reflection::Obj, fbb.GetBufferPointer(),
+                                        &schema, d_index)
+                  .c_str(),
+              "UnionUnderlyingType.D { test_union: (union), "
+              "test_union_type: 555, }");
 }
 
 // Test that ForAllFields with reverse=true iterates fields in descending

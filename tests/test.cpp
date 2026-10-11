@@ -2295,6 +2295,7 @@ int FlatBufferTests(const std::string& tests_data_path) {
   ReflectionUnionUnderlyingTypeTest(tests_data_path);
   ReflectionVerifyUnionByValueTest(tests_data_path);
   ReflectionVerifyUnionTypeSlotsTest(tests_data_path);
+  ReflectionUnionUnderlyingTypeToStringTest(tests_data_path);
   ForAllFieldsReverseTest(tests_data_path);
   AnnotateDeprecatedRequiredFieldTest(tests_data_path);
   ReflectionVerifyUnionValueSlotTest(tests_data_path);
