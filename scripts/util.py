@@ -77,4 +77,4 @@ def flatc(
   cmd += [schema] if isinstance(schema, str) else schema
   if data:
     cmd += [data] if isinstance(data, str) else data
-  result = subprocess.run(cmd, cwd=str(cwd), check=True)
+  subprocess.run(cmd, cwd=str(cwd), check=True)

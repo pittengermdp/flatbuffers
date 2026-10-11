@@ -11,3 +11,9 @@
 # declined to reformat and the job reported a diff against a corpus every other
 # platform produces.
 *.go text eol=lf
+
+# Rust and TypeScript too. scripts/generate_code.py hands the formatters LF and
+# rewrites any CRLF file it formats, including ones nothing generated, which
+# would make scripts/check_generate_code.py count them as regenerated.
+*.rs text eol=lf
+*.ts text eol=lf

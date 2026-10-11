@@ -1939,8 +1939,8 @@ void MapSetRoundTripTest() {
   TEST_EQ(ids_vec->Get(0)->key(), 10u);
   TEST_EQ(ids_vec->Get(1)->key(), 20u);
 
-  // Write the binary for cross-language round-trip testing.
-  // Go and TypeScript tests read this file to verify interop.
+  // Write the binary out for cross-language round-trip testing. Nothing in
+  // the tree reads it yet; .gitignore keeps it out of commits.
   flatbuffers::SaveFile("tests/map_set_test_data.bin",
                         reinterpret_cast<const char*>(buf),
                         fbb.GetSize(), /*binary=*/true);

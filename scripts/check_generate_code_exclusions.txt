@@ -1,0 +1,35 @@
+# Tracked files that carry a generated-code header but that
+# scripts/generate_code.py does not write. scripts/check_generate_code.py
+# reports every other such file as an orphan.
+#
+# Groups are separated by blank lines. Each group starts with '#' lines that
+# say what produces its files and why generate_code.py does not, followed by
+# one or more paths relative to the repository root. A path may be an
+# fnmatch pattern, where '*' also matches '/'.
+#
+# The gate checks this list on every run, and fails when
+#   - a group has no reason,
+#   - a pattern matches no tracked file with a generated-code header, or
+#   - generate_code.py wrote every file a pattern matches.
+#
+# Prefer wiring a command into generate_code.py over adding an entry here: the
+# gate then catches the files going stale.
+
+# tests/ts/TypeScriptTest.py, which the CI TypeScript job runs, regenerates
+# these with its own flatc calls and then compiles them, so the job never uses
+# the committed copies. Wiring those calls in here would also mean tracking or
+# ignoring the files they write that git does not track, such as
+# non_zero_enum.ts and relative_imports/. generate_code.py writes some of the
+# same paths (monster_test.ts, my-game/).
+tests/ts/*.ts
+
+# tsc output of the generated TypeScript, from tests/ts/TypeScriptTest.py. It
+# needs node and the packages `pnpm i` installs.
+tests/ts/*.js
+
+# tests/PythonTest.sh, which the CI Python job runs, regenerates it with
+# `--grpc --python-typing` before the Python tests. That command is not run
+# here: with --python-typing the grpc_fb.pyi it also writes is not valid
+# Python (a missing comma after request_iterator in
+# grpc/src/compiler/python_generator.cc).
+tests/service_test_generated.py
