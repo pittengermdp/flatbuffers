@@ -3,123 +3,143 @@
 package Test
 
 import (
-	flatbuffers "union_of_union_test/flatbuffers"
+	flatbuffers "github.com/google/flatbuffers/go"
 )
 
 type TableBT struct {
 	Y string `json:"y,omitempty"`
 }
 
-func (t *TableBT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *TableBT) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	yOffset := flatbuffers.UOffsetT(0)
-	if t.Y != "" {
-		yOffset = builder.CreateString(t.Y)
+	yOffset_ := flatbuffers.UOffsetT(0)
+	if t_.Y != "" {
+		yOffset_ = builder_.CreateString(t_.Y)
 	}
-	TableBStart(builder)
-	TableBAddY(builder, yOffset)
-	return TableBEnd(builder)
+	TableBStart(builder_)
+	TableBAddY(builder_, yOffset_)
+	return TableBEnd(builder_)
 }
 
-func (rcv *TableB) UnPackTo(t *TableBT) {
-	t.Y = string(rcv.Y())
+func (rcv_ *TableB) UnPackTo(t_ *TableBT) {
+	t_.Y = string(rcv_.Y())
 }
 
-func (rcv *TableB) UnPack() *TableBT {
-	if rcv == nil {
+func (rcv_ *TableB) UnPack() *TableBT {
+	if rcv_ == nil {
 		return nil
 	}
-	t := &TableBT{}
-	rcv.UnPackTo(t)
-	return t
+	t_ := &TableBT{}
+	rcv_.UnPackTo(t_)
+	return t_
+}
+
+const (
+	TableBFieldY = "y"
+)
+
+// UnpackFields returns a partial *TableBT with only the named fields populated.
+// Fields not in the list are left at their zero/default values.
+// This avoids materializing the entire table tree. Pass the
+// generated TableBField* constants rather than raw strings.
+func (rcv_ *TableB) UnpackFields(fields_ ...string) *TableBT {
+	t_ := &TableBT{}
+	fieldSet_ := make(map[string]bool, len(fields_))
+	for _, f_ := range fields_ {
+		fieldSet_[f_] = true
+	}
+	if fieldSet_["y"] {
+		t_.Y = string(rcv_.Y())
+	}
+	return t_
 }
 
 type TableB struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsTableB(buf []byte, offset flatbuffers.UOffsetT) *TableB {
-	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &TableB{}
-	x.Init(buf, n+offset)
-	return x
+func GetRootAsTableB(buf_ []byte, offset_ flatbuffers.UOffsetT) *TableB {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_:])
+	x_ := &TableB{}
+	x_.Init(buf_, n_+offset_)
+	return x_
 }
 
-func FinishTableBBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.Finish(offset)
+func FinishTableBBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.Finish(offset_)
 }
 
-func GetSizePrefixedRootAsTableB(buf []byte, offset flatbuffers.UOffsetT) *TableB {
-	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &TableB{}
-	x.Init(buf, n+offset+flatbuffers.SizeUint32)
-	return x
+func GetSizePrefixedRootAsTableB(buf_ []byte, offset_ flatbuffers.UOffsetT) *TableB {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_+flatbuffers.SizeUint32:])
+	x_ := &TableB{}
+	x_.Init(buf_, n_+offset_+flatbuffers.SizeUint32)
+	return x_
 }
 
-func FinishSizePrefixedTableBBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.FinishSizePrefixed(offset)
+func FinishSizePrefixedTableBBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.FinishSizePrefixed(offset_)
 }
 
-func VerifyRootAsTableB(buf []byte, opts *flatbuffers.VerifierOptions) error {
-	v := flatbuffers.NewVerifier(buf, opts)
-	tablePos, err := v.CheckUOffsetT(0)
-	if err != nil {
-		return err
+func VerifyRootAsTableB(buf_ []byte, opts_ *flatbuffers.VerifierOptions) error {
+	v_ := flatbuffers.NewVerifier(buf_, opts_)
+	tablePos_, err_ := v_.CheckUOffsetT(0)
+	if err_ != nil {
+		return err_
 	}
-	return verifyTableB(v, int(tablePos))
+	return verifyTableB(v_, int(tablePos_))
 }
 
-func VerifyTableB(v *flatbuffers.Verifier, tablePos int) error {
-	return verifyTableB(v, tablePos)
+func VerifyTableB(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	return verifyTableB(v_, tablePos_)
 }
 
-func verifyTableB(v *flatbuffers.Verifier, tablePos int) error {
-	if err := v.CheckTable(tablePos); err != nil {
-		return err
+func verifyTableB(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	if err_ := v_.CheckTable(tablePos_); err_ != nil {
+		return err_
 	}
-	if err := v.CountTable(); err != nil {
-		return err
+	if err_ := v_.CountTable(); err_ != nil {
+		return err_
 	}
-	if err := v.PushDepth(); err != nil {
-		return err
+	if err_ := v_.PushDepth(); err_ != nil {
+		return err_
 	}
-	defer v.PopDepth()
+	defer v_.PopDepth()
 
-	if pos, err := v.CheckOffsetField(tablePos, 4); err != nil {
-		return err
-	} else if pos != 0 {
-		if err := v.CheckString(pos); err != nil {
-			return err
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 4); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		if err_ := v_.CheckString(pos_); err_ != nil {
+			return err_
 		}
 	}
 	return nil
 }
 
-func (rcv *TableB) Init(buf []byte, i flatbuffers.UOffsetT) {
-	rcv._tab.Bytes = buf
-	rcv._tab.Pos = i
+func (rcv_ *TableB) Init(buf_ []byte, i_ flatbuffers.UOffsetT) {
+	rcv_._tab.Bytes = buf_
+	rcv_._tab.Pos = i_
 }
 
-func (rcv *TableB) Table() flatbuffers.Table {
-	return rcv._tab
+func (rcv_ *TableB) Table() flatbuffers.Table {
+	return rcv_._tab
 }
 
-func (rcv *TableB) Y() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
-	if o != 0 {
-		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+func (rcv_ *TableB) Y() []byte {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(4))
+	if o_ != 0 {
+		return rcv_._tab.ByteVector(o_ + rcv_._tab.Pos)
 	}
 	return nil
 }
 
-func TableBStart(builder *flatbuffers.Builder) {
-	builder.StartObject(1)
+func TableBStart(builder_ *flatbuffers.Builder) {
+	builder_.StartObject(1)
 }
-func TableBAddY(builder *flatbuffers.Builder, y flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(y), 0)
+func TableBAddY(builder_ *flatbuffers.Builder, y_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(y_), 0)
 }
-func TableBEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	return builder.EndObject()
+func TableBEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder_.EndObject()
 }

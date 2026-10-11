@@ -3,146 +3,187 @@
 package Test
 
 import (
-	flatbuffers "union_of_union_test/flatbuffers"
+	flatbuffers "github.com/google/flatbuffers/go"
 )
 
 type RootT struct {
 	Content *OuterT `json:"content,omitempty"`
 }
 
-func (t *RootT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *RootT) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	contentOffset := t.Content.Pack(builder)
+	contentOffset_ := t_.Content.Pack(builder_)
 
-	RootStart(builder)
-	if t.Content != nil {
-		RootAddContentType(builder, t.Content.Type)
+	RootStart(builder_)
+	if t_.Content != nil {
+		RootAddContentType(builder_, t_.Content.Type)
 	}
-	RootAddContent(builder, contentOffset)
-	return RootEnd(builder)
+	RootAddContent(builder_, contentOffset_)
+	return RootEnd(builder_)
 }
 
-func (rcv *Root) UnPackTo(t *RootT) {
-	contentTable := flatbuffers.Table{}
-	if rcv.Content(&contentTable) {
-		t.Content = rcv.ContentType().UnPack(contentTable)
+func (rcv_ *Root) UnPackTo(t_ *RootT) {
+	contentTable_ := flatbuffers.Table{}
+	if rcv_.Content(&contentTable_) {
+		t_.Content = rcv_.ContentType().UnPack(contentTable_)
 	}
 }
 
-func (rcv *Root) UnPack() *RootT {
-	if rcv == nil {
+func (rcv_ *Root) UnPack() *RootT {
+	if rcv_ == nil {
 		return nil
 	}
-	t := &RootT{}
-	rcv.UnPackTo(t)
-	return t
+	t_ := &RootT{}
+	rcv_.UnPackTo(t_)
+	return t_
+}
+
+const (
+	RootFieldContent = "content"
+)
+
+// UnpackFields returns a partial *RootT with only the named fields populated.
+// Fields not in the list are left at their zero/default values.
+// This avoids materializing the entire table tree. Pass the
+// generated RootField* constants rather than raw strings.
+func (rcv_ *Root) UnpackFields(fields_ ...string) *RootT {
+	t_ := &RootT{}
+	fieldSet_ := make(map[string]bool, len(fields_))
+	for _, f_ := range fields_ {
+		fieldSet_[f_] = true
+	}
+	if fieldSet_["content"] {
+		contentTable_ := flatbuffers.Table{}
+		if rcv_.Content(&contentTable_) {
+			t_.Content = rcv_.ContentType().UnPack(contentTable_)
+		}
+	}
+	return t_
 }
 
 type Root struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsRoot(buf []byte, offset flatbuffers.UOffsetT) *Root {
-	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &Root{}
-	x.Init(buf, n+offset)
-	return x
+func GetRootAsRoot(buf_ []byte, offset_ flatbuffers.UOffsetT) *Root {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_:])
+	x_ := &Root{}
+	x_.Init(buf_, n_+offset_)
+	return x_
 }
 
-func FinishRootBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.Finish(offset)
+func FinishRootBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.Finish(offset_)
 }
 
-func GetSizePrefixedRootAsRoot(buf []byte, offset flatbuffers.UOffsetT) *Root {
-	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &Root{}
-	x.Init(buf, n+offset+flatbuffers.SizeUint32)
-	return x
+func GetSizePrefixedRootAsRoot(buf_ []byte, offset_ flatbuffers.UOffsetT) *Root {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_+flatbuffers.SizeUint32:])
+	x_ := &Root{}
+	x_.Init(buf_, n_+offset_+flatbuffers.SizeUint32)
+	return x_
 }
 
-func FinishSizePrefixedRootBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.FinishSizePrefixed(offset)
+func FinishSizePrefixedRootBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.FinishSizePrefixed(offset_)
 }
 
-func VerifyRootAsRoot(buf []byte, opts *flatbuffers.VerifierOptions) error {
-	v := flatbuffers.NewVerifier(buf, opts)
-	tablePos, err := v.CheckUOffsetT(0)
-	if err != nil {
-		return err
+func VerifyRootAsRoot(buf_ []byte, opts_ *flatbuffers.VerifierOptions) error {
+	v_ := flatbuffers.NewVerifier(buf_, opts_)
+	tablePos_, err_ := v_.CheckUOffsetT(0)
+	if err_ != nil {
+		return err_
 	}
-	return verifyRoot(v, int(tablePos))
+	return verifyRoot(v_, int(tablePos_))
 }
 
-func VerifyRoot(v *flatbuffers.Verifier, tablePos int) error {
-	return verifyRoot(v, tablePos)
+func VerifyRoot(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	return verifyRoot(v_, tablePos_)
 }
 
-func verifyRoot(v *flatbuffers.Verifier, tablePos int) error {
-	if err := v.CheckTable(tablePos); err != nil {
-		return err
+func verifyRoot(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	if err_ := v_.CheckTable(tablePos_); err_ != nil {
+		return err_
 	}
-	if err := v.CountTable(); err != nil {
-		return err
+	if err_ := v_.CountTable(); err_ != nil {
+		return err_
 	}
-	if err := v.PushDepth(); err != nil {
-		return err
+	if err_ := v_.PushDepth(); err_ != nil {
+		return err_
 	}
-	defer v.PopDepth()
+	defer v_.PopDepth()
 
-	if err := v.CheckScalarField(tablePos, 4, 1); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 4, 1); err_ != nil {
+		return err_
 	}
-	if pos, err := v.CheckOffsetField(tablePos, 6); err != nil {
-		return err
-	} else if pos != 0 {
-		if _, err := v.CheckVector(pos, 1); err != nil {
-			return err
+	if err_ := v_.CheckUnionConsistency(tablePos_, 4, 6, "content"); err_ != nil {
+		return err_
+	}
+	if pos_, err_ := v_.CheckOffsetField(tablePos_, 6); err_ != nil {
+		return err_
+	} else if pos_ != 0 {
+		uType_, err_ := v_.ReadFieldByte(tablePos_, 4)
+		if err_ != nil {
+			return err_
+		}
+		switch Outer(uType_) {
+		case OuterTableA:
+			if err_ := verifyTableA(v_, pos_); err_ != nil {
+				return err_
+			}
+		case OuterTableB:
+			if err_ := verifyTableB(v_, pos_); err_ != nil {
+				return err_
+			}
+		case OuterTableC:
+			if err_ := verifyTableC(v_, pos_); err_ != nil {
+				return err_
+			}
 		}
 	}
 	return nil
 }
 
-func (rcv *Root) Init(buf []byte, i flatbuffers.UOffsetT) {
-	rcv._tab.Bytes = buf
-	rcv._tab.Pos = i
+func (rcv_ *Root) Init(buf_ []byte, i_ flatbuffers.UOffsetT) {
+	rcv_._tab.Bytes = buf_
+	rcv_._tab.Pos = i_
 }
 
-func (rcv *Root) Table() flatbuffers.Table {
-	return rcv._tab
+func (rcv_ *Root) Table() flatbuffers.Table {
+	return rcv_._tab
 }
 
-func (rcv *Root) ContentType() Outer {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
-	if o != 0 {
-		return Outer(rcv._tab.GetByte(o + rcv._tab.Pos))
+func (rcv_ *Root) ContentType() Outer {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(4))
+	if o_ != 0 {
+		return Outer(rcv_._tab.GetByte(o_ + rcv_._tab.Pos))
 	}
 	return 0
 }
 
-func (rcv *Root) MutateContentType(n Outer) bool {
-	return rcv._tab.MutateByteSlot(4, byte(n))
+func (rcv_ *Root) MutateContentType(n_ Outer) bool {
+	return rcv_._tab.MutateByteSlot(4, byte(n_))
 }
 
-func (rcv *Root) Content(obj *flatbuffers.Table) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
-	if o != 0 {
-		rcv._tab.Union(obj, o)
+func (rcv_ *Root) Content(obj_ *flatbuffers.Table) bool {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(6))
+	if o_ != 0 {
+		rcv_._tab.Union(obj_, o_)
 		return true
 	}
 	return false
 }
 
-func RootStart(builder *flatbuffers.Builder) {
-	builder.StartObject(2)
+func RootStart(builder_ *flatbuffers.Builder) {
+	builder_.StartObject(2)
 }
-func RootAddContentType(builder *flatbuffers.Builder, contentType Outer) {
-	builder.PrependByteSlot(0, byte(contentType), 0)
+func RootAddContentType(builder_ *flatbuffers.Builder, contentType_ Outer) {
+	builder_.PrependByteSlot(0, byte(contentType_), 0)
 }
-func RootAddContent(builder *flatbuffers.Builder, content flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(content), 0)
+func RootAddContent(builder_ *flatbuffers.Builder, content_ flatbuffers.UOffsetT) {
+	builder_.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(content_), 0)
 }
-func RootEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	return builder.EndObject()
+func RootEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder_.EndObject()
 }

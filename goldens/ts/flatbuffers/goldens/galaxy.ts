@@ -24,7 +24,7 @@ static getSizePrefixedRootAsGalaxy(bb:flatbuffers.ByteBuffer, obj?:Galaxy):Galax
 
 numStars():bigint {
   const offset = this.bb!.__offset(this.bb_pos, 4);
-  return offset ? this.bb!.readInt64(this.bb_pos + offset) : BigInt('0');
+  return offset ? this.bb!.readInt64(this.bb_pos + offset) : 0n;
 }
 
 static startGalaxy(builder:flatbuffers.Builder) {
@@ -32,7 +32,7 @@ static startGalaxy(builder:flatbuffers.Builder) {
 }
 
 static addNumStars(builder:flatbuffers.Builder, numStars:bigint) {
-  builder.addFieldInt64(0, numStars, BigInt('0'));
+  builder.addFieldInt64(0, numStars, 0n);
 }
 
 static endGalaxy(builder:flatbuffers.Builder):flatbuffers.Offset {
@@ -45,4 +45,13 @@ static createGalaxy(builder:flatbuffers.Builder, numStars:bigint):flatbuffers.Of
   Galaxy.addNumStars(builder, numStars);
   return Galaxy.endGalaxy(builder);
 }
+}
+
+export function verifyGalaxy(verifier: flatbuffers.Verifier, tablePos: number): void {
+  verifier.checkTable(tablePos);
+  try {
+    verifier.checkScalarField(tablePos, 4, 8);
+  } finally {
+    verifier.popDepth();
+  }
 }

@@ -3,119 +3,139 @@
 package Test
 
 import (
-	flatbuffers "union_of_union_test/flatbuffers"
+	flatbuffers "github.com/google/flatbuffers/go"
 )
 
 type TableCT struct {
 	Z float32 `json:"z,omitempty"`
 }
 
-func (t *TableCT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
+func (t_ *TableCT) Pack(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if t_ == nil {
 		return 0
 	}
-	TableCStart(builder)
-	TableCAddZ(builder, t.Z)
-	return TableCEnd(builder)
+	TableCStart(builder_)
+	TableCAddZ(builder_, t_.Z)
+	return TableCEnd(builder_)
 }
 
-func (rcv *TableC) UnPackTo(t *TableCT) {
-	t.Z = rcv.Z()
+func (rcv_ *TableC) UnPackTo(t_ *TableCT) {
+	t_.Z = rcv_.Z()
 }
 
-func (rcv *TableC) UnPack() *TableCT {
-	if rcv == nil {
+func (rcv_ *TableC) UnPack() *TableCT {
+	if rcv_ == nil {
 		return nil
 	}
-	t := &TableCT{}
-	rcv.UnPackTo(t)
-	return t
+	t_ := &TableCT{}
+	rcv_.UnPackTo(t_)
+	return t_
+}
+
+const (
+	TableCFieldZ = "z"
+)
+
+// UnpackFields returns a partial *TableCT with only the named fields populated.
+// Fields not in the list are left at their zero/default values.
+// This avoids materializing the entire table tree. Pass the
+// generated TableCField* constants rather than raw strings.
+func (rcv_ *TableC) UnpackFields(fields_ ...string) *TableCT {
+	t_ := &TableCT{}
+	fieldSet_ := make(map[string]bool, len(fields_))
+	for _, f_ := range fields_ {
+		fieldSet_[f_] = true
+	}
+	if fieldSet_["z"] {
+		t_.Z = rcv_.Z()
+	}
+	return t_
 }
 
 type TableC struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsTableC(buf []byte, offset flatbuffers.UOffsetT) *TableC {
-	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &TableC{}
-	x.Init(buf, n+offset)
-	return x
+func GetRootAsTableC(buf_ []byte, offset_ flatbuffers.UOffsetT) *TableC {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_:])
+	x_ := &TableC{}
+	x_.Init(buf_, n_+offset_)
+	return x_
 }
 
-func FinishTableCBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.Finish(offset)
+func FinishTableCBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.Finish(offset_)
 }
 
-func GetSizePrefixedRootAsTableC(buf []byte, offset flatbuffers.UOffsetT) *TableC {
-	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &TableC{}
-	x.Init(buf, n+offset+flatbuffers.SizeUint32)
-	return x
+func GetSizePrefixedRootAsTableC(buf_ []byte, offset_ flatbuffers.UOffsetT) *TableC {
+	n_ := flatbuffers.GetUOffsetT(buf_[offset_+flatbuffers.SizeUint32:])
+	x_ := &TableC{}
+	x_.Init(buf_, n_+offset_+flatbuffers.SizeUint32)
+	return x_
 }
 
-func FinishSizePrefixedTableCBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
-	builder.FinishSizePrefixed(offset)
+func FinishSizePrefixedTableCBuffer(builder_ *flatbuffers.Builder, offset_ flatbuffers.UOffsetT) {
+	builder_.FinishSizePrefixed(offset_)
 }
 
-func VerifyRootAsTableC(buf []byte, opts *flatbuffers.VerifierOptions) error {
-	v := flatbuffers.NewVerifier(buf, opts)
-	tablePos, err := v.CheckUOffsetT(0)
-	if err != nil {
-		return err
+func VerifyRootAsTableC(buf_ []byte, opts_ *flatbuffers.VerifierOptions) error {
+	v_ := flatbuffers.NewVerifier(buf_, opts_)
+	tablePos_, err_ := v_.CheckUOffsetT(0)
+	if err_ != nil {
+		return err_
 	}
-	return verifyTableC(v, int(tablePos))
+	return verifyTableC(v_, int(tablePos_))
 }
 
-func VerifyTableC(v *flatbuffers.Verifier, tablePos int) error {
-	return verifyTableC(v, tablePos)
+func VerifyTableC(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	return verifyTableC(v_, tablePos_)
 }
 
-func verifyTableC(v *flatbuffers.Verifier, tablePos int) error {
-	if err := v.CheckTable(tablePos); err != nil {
-		return err
+func verifyTableC(v_ *flatbuffers.Verifier, tablePos_ int) error {
+	if err_ := v_.CheckTable(tablePos_); err_ != nil {
+		return err_
 	}
-	if err := v.CountTable(); err != nil {
-		return err
+	if err_ := v_.CountTable(); err_ != nil {
+		return err_
 	}
-	if err := v.PushDepth(); err != nil {
-		return err
+	if err_ := v_.PushDepth(); err_ != nil {
+		return err_
 	}
-	defer v.PopDepth()
+	defer v_.PopDepth()
 
-	if err := v.CheckScalarField(tablePos, 4, 4); err != nil {
-		return err
+	if err_ := v_.CheckScalarField(tablePos_, 4, 4); err_ != nil {
+		return err_
 	}
 	return nil
 }
 
-func (rcv *TableC) Init(buf []byte, i flatbuffers.UOffsetT) {
-	rcv._tab.Bytes = buf
-	rcv._tab.Pos = i
+func (rcv_ *TableC) Init(buf_ []byte, i_ flatbuffers.UOffsetT) {
+	rcv_._tab.Bytes = buf_
+	rcv_._tab.Pos = i_
 }
 
-func (rcv *TableC) Table() flatbuffers.Table {
-	return rcv._tab
+func (rcv_ *TableC) Table() flatbuffers.Table {
+	return rcv_._tab
 }
 
-func (rcv *TableC) Z() float32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
-	if o != 0 {
-		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+func (rcv_ *TableC) Z() float32 {
+	o_ := flatbuffers.UOffsetT(rcv_._tab.Offset(4))
+	if o_ != 0 {
+		return rcv_._tab.GetFloat32(o_ + rcv_._tab.Pos)
 	}
 	return 0.0
 }
 
-func (rcv *TableC) MutateZ(n float32) bool {
-	return rcv._tab.MutateFloat32Slot(4, n)
+func (rcv_ *TableC) MutateZ(n_ float32) bool {
+	return rcv_._tab.MutateFloat32Slot(4, n_)
 }
 
-func TableCStart(builder *flatbuffers.Builder) {
-	builder.StartObject(1)
+func TableCStart(builder_ *flatbuffers.Builder) {
+	builder_.StartObject(1)
 }
-func TableCAddZ(builder *flatbuffers.Builder, z float32) {
-	builder.PrependFloat32Slot(0, z, 0.0)
+func TableCAddZ(builder_ *flatbuffers.Builder, z_ float32) {
+	builder_.PrependFloat32Slot(0, z_, 0.0)
 }
-func TableCEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	return builder.EndObject()
+func TableCEnd(builder_ *flatbuffers.Builder) flatbuffers.UOffsetT {
+	return builder_.EndObject()
 }
