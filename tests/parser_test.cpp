@@ -859,6 +859,45 @@ void ParseUnionTest() {
   TEST_EQ(parser3.Parse(source), false);
 }
 
+// A union's `_type` field and `_type` vector are UTYPE in the binary schema,
+// but are stored at the union's underlying type. Check that the schema reports
+// that width (4 bytes for `union Wide: int`) and 1 byte for a default union.
+void UnionUnderlyingTypeSizeTest() {
+  flatbuffers::Parser parser;
+  TEST_EQ(parser.Parse("table A {} table B {} union Wide: int { A, B } "
+                       "union Narrow { A, B } "
+                       "table C { wide: Wide; wides: [Wide]; narrow: Narrow; "
+                       "narrows: [Narrow]; } root_type C;"),
+          true);
+  parser.Serialize();
+  auto schema = reflection::GetSchema(parser.builder_.GetBufferPointer());
+  TEST_NOTNULL(schema);
+  auto c = schema->root_table();
+  TEST_NOTNULL(c);
+
+  auto wide_type = c->fields()->LookupByKey("wide_type");
+  auto wides_type = c->fields()->LookupByKey("wides_type");
+  auto narrow_type = c->fields()->LookupByKey("narrow_type");
+  auto narrows_type = c->fields()->LookupByKey("narrows_type");
+  TEST_NOTNULL(wide_type);
+  TEST_NOTNULL(wides_type);
+  TEST_NOTNULL(narrow_type);
+  TEST_NOTNULL(narrows_type);
+
+  // The schema still labels all of them UType.
+  TEST_EQ(wide_type->type()->base_type() == reflection::UType, true);
+  TEST_EQ(wides_type->type()->element() == reflection::UType, true);
+
+  TEST_EQ(wide_type->type()->base_size(),
+          static_cast<uint32_t>(sizeof(int32_t)));
+  TEST_EQ(wides_type->type()->element_size(),
+          static_cast<uint32_t>(sizeof(int32_t)));
+  TEST_EQ(narrow_type->type()->base_size(),
+          static_cast<uint32_t>(sizeof(uint8_t)));
+  TEST_EQ(narrows_type->type()->element_size(),
+          static_cast<uint32_t>(sizeof(uint8_t)));
+}
+
 void ValidSameNameDifferentNamespaceTest() {
   // Duplicate table names in different namespaces must be parsable
   TEST_ASSERT(flatbuffers::Parser().Parse(
