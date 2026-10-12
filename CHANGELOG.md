@@ -4,6 +4,27 @@ All major or breaking changes will be documented in this file, as well as any
 new features that should be highlighted. Minor fixes or improvements are not
 necessarily listed.
 
+## [0.5.9] (October 12 2026)
+
+Rolls up the fixes merged since 0.5.8: reflection (`Verify`, `CopyTable`, `ResizeContext`,
+`SetString`, wide union types, 64-bit buffers), the binary annotator, Go/Rust/JSON/text/bfbs
+generator fixes, clippy-clean Rust runtimes and test crates, a stricter regeneration gate,
+and CI fixes (Android, Kotlin, Rust).
+
+* [C++] Reflection `Verify` checks offsets, unions, required/deprecated fields, struct alignment and
+  64-bit buffers; `CopyTable`/`ResizeContext` handle unions and vectors of unions, `SetString` shrinks
+  from its tail
+* [C++] Read, print, parse and verify a union's `_type` at its underlying width (mini reflection,
+  JSON, text, bfbs, `GetAnyField`/`SetAnyField`)
+* [C++] Binary annotator: annotate each vtable slot once, skip absent deprecated required fields,
+  read unions by value and without types
+* [C++] `ForceVectorAlignment64` accepts an empty vector; Object API `Pack()` serializes offset64
+  fields first; `--gen-compare` treats NaN as equal to NaN
+* [Go] Give field parameters an `Arg_` role so a field named `builder` compiles
+* [Rust] Generated code and the runtimes are clippy-clean under default lints
+* [gRPC] Valid typed Python stubs for streaming requests
+* Regeneration gate fails on orphaned and untracked generated files
+
 ## [0.5.0] (July 2 2026)
 
 First release under the fork's own unified version line. The project previously
