@@ -8,8 +8,3 @@ flatbuffers = { path = "../flatbuffers"}
 num-traits = "0.2.19"
 anyhow = "1.0.75"
 thiserror = "2.0"
-
-# Read by tests/RustTest.sh and tests/RustTest.bat; see docs/source/languages/rust.md.
-[package.metadata.rust-test]
-clippy-debt = "the stale src/reflection_generated.rs predates the clippy gate"
-clippy-debt-limit = 36

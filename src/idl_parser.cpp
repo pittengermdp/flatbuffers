@@ -4930,10 +4930,10 @@ bool Parser::Deserialize(const uint8_t* buf, const size_t size) {
     else
       size_prefixed = true;
   }
-  auto verify_fn = size_prefixed
-                       ? &reflection::VerifySizePrefixedSchemaBuffer<false>
-                       : &reflection::VerifySchemaBuffer<false>;
-  if (!verify_fn(verifier)) {
+  // `Verifier` is a VerifierTemplate<true> where
+  // FLATBUFFERS_TRACK_VERIFIER_BUFFER_SIZE is defined, so let the call deduce it.
+  if (!(size_prefixed ? reflection::VerifySizePrefixedSchemaBuffer(verifier)
+                      : reflection::VerifySchemaBuffer(verifier))) {
     return false;
   }
   auto schema = size_prefixed ? reflection::GetSizePrefixedSchema(buf)

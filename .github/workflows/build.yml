@@ -319,6 +319,8 @@ jobs:
        java-version: 17
    - name: set up Gradle
      uses: gradle/actions/setup-gradle@v5
+     with:
+       gradle-version: 8.0.1
    - name: set up flatc
      run: |
        cmake -DFLATBUFFERS_BUILD_TESTS=OFF -DFLATBUFFERS_BUILD_FLATLIB=OFF -DFLATBUFFERS_BUILD_FLATHASH=OFF -DFLATBUFFERS_STRICT_MODE=ON .
@@ -471,9 +473,13 @@ jobs:
        echo "${PWD}" >> "$GITHUB_PATH"
     - name: Build
       working-directory: kotlin
-      # `gradle` is the runner image's preinstalled Gradle, not ./gradlew:
-      # setup-gradle installs none when no gradle-version is given.
-      run: gradle jvmMainClasses jvmTest jsTest jsBrowserTest
+      # The wrapper's Gradle, which the Kotlin plugin in use supports. The
+      # runner image's preinstalled Gradle 9 removed an API the plugin calls.
+      env:
+        # The Kotlin plugin installs Node 16, which a transitive dependency
+        # (node-releases) no longer supports by its declared engines.
+        YARN_IGNORE_ENGINES: "true"
+      run: ./gradlew jvmMainClasses jvmTest jsTest jsBrowserTest
 
   build-rust-linux:
     name: Build Rust Linux
