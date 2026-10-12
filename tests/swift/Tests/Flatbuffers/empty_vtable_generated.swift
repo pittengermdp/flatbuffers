@@ -10,7 +10,7 @@ import FlatBuffers
 
 public struct DataModel_A: FlatBufferVerifiableTable, FlatbuffersVectorInitializable, ObjectAPIPacker {
 
-  static func validateVersion() { FlatBuffersVersion_0_5_0() }
+  static func validateVersion() { FlatBuffersVersion_0_5_9() }
   public var __buffer: ByteBuffer! { return _accessor.bb }
   private var _accessor: Table
 

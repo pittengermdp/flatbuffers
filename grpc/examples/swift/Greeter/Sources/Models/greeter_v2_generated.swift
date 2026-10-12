@@ -10,7 +10,7 @@ import FlatBuffers
 
 public struct models_HelloResponse: FlatBufferVerifiableTable, FlatbuffersVectorInitializable {
 
-  static func validateVersion() { FlatBuffersVersion_0_5_0() }
+  static func validateVersion() { FlatBuffersVersion_0_5_9() }
   public var __buffer: ByteBuffer! { return _accessor.bb }
   private var _accessor: Table
 
@@ -55,7 +55,7 @@ extension models_HelloResponse: Encodable {
 
 public struct models_HelloRequest: FlatBufferVerifiableTable, FlatbuffersVectorInitializable {
 
-  static func validateVersion() { FlatBuffersVersion_0_5_0() }
+  static func validateVersion() { FlatBuffersVersion_0_5_9() }
   public var __buffer: ByteBuffer! { return _accessor.bb }
   private var _accessor: Table
 

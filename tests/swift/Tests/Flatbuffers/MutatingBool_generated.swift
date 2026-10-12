@@ -10,7 +10,7 @@ import FlatBuffers
 
 public struct Property: NativeStruct, FlatbuffersVectorInitializable, Verifiable, FlatbuffersInitializable, NativeObject {
 
-  static func validateVersion() { FlatBuffersVersion_0_5_0() }
+  static func validateVersion() { FlatBuffersVersion_0_5_9() }
 
   private var _property: Bool
 
@@ -52,7 +52,7 @@ extension Property: Encodable {
 
 public struct Property_Mutable: FlatBufferStruct, FlatbuffersVectorInitializable {
 
-  static func validateVersion() { FlatBuffersVersion_0_5_0() }
+  static func validateVersion() { FlatBuffersVersion_0_5_9() }
   public var __buffer: ByteBuffer! { return _accessor.bb }
   private var _accessor: Struct
 
@@ -76,7 +76,7 @@ public struct Property_Mutable: FlatBufferStruct, FlatbuffersVectorInitializable
 
 public struct TestMutatingBool: FlatBufferVerifiableTable, FlatbuffersVectorInitializable, ObjectAPIPacker {
 
-  static func validateVersion() { FlatBuffersVersion_0_5_0() }
+  static func validateVersion() { FlatBuffersVersion_0_5_9() }
   public var __buffer: ByteBuffer! { return _accessor.bb }
   private var _accessor: Table
 
