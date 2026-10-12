@@ -475,6 +475,10 @@ jobs:
       working-directory: kotlin
       # The wrapper's Gradle, which the Kotlin plugin in use supports. The
       # runner image's preinstalled Gradle 9 removed an API the plugin calls.
+      env:
+        # The Kotlin plugin installs Node 16, which a transitive dependency
+        # (node-releases) no longer supports by its declared engines.
+        YARN_IGNORE_ENGINES: "true"
       run: ./gradlew jvmMainClasses jvmTest jsTest jsBrowserTest
 
   build-rust-linux:
