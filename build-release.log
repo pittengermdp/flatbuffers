@@ -1,0 +1,32 @@
+[1/30] flatc generation: `tests/64bit/evolution/v2.fbs` -> `tests/64bit/evolution/v2_generated.h`
+[2/30] flatc generation: `tests/native_inline_table_test.fbs` -> `tests/native_inline_table_test_generated.h`
+[3/30] flatc generation: `tests/64bit/evolution/v1.fbs` -> `tests/64bit/evolution/v1_generated.h`
+[4/30] flatc generation: `tests/native_type_test.fbs` -> `tests/native_type_test_generated.h`
+[5/30] flatc generation: `tests/default_vectors_strings_test.fbs` -> `tests/default_vectors_strings_test.fbs.h`
+[6/30] flatc generation: `tests/64bit/test_64bit.fbs` -> `tests/64bit/test_64bit_generated.h`
+[7/30] flatc generation: `tests/arrays_test.fbs` -> `tests/arrays_test_generated.h`
+[8/30] flatc generation: `tests/alignment_test.fbs` -> `tests/alignment_test_generated.h`
+[9/30] flatc generation: `tests/key_field/key_field_sample.fbs` -> `tests/key_field/key_field_sample_generated.h`
+[10/30] flatc generation: `tests/cross_namespace_pack_test.fbs` -> `tests/cross_namespace_pack_test_generated.h`
+[11/30] flatc generation: `tests/union_underlying_type_test.fbs` -> `tests/union_underlying_type_test_generated.h`
+[12/30] flatc generation: `tests/map_set_test.fbs` -> `tests/map_set_test_generated.h`
+[13/30] Building CXX object CMakeFiles/flatsamplebinary.dir/samples/sample_binary.cpp.o
+[14/30] Building CXX object CMakeFiles/flattests.dir/tests/default_vectors_strings_test.cpp.o
+[15/30] Building CXX object CMakeFiles/flatsampletext.dir/samples/sample_text.cpp.o
+[16/30] Building CXX object CMakeFiles/flatsamplebfbs.dir/samples/sample_bfbs.cpp.o
+[17/30] Building CXX object CMakeFiles/flattests.dir/tests/evolution_test.cpp.o
+[18/30] Building CXX object CMakeFiles/flattests.dir/tests/optional_scalars_test.cpp.o
+[19/30] Linking CXX executable flatsamplebinary
+[20/30] Building CXX object CMakeFiles/flattests.dir/tests/reflection_test.cpp.o
+[21/30] Building CXX object CMakeFiles/flattests.dir/tests/json_test.cpp.o
+[22/30] Linking CXX executable flatsampletext
+[23/30] Linking CXX executable flatsamplebfbs
+[24/30] Building CXX object CMakeFiles/flattests.dir/tests/native_type_test_impl.cpp.o
+[25/30] Building CXX object CMakeFiles/flattests.dir/tests/vector_table_naked_ptr_test.cpp.o
+[26/30] Building CXX object CMakeFiles/flattests.dir/tests/alignment_test.cpp.o
+[27/30] Building CXX object CMakeFiles/flattests.dir/tests/monster_test.cpp.o
+[28/30] Building CXX object CMakeFiles/flattests.dir/tests/test_builder.cpp.o
+[29/30] Building CXX object CMakeFiles/flattests.dir/tests/test.cpp.o
+[30/30] Linking CXX executable flattests
+release exit=0
+release flattests exit=0
