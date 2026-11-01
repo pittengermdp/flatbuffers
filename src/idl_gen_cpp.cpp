@@ -426,12 +426,16 @@ class CppGenerator : public BaseGenerator {
       code_ += "struct {{STRUCT_NAME}}BinarySchema {";
       code_ += "  static const uint8_t *data() {";
       code_ += "    // Buffer containing the binary schema.";
+<<<<<<< HEAD
       // Aligned as the buffer was built: a verifier checks the alignment of
       // every scalar and vector in it, and an unaligned byte array reads its
       // 8-byte fields at misaligned addresses.
       code_ += "    alignas(" +
                NumToString(parser_.builder_.GetBufferMinAlignment()) +
                ") static const uint8_t bfbsData[" +
+=======
+      code_ += "    alignas(uint64_t) static const uint8_t bfbsData[" +
+>>>>>>> upstream/master
                NumToString(parser_.builder_.GetSize()) + "] = {";
       code_ += binary_schema_hex_text;
       code_ += "    };";
