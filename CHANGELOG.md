@@ -4,6 +4,16 @@ All major or breaking changes will be documented in this file, as well as any
 new features that should be highlighted. Minor fixes or improvements are not
 necessarily listed.
 
+## [Unreleased]
+
+* [Rust] The `flatbuffers`, `flexbuffers` and `flatbuffers-reflection` crates are versioned
+  `<upstream>+liftnet.<fork>`, currently `25.12.19+liftnet.0.5.9`: the newest upstream release
+  this fork contains, with the fork's own version as build metadata. Advisory scanners compare
+  the part before `+`, so they no longer report upstream fixes the fork already has (for example
+  GHSA-gx73-2498-r55c, GHSA-3jch-9qgp-4844 and GHSA-c9h5-hf8r-m97x) as missing.
+  `scripts/release.sh` writes this form; raise `upstream_base` in it when upstream-sync merges a
+  newer upstream release.
+
 ## [0.5.9] (October 12 2026)
 
 Rolls up the fixes merged since 0.5.8: reflection (`Verify`, `CopyTable`, `ResizeContext`,
