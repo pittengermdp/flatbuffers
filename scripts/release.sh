@@ -38,7 +38,21 @@ fi
 IFS=. read -r major minor patch <<< "$version"
 version_underscore="${major}_${minor}_${patch}"
 
-echo "Setting FlatBuffers version to: $version"
+# The Rust crates take the newest UPSTREAM release this fork contains as their
+# version, with the fork's own version as build metadata: 25.12.19+liftnet.0.5.10.
+# Cargo, crates.io advisories and Dependabot compare versions by the part before
+# "+", and advisories name upstream versions, so they are matched against the
+# upstream code the fork actually carries. A bare 0.5.x made every upstream fix
+# released after 0.5 look missing. Raise this when upstream-sync merges a newer
+# upstream release.
+upstream_base="25.12.19"
+if [[ ! $upstream_base =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "upstream_base must be major.minor.patch, got: $upstream_base"
+    exit 1
+fi
+rust_version="${upstream_base}+liftnet.${version}"
+
+echo "Setting FlatBuffers version to: $version (Rust crates: $rust_version)"
 
 echo "Updating include/flatbuffers/base.h..."
 sed -i \
@@ -106,13 +120,13 @@ echo "Updating python/setup.py..."
 sed -i -e "s/\(version='\).*/\1$version',/" python/setup.py
 
 echo "Updating rust/flatbuffers/Cargo.toml..."
-sed -i "s/^version = \".*\"$/version = \"$version\"/" rust/flatbuffers/Cargo.toml
+sed -i "s/^version = \".*\"$/version = \"$rust_version\"/" rust/flatbuffers/Cargo.toml
 
 echo "Updating rust/reflection/Cargo.toml..."
-sed -i "s/^version = \".*\"$/version = \"$version\"/" rust/reflection/Cargo.toml
+sed -i "s/^version = \".*\"$/version = \"$rust_version\"/" rust/reflection/Cargo.toml
 
 echo "Updating rust/flexbuffers/Cargo.toml..."
-sed -i "s/^version = \".*\"$/version = \"$version\"/" rust/flexbuffers/Cargo.toml
+sed -i "s/^version = \".*\"$/version = \"$rust_version\"/" rust/flexbuffers/Cargo.toml
 
 echo "Updating FlatBuffers.podspec..."
 sed -i -e "s/\(s.version[[:space:]]*= \).*/\1'$version'/" FlatBuffers.podspec

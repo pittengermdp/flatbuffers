@@ -82,6 +82,13 @@ extension Array where Element == Package.Dependency {
       .package(
         url: "https://github.com/apple/swift-crypto.git",
         "3.12.3"..<"5.0.0"),
+      // Transitive via grpc-swift-2 and swift-nio. swift-log 1.17.0 marks
+      // StreamLogHandler's enum `@nonexhaustive` (SE-0487), which the Swift
+      // 6.2.1 toolchain in the CI matrix rejects; 1.16.2 does not use it.
+      // Lift this cap together with the swift-crypto one above.
+      .package(
+        url: "https://github.com/apple/swift-log.git",
+        "1.0.0"..<"1.17.0"),
     ]
     #endif
   }
