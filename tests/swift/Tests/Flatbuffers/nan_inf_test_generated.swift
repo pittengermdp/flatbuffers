@@ -10,7 +10,7 @@ import FlatBuffers
 
 public struct Swift_Tests_NanInfTable: FlatBufferVerifiableTable, FlatbuffersVectorInitializable {
 
-  static func validateVersion() { FlatBuffersVersion_0_5_9() }
+  static func validateVersion() { FlatBuffersVersion_0_5_10() }
   public var __buffer: ByteBuffer! { return _accessor.bb }
   private var _accessor: Table
 
