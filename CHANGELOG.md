@@ -4,15 +4,17 @@ All major or breaking changes will be documented in this file, as well as any
 new features that should be highlighted. Minor fixes or improvements are not
 necessarily listed.
 
-## [Unreleased]
+## [0.5.10] (November 12 2026)
 
 * [Rust] The `flatbuffers`, `flexbuffers` and `flatbuffers-reflection` crates are versioned
-  `<upstream>+liftnet.<fork>`, currently `25.12.19+liftnet.0.5.9`: the newest upstream release
+  `<upstream>+liftnet.<fork>`, in this release `25.12.19+liftnet.0.5.10`: the newest upstream release
   this fork contains, with the fork's own version as build metadata. Advisory scanners compare
   the part before `+`, so they no longer report upstream fixes the fork already has (for example
   GHSA-gx73-2498-r55c, GHSA-3jch-9qgp-4844 and GHSA-c9h5-hf8r-m97x) as missing.
   `scripts/release.sh` writes this form; raise `upstream_base` in it when upstream-sync merges a
   newer upstream release.
+* [Swift] swift-log is capped below 1.17.0, whose `@nonexhaustive` enum the Swift 6.2 CI
+  toolchain rejects, as swift-crypto already was
 
 ## [0.5.9] (October 12 2026)
 
